@@ -1,0 +1,9 @@
+{ 
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "type-enum": [2, "always", [
+        "build", "chore", "ci", "docs", "feat", "feature", "fix", "bugfix", "hotfix",
+         "perf", "refactor", "revert", "style", "test",  "update", "release", "delete"
+      ]]
+  }
+}

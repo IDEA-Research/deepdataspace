@@ -1,0 +1,32 @@
+.page {
+  position: relative;
+  height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+
+  :global {
+    .ant-pro-grid-content {
+      position: relative;
+      height: 100%;
+    }
+  }
+}
+
+.table {
+  position: absolute;
+  inset: 24px;
+
+  :global {
+    .ant-pro-card-body {
+      padding-bottom: 0;
+    }
+  }
+
+  .actionCell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}

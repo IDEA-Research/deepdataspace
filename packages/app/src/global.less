@@ -1,0 +1,73 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #f5f5f5;
+  overflow: overlay; // Scrollbar does not occupy width.
+}
+
+#root {
+  .ant-page-header {
+    background-color: #fff;
+  }
+
+  .ant-pro .ant-layout-header.ant-pro-layout-header-fixed-header {
+    padding: 0 44px;
+    background-color: white;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .ant-pro-page-container-affix .ant-affix {
+    top: 0 !important;
+  }
+
+  .ant-pro-top-nav-header-main {
+    padding-inline-start: 0;
+  }
+
+  .ant-pro-top-nav-header-logo > *:first-child > img {
+    height: 40px;
+  }
+
+  .ant-image-preview-mask {
+    z-index: 900 !important;
+  }
+
+  .ant-image-preview-wrap {
+    z-index: 901 !important;
+  }
+
+  .ant-collapse
+    > .ant-collapse-item.ant-collapse-no-arrow
+    > .ant-collapse-header {
+    padding: 0 !important;
+  }
+
+  .ant-collapse-ghost
+    > .ant-collapse-item
+    > .ant-collapse-content
+    > .ant-collapse-content-box {
+    padding: 0 !important;
+  }
+
+  .ant-collapse .ant-collapse-item-disabled > .ant-collapse-header,
+  .ant-collapse .ant-collapse-item-disabled > .ant-collapse-header > .arrow {
+    cursor: pointer !important;
+  }
+
+  .ant-pro .ant-pro-layout .ant-pro-layout-content {
+    margin-block: 0;
+    margin-inline: 0;
+  }
+
+  .ant-table-tbody > tr > td > .ant-space {
+    flex-wrap: wrap;
+  }
+
+  .ant-table-pagination.ant-pagination {
+    margin: 16px 0;
+  }
+}

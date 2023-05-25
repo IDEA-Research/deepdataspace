@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render GlobalLoading by snapshot 1`] = `
+<div>
+  <div
+    class="ant-spin-nested-loading"
+  >
+    <div
+      class="ant-spin-container"
+    >
+      test
+    </div>
+  </div>
+</div>
+`;

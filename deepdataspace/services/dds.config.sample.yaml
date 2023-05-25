@@ -1,0 +1,31 @@
+runtime_dir: # default to $HOME/.deepdataspace
+data_dir: # default to $HOME/.deepdataspace/datasets
+quick_start: false # download a small dataset for quick start
+verbose_log: false # display detailed logs
+
+db_engine: # sqlite3 or mysql
+db_host:
+db_port: # a number
+db_name:
+db_user:
+db_pass:
+
+redis_host:
+redis_port: # a number
+redis_pass:
+redis_dbname: # a number
+
+mongodb_host:
+mongodb_port: # a number
+mongodb_user:
+mongodb_pass:
+mongodb_dbname:
+
+django_host:
+django_port: # a number
+django_secret:
+django_reload: false
+
+celery_worker_pool: solo # solo or prefork, only solo works on Windows platform
+
+sentry_dsn:

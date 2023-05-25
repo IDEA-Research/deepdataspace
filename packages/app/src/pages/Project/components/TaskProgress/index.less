@@ -1,0 +1,32 @@
+.container {
+  position: relative;
+  width: 100%;
+
+  .progress {
+    position: relative;
+    display: flex;
+    width: 90%;
+    height: 8px;
+    background-color: #e4e4e4;
+    border-radius: 100px;
+    transition: all 0.4s cubic-bezier(0.08, 0.82, 0.17, 1) 0s;
+    overflow: hidden;
+
+    .progressItem {
+      height: 8px;
+    }
+  }
+
+  .labels {
+    position: relative;
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 12px;
+
+    .split {
+      margin: 0 4px;
+      color: #e4e4e4;
+    }
+  }
+}

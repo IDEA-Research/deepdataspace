@@ -1,0 +1,154 @@
+.page {
+  background: #fafafa;
+  min-height: 100vh;
+}
+
+.container {
+  position: relative;
+  margin-bottom: 72px;
+  min-width: 918px;
+}
+
+.banner {
+  width: 100%;
+  margin-bottom: 25px;
+}
+
+.listTitle {
+  font-size: 20px;
+  color: #262626;
+  margin-bottom: 24px;
+}
+
+.card {
+  .title {
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 32px;
+    color: @colorPrimaryTextActive;
+    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .subtitle {
+    margin-top: -6px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 32px;
+    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .desc {
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 22px;
+
+    /* Neutral / 7 */
+    color: #8c8c8c;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .types {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: -8px;
+
+    div {
+      padding: 2px 8px;
+      height: 24px;
+
+      /* Character/Title .85 */
+      color: rgba(0, 0, 0, 0.85);
+
+      /* Neutral/3 */
+      background: #f5f5f5;
+
+      /* Neutral/4 */
+      border: 1px solid #f0f0f0;
+      border-radius: 2px;
+      margin-bottom: 8px;
+      margin-right: 8px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .line {
+    margin: 16px 0;
+    width: 100%;
+    height: 1px;
+
+    /* Neutral/4 */
+    background-color: #f0f0f0;
+  }
+
+  .extra {
+    display: flex;
+    justify-content: space-between;
+
+    .left {
+      display: flex;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 22px;
+
+      /* Neutral / 8 */
+      color: #595959;
+
+      div {
+        margin-left: 28px;
+
+        &:first-child {
+          margin-left: 0;
+        }
+      }
+
+      span {
+        margin-right: 4px;
+        font-weight: 500;
+        font-size: 16px;
+        line-height: 24px;
+
+        /* Neutral / 11 */
+        color: #1f1f1f;
+      }
+    }
+
+    .right {
+      display: flex;
+      align-items: center;
+    }
+
+    a {
+      display: flex;
+      margin-left: 20px;
+    }
+
+    .download {
+      fill: @colorPrimary;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.pagination {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  margin: 20px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}

@@ -1,0 +1,54 @@
+.dds-lang-selector {
+  height: 34px;
+  padding: 4px 8px;
+
+  div {
+    position: relative;
+    width: 1.2em;
+    height: 1.2em;
+  }
+
+  .cur-lang {
+    position: absolute;
+    font-size: 1.2em;
+    line-height: 1;
+    left: -5%;
+    top: 0;
+    transform: scale(0.7);
+    transform-origin: 0 0;
+    z-index: 1;
+  }
+
+  .cur-lang-light {
+    color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.88);
+    background-color: rgba(0, 0, 0, 0.88);
+  }
+  
+  .cur-lang-dark {
+    color: #000;
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    background-color: rgba(255, 255, 255, 0.88);
+  }
+
+  .change-lang {
+    position: absolute;
+    font-size: 1.2em;
+    line-height: 1;
+    right: -5%;
+    bottom: 0;
+    transform: scale(0.5);
+    transform-origin: 100% 100%;
+    z-index: 0;    
+  }
+
+  .change-lang-light {
+    color: rgba(0, 0, 0, 0.88);
+    border: 1px solid rgba(0, 0, 0, 0.88);
+  }
+
+  .change-lang-dark {
+    color: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.88);
+  }
+}

@@ -1,0 +1,28 @@
+.container {
+  position: relative;
+  display: flex;
+  background: #212121;
+
+  .left {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 220px;
+    height: 100%;
+    padding: 16px;
+    gap: 8px;
+  }
+
+  .right {
+    flex: 1;
+    height: 100%;
+  }
+}
+
+.modal {
+  :global {
+    .ant-modal .ant-modal-header {
+      margin-bottom: 20px;
+    }
+  }
+}

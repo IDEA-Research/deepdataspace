@@ -1,0 +1,26 @@
+.container {
+  position: relative;
+
+  img {
+    &::selection {
+      background-color: transparent;
+    }
+  }
+
+  svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+  }
+
+  canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}

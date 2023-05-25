@@ -1,0 +1,25 @@
+.dropdownSelector {
+  position: fixed;
+
+  .dropdownWrap {
+    max-height: 400px;
+    outline: none;
+    background-color: white;
+    border-radius: 2px;
+    box-shadow: 0 6px 8px 0 rgba(0, 0, 0, 0.15);
+    overflow: scroll;
+
+    /* Hide scrollbar */
+    scrollbar-width: none; /* firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome Safari */
+    }
+  }
+
+  .dropdownBox {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+  }
+}

@@ -1,0 +1,55 @@
+.item {
+  position: relative;
+  height: 30px;
+  margin-left: 6px;
+
+  :global {
+    .ant-select-single.ant-select-sm .ant-select-selector {
+      border: none;
+      margin-right: 5px;
+      width: 100px;
+      background-color: #262626;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .ant-select-arrow {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ant-select-single.ant-select-sm.ant-select-open
+      .ant-select-selection-item {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ant-select-selection-item {
+      color: #fff;
+    }
+  }
+
+  .selectedLine {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+  }
+
+  .info {
+    position: absolute;
+    left: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .action {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .btn {
+    border: 0;
+  }
+}

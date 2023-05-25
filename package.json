@@ -1,0 +1,35 @@
+{
+  "name": "deepdataspace",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run start",
+    "dev:app": "pnpm run --filter app dev",
+    "dev:component": "pnpm run --filter dds-component dev",
+    "dev:website": "pnpm run --filter deepdataspace-website dev",
+    "dev:build": "pnpm run --filter app dev:build",
+    "lint:all": "pnpm -r --stream run lint",
+    "format:all": "pnpm -r --stream run format",
+    "prepare": "husky install",
+    "build:app": "pnpm run --filter app build"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.6.3",
+    "@commitlint/config-conventional": "^17.6.3",
+    "husky": "^8.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "got@<11.8.5": ">=11.8.5",
+      "immer@<9.0.6": ">=9.0.6",
+      "axios@<0.21.1": ">=0.21.1",
+      "follow-redirects@<1.14.8": ">=1.14.8",
+      "json5@<1.0.2": ">=1.0.2",
+      "follow-redirects@<1.14.7": ">=1.14.7",
+      "node-fetch@<2.6.7": ">=2.6.7",
+      "axios@<0.21.2": ">=0.21.2",
+      "node-fetch@<2.6.1": ">=2.6.1",
+      "http-cache-semantics@<4.1.1": ">=4.1.1",
+      "ssri@<6.0.2": ">=6.0.2"
+    }
+  }
+}

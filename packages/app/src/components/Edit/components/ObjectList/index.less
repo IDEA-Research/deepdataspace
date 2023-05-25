@@ -1,0 +1,247 @@
+.rightOperations {
+  /* Hide scrollbar */
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome Safari */
+  }
+
+  :global {
+    .ant-tabs {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ant-tabs-tab + .ant-tabs-tab {
+      margin: 0;
+    }
+
+    .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: #fff;
+    }
+
+    .ant-tabs-tab {
+      padding: 12px;
+      margin: 0;
+    }
+
+    .ant-tabs-tab-active {
+      border-bottom: 2px solid @colorPrimary;
+    }
+
+    .ant-tabs-nav {
+      margin: 0;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #000;
+    }
+
+    .ant-collapse-item {
+      scroll-margin: 48px 0 0 0;
+    }
+
+    .ant-list {
+      color: #fff;
+    }
+
+    .ant-list-item {
+      padding: 0;
+      color: #fff;
+    }
+
+    .objects-selector {
+      width: 144px;
+      color: #fff;
+      text-align: left;
+      padding: 0;
+    }
+
+    .ant-select-disabled.ant-select:not(.ant-select-customize-input)
+      .ant-select-selector {
+      color: #fff;
+    }
+
+    .objects-select-popup {
+      background: #050505;
+      color: #fff;
+      border-radius: 1px;
+      padding: 0;
+      margin-top: -10px;
+
+      .ant-select-item {
+        color: white;
+        text-align: left;
+      }
+
+      .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+        background-color: #4c4c4c;
+      }
+
+      .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+        color: #fff;
+        font-weight: 600;
+        background-color: #050505;
+      }
+    }
+
+    .ant-select-multiple .ant-select-selection-item {
+      background: rgba(0, 0, 0, 0.3);
+      color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .ant-select-multiple .ant-select-selection-item-remove {
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
+
+  .tabHeaderActions {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+  }
+}
+
+.collapse {
+  width: 100%;
+
+  .collapseHeader {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    height: 40px;
+    width: 256px;
+    font-size: 14px;
+    color: #fff;
+    background: #1f1f1f;
+
+    .labelName {
+      margin: 0 15px;
+    }
+
+    .labelCount {
+      display: inline-block;
+      padding-inline: 5px;
+      margin-inline: 10px;
+      height: 25px;
+      min-width: 25px;
+      line-height: 25px;
+      border-radius: 5px;
+      background-color: #236bf7;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .selectedLine {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .icon {
+      margin-left: 14px;
+      margin-right: 14px;
+      width: 15px;
+      height: 15px;
+    }
+
+    .actions {
+      position: absolute;
+      right: 5%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .btn {
+      border: 0;
+    }
+
+    .arrow {
+      transform: rotate(180deg);
+      width: 10px;
+      height: 10px;
+    }
+  }
+
+  .collapseHeader:hover {
+    background-color: #4b4f52;
+  }
+
+  .collapseHeaderSelected {
+    .arrow {
+      transform: rotate(0);
+    }
+  }
+
+  .collapseItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 35px;
+    padding-left: 10px;
+    margin-left: 6px;
+    color: #fff;
+    background: #1f1f1f;
+    font-size: 14px;
+
+    .colorHint {
+      position: absolute;
+      left: 3%;
+      margin-left: 0;
+      width: 0.5rem;
+      height: 0.5rem;
+      border: 0.1rem solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+    }
+
+    .actions {
+      position: absolute;
+      right: 5%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .icon {
+      margin-left: 14px;
+      margin-right: 14px;
+      width: 15px;
+      height: 15px;
+    }
+
+    .btn {
+      border: 0;
+    }
+  }
+
+  .collapseItem:hover {
+    background-color: #4b4f52;
+  }
+}
+
+.labelControl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-items: space-around;
+  padding: 15px 0;
+  background-color: @colorPrimary;
+  background-color: #236bf7;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  gap: 10px;
+
+  .title {
+    text-align: center;
+    width: 100%;
+    font-size: 14px;
+    color: #fff;
+  }
+
+  .selector {
+    width: 200px;
+  }
+}

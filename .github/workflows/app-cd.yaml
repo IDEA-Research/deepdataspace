@@ -1,0 +1,123 @@
+name: app-cd
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+env:
+  helmRepoURL: 'https://harbor.cvrgo.com/chartrepo/dds'
+  helmRepoName: 'dds-deploy'
+  k8sNamespace: ''
+  chartPath: 'pipeline'
+  dockerRegistry: 'harbor.cvrgo.com/dds'
+
+jobs:
+  build_test_deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout deepdataspace
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Git Tag
+        id: get_git_tag
+        run: echo "tag=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_OUTPUT
+        
+      - name: Set environment variables
+        run: |
+          gitTag="${{ steps.get_git_tag.outputs.tag }}"
+          echo "GIT_TAG=${gitTag}"
+          echo "GIT_TAG=${gitTag}" >> $GITHUB_ENV
+          if [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-dev[0-9]+ ]]; then
+            echo "K8S_NAMESPACE=dds-dev" >> $GITHUB_ENV
+          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+ ]]; then
+            echo "K8S_NAMESPACE=dds-test" >> $GITHUB_ENV
+          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "K8S_NAMESPACE=dds-prd" >> $GITHUB_ENV
+          else
+            echo "Invalid git tag. Pipeline terminated."
+            exit 1
+          fi
+
+      - name: Checkout deepdataspace-app-env
+        uses: actions/checkout@v2
+        with:
+          repository: deepdataspace/deepdataspace-app-env
+          ref: 'main'
+          path: deepdataspace-app-env
+          token: ${{ secrets.DDS_TOKEN }}
+
+      - name: Copy frontend build env file 
+        run: | 
+          if [[ "${{ env.K8S_NAMESPACE }}" == 'dds-dev' ]]; then  
+            cp deepdataspace-app-env/.env.dev packages/app/.env.local  
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-test' ]]; then  
+            cp deepdataspace-app-env/.env.test packages/app/.env.local  
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-prd' ]]; then  
+            cp deepdataspace-app-env/.env.prod packages/app/.env.local  
+          fi  
+          echo "TAG_VERSION=${{ env.GIT_TAG }}" >> packages/app/.env.local
+
+      - name: Checkout devops repo
+        uses: actions/checkout@v2
+        with:
+          repository: deepdataspace/deepdataspace-helm
+          ref: 'main'
+          path: deepdataspace-helm
+          token: ${{ secrets.DDS_TOKEN }}
+
+      - name: Copy dockerfiles
+        run: |
+          cp -r deepdataspace-helm/dockerfiles .
+
+      - name: Build Docker image
+        run: |
+          imageName="${{ env.helmRepoName }}"
+          imageTag="${{ env.GIT_TAG }}"
+          docker login ${{ env.dockerRegistry }} -u 'robot$robot-dds' --password ${{ secrets.HARBOR_CREDENTIAL }}
+          docker build -t ${{ env.dockerRegistry }}/${imageName}:${imageTag} -f dockerfiles/deploy.Dockerfile .
+          docker push ${{ env.dockerRegistry }}/${imageName}:${imageTag}
+
+      - name: Copy frontend helm values file
+        working-directory: deepdataspace-helm
+        run: |
+          chartPath="${{ env.chartPath }}"
+          if [[ "${{ env.K8S_NAMESPACE }}" == 'dds-dev' ]]; then 
+            cp ${chartPath}/env/dev-values.yaml ${chartPath}/values.yaml
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-test' ]]; then 
+            cp ${chartPath}/env/test-values.yaml ${chartPath}/values.yaml
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-prd' ]]; then 
+            cp ${chartPath}/env/prd-values.yaml ${chartPath}/values.yaml
+          fi 
+          
+      - name: Update Helm chart
+        working-directory: deepdataspace-helm
+        run: |
+          imageName="${{ env.helmRepoName }}"
+          imageTag="${{ env.GIT_TAG }}"
+          ver="${{ env.GIT_TAG }}-$(date +%s)"
+          echo "ver=${ver}" >> $GITHUB_ENV
+          chartPath="${{ env.chartPath }}"
+          sed -i "s/^version:.*/version: ${ver}/" ${chartPath}/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: ${imageTag}/" ${chartPath}/Chart.yaml
+          sed -i "s/^name:.*/name: ${{ env.K8S_NAMESPACE }}/" ${chartPath}/Chart.yaml
+
+      - name: Push Helm chart to Harbor
+        working-directory: deepdataspace-helm
+        run: |
+          helm repo add --username 'robot$robot-dds' --password ${{ secrets.HARBOR_CREDENTIAL }} ${{ env.helmRepoName }} ${{ env.helmRepoURL }} 
+          helm repo update 
+          helm package ${{ env.chartPath }}
+          helm cm-push ${{ env.chartPath }} ${{ env.helmRepoName }}
+          
+      - name: Deploy to Kubernetes
+        working-directory: deepdataspace-helm
+        run: |
+          chartPath="${{ env.chartPath }}"
+          imageTag="${{ env.GIT_TAG }}"
+          helm repo update
+          helm upgrade --install --wait --namespace ${{ env.K8S_NAMESPACE }} ${{ env.K8S_NAMESPACE }} ${{ env.helmRepoName }}/${{ env.K8S_NAMESPACE }} -f ${chartPath}/values.yaml --version ${{ env.ver }} --set django.imageTag=${imageTag},celery.imageTag=${imageTag}

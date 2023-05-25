@@ -1,0 +1,34 @@
+# for local dev
+/op
+.idea
+.vscode
+dev.*
+venv
+/dev/*
+.DS_Store
+/config.py
+.python-version
+
+# for runtime file
+/data
+*.pyc
+*.log
+*.pid
+
+# for tests
+/htmlcov
+/.coverage
+/.coverage.*
+
+# for setup.py
+/dist
+/build
+/MANIFEST
+/deepdataspace.egg-info
+
+# for docs
+/docs
+
+# frontend
+/node_modules
+/packages/deepdataspace-website
