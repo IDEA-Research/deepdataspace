@@ -47,14 +47,14 @@ DeepDataSpace(DDS) requires **Python 3.8 - 3.10** and runs on the following plat
 - Windows 10, x86/x64
 - Ubuntu 18.04/20.04/22.04, x86/x64
 
-### 1.1 Installing from PyPI
+### 1.2 Installing from PyPI
 
 ```bash
 python3 -m pip install pip --upgrade
 python3 -m pip install deepdataspace
 ```
 
-### 1.2 Installing from source code
+### 1.3 Installing from source code
 
 ```bash
 
