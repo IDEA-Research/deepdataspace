@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Dropdown, Layout } from 'antd';
+import { Button, Dropdown, Layout, Tooltip } from 'antd';
 import {
   Link,
   Outlet,
@@ -11,7 +11,7 @@ import {
 import { GlobalLoading, LangSelector } from 'dds-component';
 import { STORAGE_KEY } from '@/constants';
 import LoginModal from '@/components/LoginModal';
-import { LeftOutlined, LogoutOutlined, RightOutlined } from '@ant-design/icons';
+import { FileSearchOutlined, LeftOutlined, LoginOutlined, LogoutOutlined, RightOutlined } from '@ant-design/icons';
 import routes from '@/routes';
 import classNames from 'classnames';
 import { useLocale } from '@/locales/helper';
@@ -103,6 +103,7 @@ export default () => {
                 [styles.collapsedActions]: collapsed,
               })}
             >
+              {/* <div className={styles.userBlock}> */}
               {user.isLogin ? (
                 <Dropdown
                   placement="topRight"
@@ -128,14 +129,25 @@ export default () => {
                   </div>
                 </Dropdown>
               ) : (
-                <Button
-                  type="text"
-                  className={styles.loginBtn}
-                  onClick={limitLoginAction}
-                >
-                  {localeText('login')}
-                </Button>
+                <div className={styles.userBlock}>
+                  <Button
+                    type="text"
+                    className={styles.userBtn}
+                    onClick={limitLoginAction}
+                  >
+                    {collapsed ? localeText('login') : <LoginOutlined />}
+                  </Button>
+                  {!collapsed && (
+                    <span className={styles.userName}>{localeText('login')}</span>
+                  )}
+                </div>
               )}
+              {/* </div> */}
+              <Tooltip placement='right' title={localeText('docs')}>
+                <a href="https://docs.deepdataspace.com" target="_blank" rel="noreferrer">
+                  <Button className={styles.docsBtn} type="text" icon={<FileSearchOutlined />} />
+                </a>
+              </Tooltip>
               <LangSelector getLocale={getLocale} setLocale={setLocale} />
             </div>
             <div

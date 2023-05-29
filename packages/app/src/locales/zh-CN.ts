@@ -5,6 +5,7 @@ export default {
   annotator: '标注器',
   annotate: '标注',
   lab: '实验室',
+  docs: '文档',
 
   /** menu */
   'menu.Home': '首页',
