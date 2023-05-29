@@ -5,6 +5,7 @@ export default {
   annotate: 'Annotate',
   annotator: 'Annotator',
   lab: 'Lab',
+  docs: 'Docs',
 
   /** menu */
   'menu.Home': 'Home',

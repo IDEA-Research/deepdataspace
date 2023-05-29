@@ -32,6 +32,7 @@ const CustomMenu: React.FC<IProps> = ({ collapsed }) => {
         key: 'Annotate',
         label: localeText(`annotate`),
         title: '',
+        link: '/project',
         icon: <GatewayOutlined />,
         action: () => {
           setShowAnnotateModal(true);
@@ -63,13 +64,13 @@ const CustomMenu: React.FC<IProps> = ({ collapsed }) => {
     },
   ];
 
-  const [selectedKeys, setSelectedKeys] = useState(() => {
+  const selectedKeys = useMemo(() => {
     const matchItem = menu.find(
       (item) => item.link && pathname.indexOf(item.link) === 0,
     );
     if (matchItem) return [matchItem.key];
     return [];
-  });
+  }, [pathname]);
 
   const clickMenuItem = ({ key }: { key: string }) => {
     const item = menu.find((item) => item.key === key);
@@ -77,13 +78,11 @@ const CustomMenu: React.FC<IProps> = ({ collapsed }) => {
       item.action();
     } else {
       history.push(item?.link);
-      setSelectedKeys([key]);
     }
   };
 
   const clickCardItem = (link: string) => {
     window.open(link, '_blank');
-    // setShowAnnotateModal(false);
   };
 
   return (

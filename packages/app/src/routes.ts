@@ -27,7 +27,6 @@ export default [
   {
     name: 'Project',
     component: '@/wrappers/auth',
-    hideSider: true,
     routes: [
       {
         path: '/project',
@@ -48,8 +47,6 @@ export default [
   },
   {
     name: 'Lab',
-    menuIcon: 'BulbOutlined',
-    menuLink: '/lab',
     routes: [
       {
         path: '/lab',
