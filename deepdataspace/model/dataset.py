@@ -6,6 +6,7 @@ The dataset model.
 
 import json
 import logging
+import os
 import time
 import uuid
 from typing import Dict
@@ -14,6 +15,8 @@ from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import FileReadMode
 from deepdataspace.constants import LabelType
+from deepdataspace.constants import RedisKey
+from deepdataspace.globals import Redis
 from deepdataspace.model._base import BaseModel
 from deepdataspace.model.category import Category
 from deepdataspace.model.image import Image
@@ -194,6 +197,13 @@ class DataSet(BaseModel):
         self.num_images = Model.count_num({})
         self.save()
 
+        # save whitelist to redis
+        whitelist_dirs = set()
+        self._add_local_file_url_to_whitelist(image.url, whitelist_dirs)
+        self._add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
+        if whitelist_dirs:
+            Redis.sadd(RedisKey.DatasetImageDirs, *whitelist_dirs)
+
         return image
 
     def batch_add_image(self,
@@ -250,6 +260,15 @@ class DataSet(BaseModel):
             self._save_image_batch()
         return image
 
+    @staticmethod
+    def _add_local_file_url_to_whitelist(url: str, whitelist: set):
+        if not url or not url.startswith("/files/local_files"):
+            return
+
+        path = url.split("/")
+        path = "/".join(path[7:])
+        whitelist.add(os.path.dirname(path))
+
     def _save_image_batch(self):
         """
         The internal function to flush the batch queue to database.
@@ -263,6 +282,7 @@ class DataSet(BaseModel):
         object_types = set()
         IModel = Image(self.id)
         idx = IModel.count_num({})
+        whitelist_dirs = set()
         for image_id, image in self._batch_queue.items():
             for obj in image.objects:
                 # setup label
@@ -292,6 +312,7 @@ class DataSet(BaseModel):
                     object_types.add(AnnotationType.Segmentation)
                 if obj.alpha and AnnotationType.Matting not in object_types:
                     object_types.add(AnnotationType.Matting)
+                    self._add_local_file_url_to_whitelist(obj.alpha, whitelist_dirs)
                 if obj.points and AnnotationType.KeyPoints not in object_types:
                     object_types.add(AnnotationType.KeyPoints)
 
@@ -300,6 +321,9 @@ class DataSet(BaseModel):
             image.id = idx if image.id < 0 else image.id
             image.batch_save(batch_size=self._batch_size, set_on_insert={"idx": image.idx})
             idx += 1
+
+            self._add_local_file_url_to_whitelist(image.url, whitelist_dirs)
+            self._add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
 
         # finish batch saves
         IModel.finish_batch_save()
@@ -310,6 +334,10 @@ class DataSet(BaseModel):
         self.object_types = list(sorted(list(object_types)))
         self.num_images = IModel.count_num({})
         self.save()
+
+        # save whitelist to redis
+        if whitelist_dirs:
+            Redis.sadd(RedisKey.DatasetImageDirs, *whitelist_dirs)
 
         self._batch_queue.clear()
 

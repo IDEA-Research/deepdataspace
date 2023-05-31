@@ -342,3 +342,7 @@ class LabelImageQAActions:
     Reject = "reject"
 
     ALL_ = {Accept, Reject}
+
+
+class RedisKey:
+    DatasetImageDirs = "DatasetImageDirs"  #: A redis set storing the directories of all imported dataset images.

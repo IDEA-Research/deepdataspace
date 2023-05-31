@@ -23,12 +23,12 @@ from deepdataspace.constants import ContentEncoding
 from deepdataspace.constants import FileReadMode
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
+from deepdataspace.globals import Redis
 from deepdataspace.model import Category
 from deepdataspace.model import DataSet
 from deepdataspace.model import Label
 from deepdataspace.model.image import Image
 from deepdataspace.utils.file import create_file_range_url
-from deepdataspace.utils.file import create_file_url
 from deepdataspace.utils.function import count_block_time
 from deepdataspace.utils.string import get_str_md5
 
@@ -61,7 +61,7 @@ class ImportHelper:
     @staticmethod
     def format_annotation(category: str,
                           label: str = LabelName.GroundTruth,
-                          label_type: Literal["GT", "Pred", "User"] = "GT",
+                          label_type: str = "GT",
                           conf: float = 1.0,
                           is_group: bool = False,
                           bbox: Tuple[int, int, int, int] = None,
@@ -76,34 +76,6 @@ class ImportHelper:
         return dict(category=category, label=label, label_type=label_type, conf=conf, is_group=is_group,
                     bbox=bbox, segmentation=segmentation, alpha_uri=alpha_uri, coco_keypoints=coco_keypoints,
                     confirm_type=confirm_type, )
-
-    @staticmethod
-    def create_file_url(file_path: str,
-                        file_encoding: Literal["1", "2"] = ContentEncoding.Plain,
-                        read_mode: Literal["t", "b"] = FileReadMode.Text,
-                        file_mime: str = None,
-                        url_prefix=None
-                        ) -> str:
-        """
-        A helper function to create a visible url for a local file.
-        """
-
-        return create_file_url(file_path, file_encoding, read_mode, file_mime, url_prefix)
-
-    @staticmethod
-    def create_file_range_url(file_path: str,
-                              beg_pos: int,
-                              end_pos: int,
-                              file_encoding: Literal["1", "2"] = ContentEncoding.Plain,
-                              read_mode: Literal["t", "b"] = FileReadMode.Text,
-                              file_mime: str = None,
-                              url_prefix: str = None,
-                              ) -> str:
-        """
-        A helper function to create a visible url for part of a local file.
-        """
-
-        return create_file_range_url(file_path, beg_pos, end_pos, file_encoding, read_mode, file_mime, url_prefix)
 
 
 class Importer(ImportHelper, abc.ABC):
