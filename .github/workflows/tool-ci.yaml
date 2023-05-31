@@ -1,8 +1,10 @@
 name: tool-ci
-
 on:
   push:
-
+    branches:
+      - '**'
+    tags:
+      - ''
 jobs:
   scan:
     runs-on: self-hosted
@@ -61,7 +63,7 @@ jobs:
           pip install -r requirements-dev.txt
           pytest --cov=deepdataspace -s --cov-report=xml
   test_on_ubuntu_2204:
-    needs: [test_on_windows_2022, test_on_macos_12]
+    needs: [ test_on_windows_2022, test_on_macos_12 ]
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Code
