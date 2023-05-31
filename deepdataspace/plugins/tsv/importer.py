@@ -19,6 +19,7 @@ from deepdataspace.constants import LabelType
 from deepdataspace.constants import TSVFileType
 from deepdataspace.io.importer import FileGroupImporter
 from deepdataspace.io.importer import FileImporter
+from deepdataspace.utils.file import create_file_range_url
 
 logger = logging.getLogger("plugins.tsv.importer")
 
@@ -147,11 +148,11 @@ class TSVImporter(FileImporter):
 
                 beg_pos = image_data_off + result.start()
                 end_pos = beg_pos + len(alpha)
-                alpha = self.create_file_range_url(file_path=file_path,
-                                                   file_encoding=ContentEncoding.Base64,
-                                                   beg_pos=beg_pos,
-                                                   end_pos=end_pos,
-                                                   file_mime="image/png")
+                alpha = create_file_range_url(file_path=file_path,
+                                              file_encoding=ContentEncoding.Base64,
+                                              beg_pos=beg_pos,
+                                              end_pos=end_pos,
+                                              file_mime="image/png")
 
             # prepare is_group
             is_group = bool(obj.get("iscrowd", False))
@@ -208,11 +209,11 @@ class TSVImporter(FileImporter):
         if image_content_str.startswith("http://") or image_content_str.startswith("https://"):
             image_url = image_content_str
         else:
-            image_url = self.create_file_range_url(file_path=file_path,
-                                                   file_encoding=ContentEncoding.Base64,
-                                                   beg_pos=content_offset, end_pos=content_offset + content_length,
-                                                   file_mime="image/jpeg",
-                                                   )
+            image_url = create_file_range_url(file_path=file_path,
+                                              file_encoding=ContentEncoding.Base64,
+                                              beg_pos=content_offset, end_pos=content_offset + content_length,
+                                              file_mime="image/jpeg",
+                                              )
 
         # create image
         image = self.format_image_data(image_url, thumb_uri=image_url,

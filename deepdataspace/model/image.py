@@ -6,6 +6,7 @@ The image model.
 
 import copy
 import logging
+import os
 from typing import ClassVar
 from typing import Dict
 from typing import List
@@ -17,6 +18,8 @@ from typing import Union
 from deepdataspace import constants
 from deepdataspace.constants import FileReadMode
 from deepdataspace.constants import LabelName
+from deepdataspace.constants import RedisKey
+from deepdataspace.globals import Redis
 from deepdataspace.model._base import BaseModel
 from deepdataspace.model.category import Category
 from deepdataspace.model.label import Label
@@ -227,6 +230,15 @@ class ImageModel(BaseModel):
             points.extend([float(x), float(y), 0.0, 1.0, int(v), conf])  # x, y, z, w, v, conf
 
         return points, constants.KeyPointColor.COCO, constants.KeyPointSkeleton.COCO, constants.KeyPointName.COCO
+
+    @staticmethod
+    def _add_local_file_url_to_whitelist(url: str):
+        if not url or not url.startswith("/files/local_files"):
+            return
+
+        path = url.split("/")
+        path = "/".join(path[7:])
+        Redis.sadd(RedisKey.DatasetImageDirs, os.path.dirname(path))
 
     def _update_dataset(self, bbox, segmentation, alpha_uri, coco_keypoints):
         """

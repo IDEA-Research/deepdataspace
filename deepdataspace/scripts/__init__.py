@@ -23,3 +23,4 @@ from deepdataspace.scripts.dataset_cmds import import_one
 from deepdataspace.scripts.dataset_cmds import delete_one
 from deepdataspace.scripts.dataset_cmds import delete_all
 from deepdataspace.scripts.label_project_cmds import lp_export
+from deepdataspace.scripts.migrate import migrate
