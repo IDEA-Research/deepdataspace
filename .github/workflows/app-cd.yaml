@@ -16,6 +16,7 @@ env:
 
 jobs:
   build_test_deploy:
+    if: github.repository_owner == 'deepdataspace'
     runs-on: self-hosted
     steps:
       - name: Checkout deepdataspace
