@@ -1,10 +1,8 @@
 name: Sync Dev to Private Repo
-
 on:
   push:
     branches:
       - dev
-
 jobs:
   merge-and-rebase:
     if: github.repository_owner == 'IDEA-Research'
