@@ -24,7 +24,7 @@ jobs:
         with:
           version: 8
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run pnpm audit
@@ -54,4 +54,3 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=dds-tool
-            -Dsonar.python.coverage.reportPaths=/data/home/deploy/actions-runner/_work/deepdataspace/deepdataspace/coverage.xml

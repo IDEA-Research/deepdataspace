@@ -1,4 +1,4 @@
-name: Sync dev to private repo
+name: Sync Dev to Private Repo
 
 on:
   push:
@@ -10,21 +10,21 @@ jobs:
     if: github.repository_owner == 'IDEA-Research'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout private repo
+      - name: Checkout Private Repo
         uses: actions/checkout@v2
         with:
           repository: deepdataspace/deepdataspace
           ref: dev
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
-      - name: Add public remote
+      - name: Add Public Remote
         run: |
           git remote add public https://github.com/IDEA-Research/deepdataspace.git
 
-      - name: Rebase private repo
+      - name: Rebase Private Repo
         run: |
           git pull public dev --rebase
 
-      - name: Push private repo
+      - name: Push Private Repo
         run: |
           git push
