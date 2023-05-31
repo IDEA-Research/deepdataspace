@@ -89,7 +89,7 @@ class DDS(metaclass=SingletonMeta):
 
         self.running_pids = {}  # {name:pid}, all subprocess started, will be closed at exit
 
-        self.dl_prefix = "https://deepdataspace.oss-cn-shenzhen.aliyuncs.com/install_files"
+        self.dl_prefix = "https://deepdataspace.oss-accelerate.aliyuncs.com/install_files"
         self.distro = PLATFORM if PLATFORM != Platforms.Linux else f"ubuntu{get_ubuntu_version()}"
 
     def argument_or_config(self, key, value, default):
