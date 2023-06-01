@@ -162,6 +162,9 @@ importers:
       prettier-plugin-packagejson:
         specifier: ^2.2.18
         version: 2.4.3(prettier@2.8.8)
+      react-router-dom:
+        specifier: ^6.11.2
+        version: 6.11.2(react-dom@16.14.0)(react@16.14.0)
       ts-node:
         specifier: ^10
         version: 10.0.0(@types/node@18.15.11)(typescript@5.0.2)
@@ -3977,7 +3980,6 @@ packages:
   /@remix-run/router@1.6.2:
     resolution: {integrity: sha512-LzqpSrMK/3JBAVBI9u3NWtOhWNw5AMQfrUFYB0+bDHTSw17z++WJLsPsxAuK+oSddsxk4d7F/JcdDPM1M5YAhA==}
     engines: {node: '>=14'}
-    dev: false
 
   /@rushstack/node-core-library@3.55.1(@types/node@20.2.3):
     resolution: {integrity: sha512-t/nZHq4/4S3ltpYVyIsbbIqmcZx3qEe3Aaw8tI9B6XRNqCFzPxtoTopqTPTuRn8XqCtoDaSe6uMlnn7YCTu8lQ==}
@@ -6782,7 +6784,7 @@ packages:
       babel-plugin-syntax-jsx: 6.18.0
       lodash: 4.17.21
       picomatch: 2.3.1
-      styled-components: 5.3.10(react-dom@18.2.0)(react-is@18.2.0)(react@18.2.0)
+      styled-components: 5.3.10(react-dom@16.14.0)(react-is@18.2.0)(react@16.14.0)
 
   /babel-plugin-syntax-jsx@6.18.0:
     resolution: {integrity: sha512-qrPaCSo9c8RHNRHIotaufGbuOBN8rtdC4QrrFFc43vyWCCz7Kl7GL1PGaXtMGQZUXrkCjNEgxDfmAuAabr/rlw==}
@@ -15786,6 +15788,19 @@ packages:
       warning: 4.0.3
     dev: false
 
+  /react-router-dom@6.11.2(react-dom@16.14.0)(react@16.14.0):
+    resolution: {integrity: sha512-JNbKtAeh1VSJQnH6RvBDNhxNwemRj7KxCzc5jb7zvDSKRnPWIFj9pO+eXqjM69gQJ0r46hSz1x4l9y0651DKWw==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
+    dependencies:
+      '@remix-run/router': 1.6.2
+      react: 16.14.0
+      react-dom: 16.14.0(react@16.14.0)
+      react-router: 6.11.2(react@16.14.0)
+    dev: true
+
   /react-router-dom@6.3.0(react-dom@16.14.0)(react@16.14.0):
     resolution: {integrity: sha512-uaJj7LKytRxZNQV8+RbzJWnJ8K2nPsOOEuX7aQstlMZKQT0164C+X2w6bnkqU3sjtLvpd5ojrezAyfZ1+0sStw==}
     peerDependencies:
@@ -15856,7 +15871,6 @@ packages:
     dependencies:
       '@remix-run/router': 1.6.2
       react: 16.14.0
-    dev: false
 
   /react-router@6.3.0(react@16.14.0):
     resolution: {integrity: sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==}
@@ -17018,6 +17032,28 @@ packages:
   /style-utils@0.1.24:
     resolution: {integrity: sha512-MVZSKubpU/vIfpmOsi8/0ckWxb0WmGBmyNoEDGWZM9cM8n8sCL6DJftl3lEf8Uy5zKQ9+O1XdJxscWTDosCQpQ==}
     dev: false
+
+  /styled-components@5.3.10(react-dom@16.14.0)(react-is@18.2.0)(react@16.14.0):
+    resolution: {integrity: sha512-3kSzSBN0TiCnGJM04UwO1HklIQQSXW7rCARUk+VyMR7clz8XVlA3jijtf5ypqoDIdNMKx3la4VvaPFR855SFcg==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8.0'
+      react-dom: '>= 16.8.0'
+      react-is: '>= 16.8.0'
+    dependencies:
+      '@babel/helper-module-imports': 7.21.4
+      '@babel/traverse': 7.21.5(supports-color@5.5.0)
+      '@emotion/is-prop-valid': 1.2.1
+      '@emotion/stylis': 0.8.5
+      '@emotion/unitless': 0.7.5
+      babel-plugin-styled-components: 2.1.3(styled-components@5.3.10)
+      css-to-react-native: 3.2.0
+      hoist-non-react-statics: 3.3.2
+      react: 16.14.0
+      react-dom: 16.14.0(react@16.14.0)
+      react-is: 18.2.0
+      shallowequal: 1.1.0
+      supports-color: 5.5.0
 
   /styled-components@5.3.10(react-dom@18.2.0)(react-is@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-3kSzSBN0TiCnGJM04UwO1HklIQQSXW7rCARUk+VyMR7clz8XVlA3jijtf5ypqoDIdNMKx3la4VvaPFR855SFcg==}
