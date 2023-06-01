@@ -1,59 +1,33 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { useModel } from '@umijs/max';
-// import { Context } from './mocks';
-
-// const MockedContext = React.createContext({
-//   dispatcher: {},
-// });
-
-// const mockedDispatch = jest.fn();
-
-// const mockedUmiPlugin = {
-//   apply: (hooks: any) => {
-//     hooks.useModel(() => ({ state: { someState: 'someValue' }, dispatch: mockedDispatch }));
-//   },
-// };
+import { dataflowProvider } from '@@/plugin-model/runtime';
 
 describe('useModel global', () => {
-  beforeEach(() => {
-    // 模拟 useModel 返回的对象
-    const mockUseModel = jest.fn((model: string) => {
-      const useHook = require(`@/models/${model}`);
-      return useHook;
+  // beforeAll(() => {
+  // });
+
+  // afterAll(() => {
+  //   jest.resetModules();
+  // });
+
+  it('useModel global returns expected state', () => {
+    const { result } = renderHook(() => useModel('global'), {
+      wrapper: ({ children }) => dataflowProvider(children, {}),
     });
-
-    // Mock 掉 useModel 方法
-    jest.spyOn(useModel, 'default').mockImplementation(() => mockUseModel());
-  });
-
-  it('useModel returns expected state', () => {
-    const { result } = renderHook(() => useModel('global'));
     expect(result.current).toEqual(
       expect.objectContaining({
         loading: false,
       }),
     );
   });
+
+  it('useModel global setter', () => {
+    const { result } = renderHook(() => useModel('global'), {
+      wrapper: ({ children }) => dataflowProvider(children, {}),
+    });
+    act(() => {
+      result.current.setLoading(true);
+    });
+    expect(result.current.loading).toEqual(true);
+  });
 });
-
-// test('useModel returns expected state', () => {
-//   const { result } = renderHook(() => useModel('global'));
-//   expect(result.current).toEqual(
-//     expect.objectContaining({
-//       loading: false,
-//     })
-//   );
-
-//   // const { result } = renderHook(() => useModel('global'),
-//   //   {
-//   //     wrapper: ({ children }) => (
-//   //       <Provider>
-//   //         {/* <Provider plugins={mockContainer.plugins} models={mockContainer.models}> */}
-//   //           {children}
-//   //         {/* </Provider> */}
-//   //       </Provider>
-//   //     ),
-//   //   }
-//   // );
-//   // expect(result.current).toEqual({ loading: false });
-// });
