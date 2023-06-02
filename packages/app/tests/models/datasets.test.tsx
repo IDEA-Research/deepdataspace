@@ -2,7 +2,7 @@ import { act } from '@testing-library/react';
 import { useModel } from '@umijs/max';
 import { umiRenderHook } from '../test-utils';
 
-describe('useModel global', () => {
+describe('useModel datasets', () => {
   // beforeAll(() => {
   // });
 
@@ -10,8 +10,8 @@ describe('useModel global', () => {
   //   jest.resetModules();
   // });
 
-  it('useModel global returns expected state', () => {
-    const { result } = umiRenderHook(() => useModel('global'));
+  it('useModel datasets returns expected state', () => {
+    const { result } = umiRenderHook(() => useModel('datasets'));
     expect(result.current).toEqual(
       expect.objectContaining({
         loading: false,
@@ -19,11 +19,11 @@ describe('useModel global', () => {
     );
   });
 
-  it('useModel global setter', () => {
-    const { result } = umiRenderHook(() => useModel('global'));
+  it('useModel datasets setter', () => {
+    const { result } = umiRenderHook(() => useModel('datasets'));
     act(() => {
-      result.current.setLoading(true);
+      result.current.onPageChange(2, 10);
     });
-    expect(result.current.loading).toEqual(true);
+    expect(result.current.pagination.page).toEqual(2);
   });
 });

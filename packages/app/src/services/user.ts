@@ -27,7 +27,7 @@ export async function login(
 }
 
 export async function logout(options?: { [key: string]: any }) {
-  return request<API.ReqLoginRsp>(`/api/v1/logout`, {
+  return request(`/api/v1/logout`, {
     method: 'POST',
     ...(options || {}),
   });

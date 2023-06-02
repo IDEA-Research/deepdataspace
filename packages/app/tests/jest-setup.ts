@@ -10,6 +10,13 @@ jest.mock('clientjs', () => ({
   },
 }));
 
+/** Partial global mock */
+jest.mock('@/services/user', () => ({
+  fetchUserInfo: jest.fn(),
+  login: jest.fn(),
+  logout: jest.fn(),
+}));
+
 // jest.mock('@umijs/max', () => {
 //   // const originalModule = jest.requireActual('@umijs/max');
 //   return {

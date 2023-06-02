@@ -20,6 +20,10 @@ export default async () => {
       '!src/.umi/**',
       '!src/.umi-test/**',
       '!src/.umi-production/**',
+      // unnecessary test
+      '!src/logs/**',
+      '!src/services/**',
+      '!src/types/**',
     ],
     // if you require some es-module npm package, please uncomment below line and insert your package name
     // transformIgnorePatterns: ['node_modules/(?!.*(lodash-es|your-es-pkg-name)/)']

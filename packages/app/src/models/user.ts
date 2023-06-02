@@ -29,8 +29,8 @@ export default () => {
 
   const checkLoginStatus = async () => {
     try {
-      const { id, name, status, isStaff } = await fetchUserInfo();
       const token = localStorage.getItem(STORAGE_KEY.AUTH_TOKEN);
+      const { id, name, status, isStaff } = await fetchUserInfo();
       if (token && status === EUserStatus.Active)
         setUser({
           isLogin: true,
