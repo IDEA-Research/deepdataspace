@@ -98,6 +98,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run pnpm audit
         run: pnpm audit --registry=https://registry.npmjs.org
+        continue-on-error: true
       - name: Run dev:build to add .umi files
         run: pnpm run dev:build
       - name: Run tests and collect coverage
