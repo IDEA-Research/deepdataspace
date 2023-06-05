@@ -25,7 +25,6 @@ from deepdataspace.constants import LabelProjectStatus
 from deepdataspace.constants import LabelTaskImageStatus
 from deepdataspace.constants import LabelTaskQAActions
 from deepdataspace.constants import LabelTaskStatus
-from deepdataspace.constants import LabelType
 from deepdataspace.model._base import BaseModel
 from deepdataspace.model.dataset import DataSet
 from deepdataspace.model.image import Image
@@ -79,6 +78,7 @@ class LabelProject(BaseModel):
     task_num_rejected: int = 0
     task_num_accepted: int = 0
     categories: str = ""
+    pre_label: str = None  # objects blong to pre_label will be imported as default labels
 
     @classmethod
     def create_project(cls,
@@ -88,6 +88,7 @@ class LabelProject(BaseModel):
                        managers: List[User],
                        categories: List[str],
                        description: str = "",
+                       pre_label: str = None,
                        ) -> "LabelProject":
         """
         Create a label project.
@@ -98,6 +99,7 @@ class LabelProject(BaseModel):
         :param managers: the project managers, which cannot be empty list.
         :param categories: the categories for classification and annotation task, which cannot be empty list.
         :param description: the project description
+        :param pre_label: the pre label set to be imported as default labels
         """
 
         # check data requirements
@@ -133,6 +135,7 @@ class LabelProject(BaseModel):
                                owner=owner,
                                managers=managers,
                                description=description,
+                               pre_label=pre_label,
                                status=status)
         project._set_categories(categories)
         project.save()
@@ -230,10 +233,10 @@ class LabelProject(BaseModel):
                 task = tasks[idx // batch_size]
                 task.num_total += 1
 
-                # TODO import default_labels from special label set instead of ground truth
+                # add import pre label set
                 annotations = []
                 for obj in image["objects"]:
-                    if obj["label_type"] != LabelType.GroundTruth:
+                    if self.pre_label is None or obj["label_name"] != self.pre_label:
                         continue
 
                     anno = {
@@ -245,8 +248,8 @@ class LabelProject(BaseModel):
                     category_names.add(obj["category_name"])
 
                 default_labels = UserLabelData(
-                        user_id="_gt",
-                        user_name="_gt",
+                        user_id="_pre",
+                        user_name="_pre",
                         annotations=annotations
                 )
 
