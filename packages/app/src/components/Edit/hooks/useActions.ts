@@ -1,9 +1,5 @@
 import { reportEvent } from '@/logs';
-import {
-  fetchAiDetectionReq,
-  fetchAIPoseEstimationReq,
-  fetchAISegmentationReq,
-} from '@/services/dataset';
+import { fetchModelResults } from '@/services/dataset';
 import {
   isEqualRect,
   translateBoundingBoxToRect,
@@ -13,7 +9,7 @@ import {
 import { message, Modal } from 'antd';
 import { DrawData, EditImageData, IAnnotationObject } from '..';
 import { Updater } from 'use-immer';
-import { DATA } from '@/services/type';
+import { DATA, EnumModelType } from '@/services/type';
 import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
 import {
   getCanvasPoint,
@@ -22,6 +18,7 @@ import {
   isBase64,
 } from '@/utils/annotation';
 import { useLocale } from '@/locales/helper';
+import { useModel } from '@umijs/max';
 
 interface IProps {
   list: EditImageData[];
@@ -49,6 +46,7 @@ const useActions = ({
   updateAllObject,
 }: IProps) => {
   const { localeText } = useLocale();
+  const { setLoading } = useModel('global');
 
   /**
    * Smart Detection
@@ -62,35 +60,50 @@ const useActions = ({
     source: string,
     aiLabels: string[],
   ) => {
-    const { objects } = await fetchAiDetectionReq({
-      imagePath: source,
-      targets: aiLabels.join(','),
-    });
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.Detection>(
+        EnumModelType.Detection,
+        {
+          image: source,
+          text: aiLabels.join(','),
+        },
+      );
 
-    const newObjects: IAnnotationObject[] = [];
-    objects.forEach((item) => {
-      // mouse.elementW is not necessarily identical to the size during initialization transformation
-      const rect = {
-        ...translateBoundingBoxToRect(item.boundingBox, clientSize),
-      };
-      if (
-        !drawData.objectList.find((obj) => {
-          return (
-            obj.label === item.categoryName &&
-            obj.rect &&
-            isEqualRect(rect, obj.rect)
-          );
-        })
-      ) {
-        newObjects.push({
-          rect: { ...rect, visible: true },
-          label: item.categoryName,
-          type: EObjectType.Rectangle,
-          hidden: false,
+      if (result) {
+        const { objects } = result;
+        const newObjects: IAnnotationObject[] = [];
+        objects.forEach((item) => {
+          // mouse.elementW is not necessarily identical to the size during initialization transformation
+          const rect = {
+            ...translateBoundingBoxToRect(item.boundingBox, clientSize),
+          };
+          if (
+            !drawData.objectList.find((obj) => {
+              return (
+                obj.label === item.categoryName &&
+                obj.rect &&
+                isEqualRect(rect, obj.rect)
+              );
+            })
+          ) {
+            newObjects.push({
+              rect: { ...rect, visible: true },
+              label: item.categoryName,
+              type: EObjectType.Rectangle,
+              hidden: false,
+            });
+          }
         });
+        updateAllObject([...drawData.objectList, ...newObjects]);
+        message.success('Request Successfully !');
       }
-    });
-    updateAllObject([...drawData.objectList, ...newObjects]);
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const requestAiSegmentation = async (drawData: DrawData, source: string) => {
@@ -120,43 +133,62 @@ const useActions = ({
       }) || [];
 
     const reqParams = {
-      imagePath: source,
-      categoryName: drawData.latestLabel,
-      clicks: clicks,
-      polygons: existPolygons,
+      image: source,
       mask: drawData.segmentationMask || '',
+      polygons: existPolygons,
+      clicks: clicks,
     };
 
-    const { categoryName, polygons, mask } = await fetchAISegmentationReq(
-      reqParams,
-    );
-    if (polygons && polygons.length > 0) {
-      const predictPolygons = polygons.map((polygon) => {
-        const result: IPolygon = [];
-        for (let i = 0; i < polygon.length; i += 2) {
-          const x = polygon[i];
-          const y = polygon[i + 1];
-          const canvasPoint = getCanvasPoint([x, y], naturalSize, clientSize);
-          result.push(canvasPoint);
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.Segmentation>(
+        EnumModelType.Segmentation,
+        reqParams,
+      );
+
+      if (result) {
+        const { polygon, mask } = result;
+
+        if (polygon && polygon.length > 0) {
+          const predictPolygons = polygon.map((item) => {
+            const result: IPolygon = [];
+            for (let i = 0; i < item.length; i += 2) {
+              const x = item[i];
+              const y = item[i + 1];
+              const canvasPoint = getCanvasPoint(
+                [x, y],
+                naturalSize,
+                clientSize,
+              );
+              result.push(canvasPoint);
+            }
+            return result;
+          });
+
+          const creatingObj = {
+            type: EObjectType.Polygon,
+            hidden: false,
+            label: drawData.latestLabel,
+            currIndex: -1,
+            polygon: {
+              visible: true,
+              group: predictPolygons,
+            },
+          };
+
+          setDrawData((s) => {
+            s.creatingObject = creatingObj;
+            s.segmentationMask = mask;
+          });
         }
-        return result;
-      });
 
-      const creatingObj = {
-        type: EObjectType.Polygon,
-        hidden: false,
-        label: categoryName || drawData.latestLabel,
-        currIndex: -1,
-        polygon: {
-          visible: true,
-          group: predictPolygons,
-        },
-      };
-
-      setDrawData((s) => {
-        s.creatingObject = creatingObj;
-        s.segmentationMask = mask;
-      });
+        message.success('Request Successfully !');
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,7 +205,7 @@ const useActions = ({
     // TODO: Integrate custom templates
     const { lines, pointNames, pointColors } = BODY_TEMPLATE;
     const reqParams = {
-      imagePath: source,
+      image: source,
       targets: aiLabels.join(','),
       template: {
         lines,
@@ -200,45 +232,62 @@ const useActions = ({
       Object.assign(reqParams, { objects });
     }
 
-    const { objects } = await fetchAIPoseEstimationReq(reqParams);
-
-    if (objects && objects.length > 0) {
-      const skeletonObjs = objects.map((obj) => {
-        let { categoryName, boundingBox, points, conf } = obj;
-        const newObj: IAnnotationObject = {
-          label: categoryName,
-          type: EObjectType.Skeleton,
-          hidden: false,
-          conf,
-        };
-        if (boundingBox) {
-          const rect = translateBoundingBoxToRect(boundingBox!, clientSize);
-          Object.assign(newObj, { rect: { visible: true, ...rect } });
-        }
-        if (points && lines && pointColors && pointNames) {
-          const pointObjs = translatePointsToPointObjs(
-            points,
-            pointNames,
-            pointColors,
-            naturalSize,
-            clientSize,
-          );
-          Object.assign(newObj, {
-            keypoints: {
-              points: pointObjs,
-              lines,
-            },
-          });
-        }
-        return newObj;
-      });
-
-      // Replace all instances of the skeleton type
-      const leftObjs = drawData.objectList.filter(
-        (obj) => obj.type !== EObjectType.Skeleton,
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.Pose>(
+        EnumModelType.Pose,
+        reqParams,
       );
-      const updatedObjects = [...leftObjs, ...skeletonObjs];
-      updateAllObject(updatedObjects);
+
+      if (result) {
+        const { objects } = result;
+
+        if (objects && objects.length > 0) {
+          const skeletonObjs = objects.map((obj) => {
+            let { categoryName, boundingBox, points, conf } = obj;
+            const newObj: IAnnotationObject = {
+              label: categoryName,
+              type: EObjectType.Skeleton,
+              hidden: false,
+              conf,
+            };
+            if (boundingBox) {
+              const rect = translateBoundingBoxToRect(boundingBox!, clientSize);
+              Object.assign(newObj, { rect: { visible: true, ...rect } });
+            }
+            if (points && lines && pointColors && pointNames) {
+              const pointObjs = translatePointsToPointObjs(
+                points,
+                pointNames,
+                pointColors,
+                naturalSize,
+                clientSize,
+              );
+              Object.assign(newObj, {
+                keypoints: {
+                  points: pointObjs,
+                  lines,
+                },
+              });
+            }
+            return newObj;
+          });
+
+          // Replace all instances of the skeleton type
+          const leftObjs = drawData.objectList.filter(
+            (obj) => obj.type !== EObjectType.Skeleton,
+          );
+          const updatedObjects = [...leftObjs, ...skeletonObjs];
+          updateAllObject(updatedObjects);
+        }
+
+        message.success('Request Successfully !');
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
     }
   };
 
