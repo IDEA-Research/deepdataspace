@@ -1,0 +1,23 @@
+coverage:
+  status:
+    project: off
+    patch: off
+
+flag_management:
+  # default_rules:
+  #   carryforward: true
+  individual_flags:
+    - name: backend
+      paths:
+        - deepdataspace/
+      statuses:
+        - type: project
+          target: auto
+          threshold: 1%
+    - name: frontend
+      paths:
+        - packages/app/
+      statuses:
+        - type: project
+          target: auto
+          threshold: 1%
