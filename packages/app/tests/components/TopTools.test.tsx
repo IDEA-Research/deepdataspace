@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { umiRender } from '../test-utils';
 import {
   CloseOutlined,
   ZoomInOutlined,
@@ -7,7 +7,7 @@ import {
 import TopTools from '@/components/TopTools';
 
 test('render TopTools by snapshot', () => {
-  const { container } = render(
+  const { container } = umiRender(
     <TopTools
       leftTools={[
         {

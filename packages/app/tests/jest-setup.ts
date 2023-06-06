@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom';
 import '@umijs/max/test-setup';
 
+window.matchMedia = jest.fn().mockReturnValue({
+  matches: true,
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+});
+
 /** Partial third-party dependency mock */
 jest.mock('clientjs', () => ({
   ClientJS: class ClientJS {

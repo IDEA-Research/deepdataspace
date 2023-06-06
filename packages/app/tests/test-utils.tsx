@@ -6,8 +6,9 @@ import {
   render,
   renderHook,
 } from '@testing-library/react';
-import { TestBrowser } from '@umijs/max';
+import { MemoryRouter } from 'react-router-dom';
 import { dataflowProvider } from '@@/plugin-model/runtime';
+import { _LocaleContainer } from '@@/plugin-locale/locale';
 
 export function umiRender<
   Q extends Queries = typeof queries,
@@ -15,7 +16,11 @@ export function umiRender<
   BaseElement extends Element | DocumentFragment = Container,
 >(ui: React.ReactElement, options?: RenderOptions<Q, Container, BaseElement>) {
   return render(ui, {
-    wrapper: () => <TestBrowser />,
+    wrapper: ({ children }) => (
+      <_LocaleContainer>
+        <MemoryRouter>{dataflowProvider(children, {})}</MemoryRouter>
+      </_LocaleContainer>
+    ),
     ...(options ? options : {}),
   });
 }

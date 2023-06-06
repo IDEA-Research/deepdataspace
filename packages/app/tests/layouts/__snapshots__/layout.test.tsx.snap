@@ -3,7 +3,242 @@
 exports[`render Menu Layout snapshot 1`] = `
 <div>
   <div
-    id="loading"
-  />
+    class="ant-spin-nested-loading css-dev-only-do-not-override-zjzpde"
+  >
+    <div
+      class="ant-spin-container"
+    >
+      <section
+        class="ant-layout ant-layout-has-sider css-dev-only-do-not-override-zjzpde"
+      >
+        <div
+          class="fixSlider"
+          style="width: 88px; min-width: 88px; max-width: 88px;"
+        />
+        <aside
+          class="ant-layout-sider ant-layout-sider-light ant-layout-sider-collapsed slider"
+          style="flex: 0 0 88px; max-width: 88px; min-width: 88px; width: 88px;"
+        >
+          <div
+            class="ant-layout-sider-children"
+          >
+            <div
+              class="sliderHeader"
+              style="justify-content: center;"
+            >
+              <a
+                href="/"
+              >
+                <img
+                  alt="logo"
+                  src="favicon.png"
+                />
+              </a>
+            </div>
+            <ul
+              class="ant-menu ant-menu-root ant-menu-vertical ant-menu-light menu menuCollapsed ant-menu-inline-collapsed css-dev-only-do-not-override-zjzpde"
+              data-menu-list="true"
+              dir="ltr"
+              role="menu"
+              tabindex="0"
+            >
+              <li
+                class="ant-menu-item"
+                data-menu-id="rc-menu-uuid-test-Dataset"
+                link="/dataset"
+                role="menuitem"
+                tabindex="-1"
+                title=""
+              >
+                <span
+                  aria-label="database"
+                  class="anticon anticon-database ant-menu-item-icon"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="database"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232V408h560v208zm0 272H232V680h560v208zM304 240a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0zm0 272a40 40 0 1080 0 40 40 0 10-80 0z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="ant-menu-title-content"
+                >
+                  Dataset
+                </span>
+              </li>
+              <li
+                class="ant-menu-item"
+                data-menu-id="rc-menu-uuid-test-Annotate"
+                link="/project"
+                role="menuitem"
+                tabindex="-1"
+                title=""
+              >
+                <span
+                  aria-label="gateway"
+                  class="anticon anticon-gateway ant-menu-item-icon"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="gateway"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M928 392c8.8 0 16-7.2 16-16V192c0-8.8-7.2-16-16-16H744c-8.8 0-16 7.2-16 16v56H296v-56c0-8.8-7.2-16-16-16H96c-8.8 0-16 7.2-16 16v184c0 8.8 7.2 16 16 16h56v240H96c-8.8 0-16 7.2-16 16v184c0 8.8 7.2 16 16 16h184c8.8 0 16-7.2 16-16v-56h432v56c0 8.8 7.2 16 16 16h184c8.8 0 16-7.2 16-16V648c0-8.8-7.2-16-16-16h-56V392h56zM792 240h88v88h-88v-88zm-648 88v-88h88v88h-88zm88 456h-88v-88h88v88zm648-88v88h-88v-88h88zm-80-64h-56c-8.8 0-16 7.2-16 16v56H296v-56c0-8.8-7.2-16-16-16h-56V392h56c8.8 0 16-7.2 16-16v-56h432v56c0 8.8 7.2 16 16 16h56v240z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="ant-menu-title-content"
+                >
+                  Annotate
+                </span>
+              </li>
+              <li
+                class="ant-menu-item"
+                data-menu-id="rc-menu-uuid-test-Lab"
+                link="/lab"
+                role="menuitem"
+                tabindex="-1"
+                title=""
+              >
+                <span
+                  aria-label="bulb"
+                  class="anticon anticon-bulb ant-menu-item-icon"
+                  role="img"
+                >
+                  <svg
+                    aria-hidden="true"
+                    data-icon="bulb"
+                    fill="currentColor"
+                    focusable="false"
+                    height="1em"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                  >
+                    <path
+                      d="M632 888H392c-4.4 0-8 3.6-8 8v32c0 17.7 14.3 32 32 32h192c17.7 0 32-14.3 32-32v-32c0-4.4-3.6-8-8-8zM512 64c-181.1 0-328 146.9-328 328 0 121.4 66 227.4 164 284.1V792c0 17.7 14.3 32 32 32h264c17.7 0 32-14.3 32-32V676.1c98-56.7 164-162.7 164-284.1 0-181.1-146.9-328-328-328zm127.9 549.8L604 634.6V752H420V634.6l-35.9-20.8C305.4 568.3 256 484.5 256 392c0-141.4 114.6-256 256-256s256 114.6 256 256c0 92.5-49.4 176.3-128.1 221.8z"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="ant-menu-title-content"
+                >
+                  Lab
+                </span>
+              </li>
+            </ul>
+            <div
+              aria-hidden="true"
+              style="display: none;"
+            />
+            <div
+              class="bottomActions collapsedActions"
+            >
+              <div
+                class="userBlock"
+              >
+                <button
+                  class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text userBtn"
+                  type="button"
+                >
+                  <span>
+                    Login
+                  </span>
+                </button>
+              </div>
+              <a
+                href="https://docs.deepdataspace.com"
+                rel="noreferrer"
+                target="_blank"
+              >
+                <button
+                  class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text ant-btn-icon-only docsBtn"
+                  type="button"
+                >
+                  <span
+                    aria-label="file-search"
+                    class="anticon anticon-file-search"
+                    role="img"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      data-icon="file-search"
+                      fill="currentColor"
+                      focusable="false"
+                      height="1em"
+                      viewBox="64 64 896 896"
+                      width="1em"
+                    >
+                      <path
+                        d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              </a>
+              <button
+                class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text dds-lang-selector undefined"
+                type="button"
+              >
+                <div>
+                  <span
+                    class="change-lang change-lang-light"
+                  >
+                    中
+                  </span>
+                  <span
+                    class="cur-lang cur-lang-light"
+                  >
+                    En
+                  </span>
+                </div>
+              </button>
+            </div>
+            <div
+              class="collapseBtn"
+            >
+              <span
+                aria-label="right"
+                class="anticon anticon-right"
+                role="img"
+              >
+                <svg
+                  aria-hidden="true"
+                  data-icon="right"
+                  fill="currentColor"
+                  focusable="false"
+                  height="1em"
+                  viewBox="64 64 896 896"
+                  width="1em"
+                >
+                  <path
+                    d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"
+                  />
+                </svg>
+              </span>
+            </div>
+          </div>
+        </aside>
+        <section
+          class="ant-layout css-dev-only-do-not-override-zjzpde"
+        />
+      </section>
+    </div>
+  </div>
 </div>
 `;

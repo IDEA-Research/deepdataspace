@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`render Menu Layout snapshot 1`] = `
-<div>
-  <div
-    id="loading"
-  />
-</div>
-`;
