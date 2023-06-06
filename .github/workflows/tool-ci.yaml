@@ -103,11 +103,11 @@ jobs:
         run: pnpm run dev:build
       - name: Run tests and collect coverage
         run: pnpm run test
-      - name: Upload coverage reports to Codecov with GitHub Action
-        uses: codecov/codecov-action@v2
+      - name: Upload Test Report
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           verbose: true
-          flags: backend
+          flags: frontend
         
