@@ -12,7 +12,7 @@ env:
   chartPath: 'pipeline'
   dockerRegistry: 'harbor.cvrgo.com/dds'
 jobs:
-  build_test_deploy:
+  build_and_deploy:
     if: github.repository_owner == 'deepdataspace'
     runs-on: self-hosted
     steps:
@@ -101,7 +101,9 @@ jobs:
       - name: Push Helm Chart to Harbor
         working-directory: deepdataspace-helm
         run: |
-          helm repo add --username 'robot$dds+robot-dds-deploy' --password ${{ secrets.HARBOR_CREDENTIAL }} ${{ env.helmRepoName }} ${{ env.helmRepoURL }} 
+          if ! helm repo list | awk '{print $1}' | grep -q "^${{ env.helmRepoName }}$"; then
+            helm repo add --username 'robot$dds+robot-dds-deploy' --password ${{ secrets.HARBOR_CREDENTIAL }} ${{ env.helmRepoName }} ${{ env.helmRepoURL }} 
+          fi
           helm repo update 
           helm package ${{ env.chartPath }}
           helm cm-push ${{ env.chartPath }} ${{ env.helmRepoName }}
