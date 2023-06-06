@@ -83,8 +83,8 @@ jobs:
           verbose: true
           flags: backend
 
-  build:
-    runs-on: ubuntu-20.04
+  test_frontend:
+    runs-on: self-hosted
     name: Test JS frontend
     steps:
       - uses: actions/checkout@v1
