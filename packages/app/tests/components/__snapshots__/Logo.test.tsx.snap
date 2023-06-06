@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render GlobalLoading by snapshot 1`] = `
+<div>
+  <a
+    href="/"
+  >
+    <img
+      alt="logo"
+      class="logo"
+      src="logo_title.png"
+    />
+  </a>
+</div>
+`;

@@ -9,16 +9,11 @@ import { LocaleText } from '@/locales/helper';
 import DatasetItem from '@/components/DatasetItem';
 
 const HomePage: React.FC = () => {
-  const {
-    pageState,
-    onInitPageState,
-    loading,
-    datasetsData,
-    onClickItem,
-    onClickCopyLink,
-    onPageChange,
-  } = useModel('DatasetList.model');
-  usePageModelLifeCycle({ onInitPageState, pageState });
+  const { loading, pagination, datasetsData, onPageChange } =
+    useModel('datasets');
+  const { onInitPageState, onClickItem, onClickCopyLink } =
+    useModel('DatasetList.model');
+  usePageModelLifeCycle({ onInitPageState, pageState: pagination });
 
   return (
     <PageContainer
@@ -51,8 +46,8 @@ const HomePage: React.FC = () => {
       {!loading && (
         <div className={styles.pagination}>
           <Pagination
-            current={pageState.page}
-            pageSize={pageState.pageSize}
+            current={pagination.page}
+            pageSize={pagination.pageSize}
             total={datasetsData.total}
             showSizeChanger
             showQuickJumper
