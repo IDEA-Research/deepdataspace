@@ -126,6 +126,7 @@ class ProjectsView(AuthenticatedAPIView):
         Argument("dataset_ids", list, Argument.JSON, required=True),
         Argument("manager_ids", list, Argument.JSON, required=True),
         Argument("categories", str, Argument.JSON, required=True),
+        Argument("pre_label", str, Argument.JSON, required=False),
     ]
 
     def get(self, request):
@@ -171,11 +172,11 @@ class ProjectsView(AuthenticatedAPIView):
         if not ProjectRole.can_create_project(request.user):
             raise_exception(403, f"user[{request.user.id}] is not allowed to create project")
 
-        name, desc, dataset_ids, manager_ids, categories = parse_arguments(request, self.post_data)
+        name, desc, dataset_ids, manager_ids, categories, pre_label = parse_arguments(request, self.post_data)
         managers = _validate_users(manager_ids)
         datasets = _validate_dataset_ids(dataset_ids)
         categories = categories.split(",")
-        return name, desc, request.user, datasets, managers, categories
+        return name, desc, request.user, datasets, managers, categories, pre_label
 
     def post(self, request):
         """
@@ -183,11 +184,11 @@ class ProjectsView(AuthenticatedAPIView):
 
         - POST /api/v1/label_projects
         """
-        name, desc, owner, datasets, managers, categories = self._parse_post_data(request)
+        name, desc, owner, datasets, managers, categories, pre_label = self._parse_post_data(request)
 
         try:
             project = LabelProject.create_project(name, request.user, datasets, managers, categories,
-                                                  description=desc)
+                                                  description=desc, pre_label=pre_label)
         except LabelProjectError as e:
             raise_exception(400, str(e))
         else:
