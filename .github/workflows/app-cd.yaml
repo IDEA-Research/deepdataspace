@@ -39,9 +39,9 @@ jobs:
           # parse k8s namespace
           if [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-dev[0-9]+ ]]; then
             k8sNamespace=dds-dev
-          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+ ]]; then
+          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-test[0-9]+ ]]; then
             k8sNamespace=dds-test
-          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          elif [[ "${gitTag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-prd[0-9]+ ]]; then
             k8sNamespace=dds-prd
           else
             echo "Invalid git tag. Pipeline terminated."
