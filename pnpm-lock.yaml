@@ -286,6 +286,9 @@ importers:
       react-ga4:
         specifier: ^2.1.0
         version: 2.1.0
+      react-resize-detector:
+        specifier: ^7.1.2
+        version: 7.1.2(react-dom@16.14.0)(react@16.14.0)
       use-immer:
         specifier: ^0.9.0
         version: 0.9.0(immer@10.0.2)(react@16.14.0)
@@ -6784,7 +6787,7 @@ packages:
       babel-plugin-syntax-jsx: 6.18.0
       lodash: 4.17.21
       picomatch: 2.3.1
-      styled-components: 5.3.10(react-dom@16.14.0)(react-is@18.2.0)(react@16.14.0)
+      styled-components: 5.3.10(react-dom@18.2.0)(react-is@18.2.0)(react@18.2.0)
 
   /babel-plugin-syntax-jsx@6.18.0:
     resolution: {integrity: sha512-qrPaCSo9c8RHNRHIotaufGbuOBN8rtdC4QrrFFc43vyWCCz7Kl7GL1PGaXtMGQZUXrkCjNEgxDfmAuAabr/rlw==}
@@ -17032,28 +17035,6 @@ packages:
   /style-utils@0.1.24:
     resolution: {integrity: sha512-MVZSKubpU/vIfpmOsi8/0ckWxb0WmGBmyNoEDGWZM9cM8n8sCL6DJftl3lEf8Uy5zKQ9+O1XdJxscWTDosCQpQ==}
     dev: false
-
-  /styled-components@5.3.10(react-dom@16.14.0)(react-is@18.2.0)(react@16.14.0):
-    resolution: {integrity: sha512-3kSzSBN0TiCnGJM04UwO1HklIQQSXW7rCARUk+VyMR7clz8XVlA3jijtf5ypqoDIdNMKx3la4VvaPFR855SFcg==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      react: '>= 16.8.0'
-      react-dom: '>= 16.8.0'
-      react-is: '>= 16.8.0'
-    dependencies:
-      '@babel/helper-module-imports': 7.21.4
-      '@babel/traverse': 7.21.5(supports-color@5.5.0)
-      '@emotion/is-prop-valid': 1.2.1
-      '@emotion/stylis': 0.8.5
-      '@emotion/unitless': 0.7.5
-      babel-plugin-styled-components: 2.1.3(styled-components@5.3.10)
-      css-to-react-native: 3.2.0
-      hoist-non-react-statics: 3.3.2
-      react: 16.14.0
-      react-dom: 16.14.0(react@16.14.0)
-      react-is: 18.2.0
-      shallowequal: 1.1.0
-      supports-color: 5.5.0
 
   /styled-components@5.3.10(react-dom@18.2.0)(react-is@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-3kSzSBN0TiCnGJM04UwO1HklIQQSXW7rCARUk+VyMR7clz8XVlA3jijtf5ypqoDIdNMKx3la4VvaPFR855SFcg==}
