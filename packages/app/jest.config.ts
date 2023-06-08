@@ -32,6 +32,6 @@ export default async () => {
         lines: 1,
       },
     },
-    forceExit: true,
+    maxWorkers: 8,
   })) as Config.InitialOptions;
 };
