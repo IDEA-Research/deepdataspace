@@ -96,7 +96,7 @@ const useActions = ({
           }
         });
         updateAllObject([...drawData.objectList, ...newObjects]);
-        message.success('Request Successfully !');
+        message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
       console.error(error.message);
@@ -106,7 +106,11 @@ const useActions = ({
     }
   };
 
-  const requestAiSegmentation = async (drawData: DrawData, source: string) => {
+  const requestAiSegmentation = async (
+    drawData: DrawData,
+    source: string,
+    bbox?: IBoundingBox,
+  ) => {
     const existPolygons =
       drawData.creatingObject?.polygon?.group.map((polygon) => {
         return polygon.reduce((acc: number[], point) => {
@@ -138,6 +142,28 @@ const useActions = ({
       polygons: existPolygons,
       clicks: clicks,
     };
+
+    if (bbox) {
+      const { xmin, ymin, xmax, ymax } = bbox;
+      const topleftPoint = getNaturalPoint(
+        [xmin, ymin],
+        naturalSize,
+        clientSize,
+      );
+      const bottomRightPoint = getNaturalPoint(
+        [xmax, ymax],
+        naturalSize,
+        clientSize,
+      );
+      Object.assign(reqParams, {
+        rect: [
+          topleftPoint.x,
+          topleftPoint.y,
+          bottomRightPoint.x,
+          bottomRightPoint.y,
+        ],
+      });
+    }
 
     try {
       setLoading(true);
@@ -182,7 +208,7 @@ const useActions = ({
           });
         }
 
-        message.success('Request Successfully !');
+        message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
       console.error(error.message);
@@ -279,9 +305,9 @@ const useActions = ({
           );
           const updatedObjects = [...leftObjs, ...skeletonObjs];
           updateAllObject(updatedObjects);
-        }
 
-        message.success('Request Successfully !');
+          message.success(localeText('smartAnnotation.msg.success'));
+        }
       }
     } catch (error: any) {
       console.error(error.message);
@@ -291,7 +317,11 @@ const useActions = ({
     }
   };
 
-  const onAiAnnotation = async (drawData: DrawData, aiLabels: string[]) => {
+  const onAiAnnotation = async (
+    drawData: DrawData,
+    aiLabels: string[],
+    bbox?: IBoundingBox,
+  ) => {
     if (isRequiring) return;
 
     if (
@@ -329,21 +359,18 @@ const useActions = ({
           await requestAiDetection(drawData, imgSrc, aiLabels);
           setIsRequiring(false);
           hide();
-          message.success(localeText('smartAnnotation.msg.success'));
           break;
         }
         case EBasicToolItem.Skeleton: {
           await requestAiPoseEstimation(drawData, imgSrc, aiLabels);
           setIsRequiring(false);
           hide();
-          message.success(localeText('smartAnnotation.msg.success'));
           break;
         }
         case EBasicToolItem.Polygon: {
-          await requestAiSegmentation(drawData, imgSrc);
+          await requestAiSegmentation(drawData, imgSrc, bbox);
           setIsRequiring(false);
           hide();
-          message.success(localeText('smartAnnotation.msg.success'));
           break;
         }
         default:

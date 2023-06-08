@@ -18,7 +18,6 @@ import { IAnnotationObject } from '../..';
 import PointItem from '../Items/PointItem';
 import RectItem from '../Items/RectItem';
 import PolygonItem from '../Items/PolygonItem';
-import { ReactComponent as MagicIcon } from '@/assets/svg/magic.svg';
 import { useKeyPress } from 'ahooks';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from '@/locales/helper';
@@ -79,7 +78,6 @@ const ObjectList: React.FC<IProps> = (props) => {
     onChangeEleVisible,
     onChangeCategoryHidden,
     onCancelMovingStatus,
-    onConvertPolygonToAIMode,
     onChangeActiveClassName,
     onChangePointVisible,
   } = props;
@@ -171,7 +169,7 @@ const ObjectList: React.FC<IProps> = (props) => {
                 }}
               />
             </Tooltip>
-            {object.type === EObjectType.Polygon && (
+            {/* {object.type === EObjectType.Polygon && (
               <Tooltip
                 title={localeText('editor.annotsList.convertToSmartMode')}
               >
@@ -186,7 +184,7 @@ const ObjectList: React.FC<IProps> = (props) => {
                   }}
                 />
               </Tooltip>
-            )}
+            )} */}
           </>
         )}
         {[EObjectType.Custom, EObjectType.Skeleton].includes(object.type) && (
@@ -505,7 +503,7 @@ const ObjectList: React.FC<IProps> = (props) => {
                             />
                           </Tooltip>
 
-                          {object.type === EObjectType.Polygon && (
+                          {/* {object.type === EObjectType.Polygon && (
                             <Tooltip
                               title={localeText(
                                 'editor.annotsList.convertToSmartMode',
@@ -522,7 +520,7 @@ const ObjectList: React.FC<IProps> = (props) => {
                                 }}
                               />
                             </Tooltip>
-                          )}
+                          )} */}
                         </>
                       )}
                     </div>

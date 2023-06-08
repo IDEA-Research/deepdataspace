@@ -208,6 +208,7 @@ export interface FetchAISegmentationReq {
     isPositive: boolean;
     position: number[];
   }[];
+  rect?: number[];
 }
 
 export interface FetchAIPoseEstimationReq {
