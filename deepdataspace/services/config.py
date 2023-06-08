@@ -100,7 +100,7 @@ def log_and_save_env(name: str, value):
 
     os.environ[name] = str(value)
     export = f"export {name}={str(value)}"
-    with open(ENV_FILE, "a") as fp:
+    with open(ENV_FILE, "a", encoding="utf8") as fp:
         fp.write(f"{export}\n")
         fp.flush()
 
@@ -150,7 +150,7 @@ def load_all_env():
         return False
 
     environs = {}
-    with open(ENV_FILE, "r") as fp:
+    with open(ENV_FILE, "r", encoding="utf8") as fp:
         for line in fp:
             line = line.split(" ", 1)[-1].strip()
             name, value = line.split("=", 1)
@@ -211,7 +211,7 @@ auto-aof-rewrite-percentage 100
 auto-aof-rewrite-min-size 64mb
 # requirepass 'generated-on-first-start'
 """
-    with open(config_path, "w") as fp:
+    with open(config_path, "w", encoding="utf8") as fp:
         fp.write(tmpl)
 
 
@@ -223,14 +223,14 @@ def setup_redis_password(config_path: str):
     password = gen_random_str(10)
 
     lines = []
-    with open(config_path, "r") as fp:
+    with open(config_path, "r", encoding="utf8") as fp:
         for line in fp:
             if line.startswith("# requirepass "):
                 line = f"requirepass {password}"
             line = line.rstrip("\n")
             lines.append(line)
 
-    with open(config_path, "w") as fp:
+    with open(config_path, "w", encoding="utf8") as fp:
         fp.write("\n".join(lines))
 
     return password
@@ -241,7 +241,7 @@ def read_redis_password(config_path: str):
     Read redis password from config file.
     """
 
-    with open(config_path, "r") as fp:
+    with open(config_path, "r", encoding="utf8") as fp:
         for line in fp:
             if line.startswith("requirepass "):
                 password = line.split(" ", 1)[-1]
@@ -267,7 +267,7 @@ storage:
    directoryPerDB: true
 # password 'generated-on-first-start'
 """
-    with open(config_path, "w") as fp:
+    with open(config_path, "w", encoding="utf8") as fp:
         fp.write(tmpl)
 
 
@@ -280,14 +280,14 @@ def setup_mongodb_password(config_path: str):
     password = gen_random_str(10)
 
     lines = []
-    with open(config_path, "r") as fp:
+    with open(config_path, "r", encoding="utf8") as fp:
         for line in fp:
             if line.startswith("# password "):
                 line = f"# password {password}"
             line = line.rstrip("\n")
             lines.append(line)
 
-    with open(config_path, "w") as fp:
+    with open(config_path, "w", encoding="utf8") as fp:
         fp.write("\n".join(lines))
 
     return password
@@ -298,7 +298,7 @@ def read_mongodb_password(config_path: str):
     Read mongodb password from config file.
     """
 
-    with open(config_path, "r") as fp:
+    with open(config_path, "r", encoding="utf8") as fp:
         for line in fp:
             if line.startswith("# password "):
                 password = line.split(" ", 2)[-1]

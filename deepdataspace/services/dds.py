@@ -60,7 +60,7 @@ class DDS(metaclass=SingletonMeta):
 
         self.config_data = {}
         if configfile is not None:
-            with open(configfile, "r") as fp:
+            with open(configfile, "r", encoding="utf8") as fp:
                 config_data = yaml.safe_load(fp)
                 for key, val in config_data.items():
                     if val is not None:
@@ -272,11 +272,11 @@ class DDS(metaclass=SingletonMeta):
         django_secret = self.config_data.get("django_secret", None)
         if not django_secret:
             if os.path.exists(config.DJANGO_KEY_FILE):
-                with open(config.DJANGO_KEY_FILE, "r") as fp:
+                with open(config.DJANGO_KEY_FILE, "r", encoding="utf8") as fp:
                     django_secret = fp.read().strip()
             else:
                 django_secret = gen_random_str(32)
-        with open(config.DJANGO_KEY_FILE, "w") as fp:
+        with open(config.DJANGO_KEY_FILE, "w", encoding="utf8") as fp:
             fp.write(django_secret)
         config.DJANGO_KEY = django_secret
 

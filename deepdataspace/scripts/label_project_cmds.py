@@ -105,6 +105,6 @@ def lp_export(project_name):
 
                 output_data["images"].append(image_data)
 
-        with open(output_file, "w") as fp:
+        with open(output_file, "w", encoding="utf8") as fp:
             json.dump(output_data, fp)
         print(f"exported dataset [{dataset_name}] to [{output_file}]")
