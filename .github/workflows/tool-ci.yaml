@@ -102,15 +102,8 @@ jobs:
           flags: backend
   test_frontend:
     runs-on: self-hosted
-    name: Test JS frontend
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
       - name: Install requirements
         run: pnpm install --frozen-lockfile
       - name: Run pnpm audit

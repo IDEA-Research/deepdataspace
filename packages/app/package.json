@@ -12,7 +12,7 @@
     "preview": "PUBLIC_PATH=/page/ max build && max preview --port 8001",
     "setup": "max setup",
     "start": "npm run dev",
-    "test": "jest --no-cache --coverage --detectOpenHandles",
+    "test": "jest --no-cache --coverage",
     "test:snapshot": "jest --no-cache --coverage --u"
   },
   "dependencies": {
