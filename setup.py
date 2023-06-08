@@ -5,7 +5,7 @@ from setuptools import setup
 version = "0.1.1"
 
 description = "A tool for CV dataset labeling, visualizing and analysing"
-with open("README.md", "r") as fp:
+with open("README.md", "r", encoding="utf8") as fp:
     long_description = fp.read()
 
 url = "https://github.com/IDEA-Research/deepdataspace"

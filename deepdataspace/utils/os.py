@@ -90,7 +90,7 @@ def get_pid_by_pidfile(pidfile: str) -> int:
     if not os.path.exists(pidfile):
         return 0
 
-    with open(pidfile, "r") as fp:
+    with open(pidfile, "r", encoding="utf8") as fp:
         pid = fp.read().strip()
         try:
             pid = int(pid)
@@ -187,7 +187,7 @@ def get_ubuntu_version():
     Get the ubuntu release version number.
     :return: 1804, 2004, 2204, or "" if failed.
     """
-    with open("/etc/lsb-release", "r") as fp:
+    with open("/etc/lsb-release", "r", encoding="utf8") as fp:
         for line in fp:
             line = line.strip()
             if line.startswith("DISTRIB_RELEASE="):
