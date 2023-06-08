@@ -27,7 +27,7 @@ class Celery(Service):
         ]
         super(Celery, self).__init__("celery", cmd_list)
 
-        self.cmd_id = " ".join(cmd_list)
+        self.cmd_id = " ".join(cmd_list[1:])
 
     def start(self):
         try:

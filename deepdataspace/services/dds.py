@@ -465,8 +465,11 @@ class DDS(metaclass=SingletonMeta):
 
         with progress_log("Starting DeepDataSpace(DDS)"):
             self.init()
-            self.start_all()
-            self.greeting()
+            if self.start_all():
+                self.greeting()
+            else:
+                time.sleep(1)
+                exit(1)
 
         self.started = True
         if self.from_cmdline:

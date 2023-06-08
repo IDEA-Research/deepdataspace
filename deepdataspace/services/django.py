@@ -37,7 +37,7 @@ class Django(Service):
 
         self.python_path = python_path
         self.django_path = django_path
-        self.cmd_id = " ".join(cmd_list[:2])
+        self.cmd_id = " ".join(cmd_list[1:-1])
 
     def migrate_db(self):
         cmd = [
