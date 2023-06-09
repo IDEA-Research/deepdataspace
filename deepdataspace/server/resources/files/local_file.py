@@ -5,17 +5,23 @@ This file add APIs to read local files or file byte ranges.
 """
 
 import base64
+import logging
 import os.path
 
 from django.http.response import FileResponse
 from django.http.response import Http404
 from django.http.response import HttpResponse
+from django.http.response import HttpResponseForbidden
 
 from deepdataspace.constants import ContentEncoding
 from deepdataspace.constants import FileReadMode
+from deepdataspace.constants import RedisKey
+from deepdataspace.globals import Redis
+
+logger = logging.getLogger("django")
 
 
-def decode_file(content, encoding):
+def _decode_file(content, encoding):
     if encoding == ContentEncoding.Plain:
         return HttpResponse(content)
     elif encoding == ContentEncoding.Base64:
@@ -37,7 +43,7 @@ def _read_file(local_path, read_mode, beg, end, content_encode, mime_type):
             content = fp.read(end - beg)
         else:
             content = fp.read()
-        response = decode_file(content, content_encode)
+        response = _decode_file(content, content_encode)
         response["Content-Type"] = mime_type
         return response
 
@@ -47,11 +53,18 @@ def read_file(request, read_mode, content_encode, position, mime_type, local_pat
     Read and decode a local file and return the data in http response.
     """
 
+    local_path = os.path.abspath(local_path)
+
     if not os.path.exists(local_path) or os.path.isdir(local_path):
         raise Http404()
 
     if read_mode not in FileReadMode.ALL_:
         raise Http404()
+
+    file_dir = os.path.dirname(local_path)
+    if not Redis.sismember(RedisKey.DatasetImageDirs, file_dir):
+        logger.warning(f"Dataset image file is not in whitelist, please run 'ddsop migrate 2023053101' to fix it.")
+        return HttpResponseForbidden("Forbidden")
 
     if content_encode not in ContentEncoding.ALL_:
         raise Http404()

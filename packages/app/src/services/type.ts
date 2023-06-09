@@ -104,6 +104,7 @@ export namespace DATA {
     name: string;
     description: string;
     categories: string;
+    preLabel: string;
     datasets: {
       id: string;
       name: string;
@@ -188,6 +189,91 @@ export namespace DATA {
   }
 }
 
+export enum EnumModelType {
+  Detection = 'ai_detection',
+  Segmentation = 'ai_segmentation',
+  Pose = 'ai_pose',
+}
+
+// params type for 3 Ai api request
+export interface FetchAIDetectionReq {
+  image: string;
+  text: string;
+}
+
+export interface FetchAISegmentationReq {
+  image: string;
+  mask: string;
+  polygons: number[][];
+  clicks: {
+    isPositive: boolean;
+    position: number[];
+  }[];
+  rect?: number[];
+}
+
+export interface FetchAIPoseEstimationReq {
+  image: string;
+  targets: string;
+  template: {
+    lines: number[];
+    pointNames: string[];
+    pointColors: string[];
+  };
+  objects?: Array<{
+    categoryName: string;
+    boundingBox: IBoundingBox;
+    points: number[];
+  }>;
+}
+
+// type of 3 Ai api response
+export interface FetchAIDetectionRsp {
+  objects: Array<{
+    categoryName: string;
+    boundingBox: IBoundingBox;
+  }>;
+}
+
+export interface FetchAISegmentationRsp {
+  polygon: number[][];
+  mask: string;
+}
+
+export interface FetchAIPoseEstimationRsp {
+  objects: Array<{
+    categoryName: string;
+    boundingBox: IBoundingBox;
+    points: number[];
+    conf: number;
+  }>;
+}
+
+export enum EnumTaskStatus {
+  Waiting = 'waiting',
+  Running = 'running',
+  Success = 'success',
+  Failed = 'failed',
+}
+
+export type ModelParam<T extends EnumModelType> =
+  T extends EnumModelType.Detection
+    ? FetchAIDetectionReq
+    : T extends EnumModelType.Segmentation
+    ? FetchAISegmentationReq
+    : T extends EnumModelType.Pose
+    ? FetchAIPoseEstimationReq
+    : never;
+
+export type ModelResult<T extends EnumModelType> =
+  T extends EnumModelType.Detection
+    ? FetchAIDetectionRsp
+    : T extends EnumModelType.Segmentation
+    ? FetchAISegmentationRsp
+    : T extends EnumModelType.Pose
+    ? FetchAIPoseEstimationRsp
+    : never;
+
 /** Definition of API input and output. */
 export namespace API {
   export interface FetchDatasetListRsp {
@@ -212,26 +298,15 @@ export namespace API {
     status: 'waiting' | 'running' | 'success' | 'fail';
   }
 
-  export interface FetchAiDetectionRsp {
-    objects: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
-    }>;
+  export interface fetchTaskUuid {
+    taskUuid: string;
   }
 
-  export interface FetchAIPoseEstimationRsp {
-    objects: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
-      points: number[];
-      conf: number;
-    }>;
-  }
-
-  export interface FetchAISegmentationRsp {
-    categoryName: string;
-    polygons: number[][];
-    mask: string;
+  export interface FetchModelRsp<T extends EnumModelType> {
+    error: string;
+    status: EnumTaskStatus;
+    uuid: string;
+    result: ModelResult<T>;
   }
 
   /**

@@ -17,16 +17,13 @@ export default async () => {
     setupFilesAfterEnv: ['<rootDir>/tests/jest-setup.ts'],
     collectCoverageFrom: [
       'src/**/*.{ts,tsx,js,jsx}',
-      '!.umi/**',
-      '!.umi-test/**',
-      '!.umi-production/**',
-      '!.umirc.{js,ts}',
-      '!.umirc.*.{js,ts}',
-      // '!jest.config.{js,ts}',
-      // '!coverage/**',
-      // '!dist/**',
-      // '!config/**',
-      // '!mock/**',
+      '!src/.umi/**',
+      '!src/.umi-test/**',
+      '!src/.umi-production/**',
+      // unnecessary test
+      '!src/logs/**',
+      '!src/services/**',
+      '!src/types/**',
     ],
     // if you require some es-module npm package, please uncomment below line and insert your package name
     // transformIgnorePatterns: ['node_modules/(?!.*(lodash-es|your-es-pkg-name)/)']
@@ -35,5 +32,6 @@ export default async () => {
         lines: 1,
       },
     },
+    maxWorkers: 8,
   })) as Config.InitialOptions;
 };

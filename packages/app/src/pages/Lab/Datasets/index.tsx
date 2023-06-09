@@ -11,17 +11,11 @@ import styles from './index.less';
 import { globalLocaleText } from '@/locales/helper';
 
 const HomePage: React.FC = () => {
-  const {
-    pageState,
-    onInitPageState,
-    loading,
-    datasetsData,
-    labType,
-    onClickItem,
-    onClickCopyLink,
-    onPageChange,
-  } = useModel('Lab.Datasets.model');
-  usePageModelLifeCycle({ onInitPageState, pageState });
+  const { loading, pagination, datasetsData, onPageChange } =
+    useModel('datasets');
+  const { labType, onInitPageState, onClickItem, onClickCopyLink } =
+    useModel('Lab.Datasets.model');
+  usePageModelLifeCycle({ onInitPageState, pageState: pagination });
 
   return (
     <PageContainer
@@ -52,8 +46,8 @@ const HomePage: React.FC = () => {
       {!loading && (
         <div className={styles.pagination}>
           <Pagination
-            current={pageState.page}
-            pageSize={pageState.pageSize}
+            current={pagination.page}
+            pageSize={pagination.pageSize}
             total={datasetsData.total}
             showSizeChanger
             showQuickJumper

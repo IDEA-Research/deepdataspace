@@ -5,6 +5,7 @@ export default {
   annotator: '标注器',
   annotate: '标注',
   lab: '实验室',
+  docs: '文档',
 
   /** menu */
   'menu.Home': '首页',
@@ -215,6 +216,7 @@ export default {
   'proj.table.action.init': '初始化',
   'proj.table.action.info': '信息',
   'proj.table.action.detail': '详情',
+  'proj.table.action.export': '导出',
   'proj.table.newProject': '新建项目',
 
   'proj.table.detail.index': '索引',
@@ -315,6 +317,8 @@ export default {
   'proj.editModal.stepForm.dataset.label': '数据集',
   'proj.editModal.stepForm.dataset.placeholder': '请至少连接一个数据集至此项目',
   'proj.editModal.stepForm.dataset.rule': '请至少选择一个数据集',
+  'proj.editModal.stepForm.preLabel.label': '预标注',
+  'proj.editModal.stepForm.preLabel.placeholder': '请输入预标注名称',
   'proj.editModal.stepForm.category.label': '分类',
   'proj.editModal.stepForm.category.placeholder': '请以逗号分隔输入项目分类',
   'proj.editModal.stepForm.category.rule': '请输入项目分类',
@@ -344,6 +348,12 @@ export default {
   'proj.infoModal.name': '项目名称',
   'proj.infoModal.desc': '描述',
   'proj.infoModal.label': '项目经理',
+
+  'proj.exportModal.title': '导出到数据集',
+  'proj.exportModal.labelSet.name': '标注集名称',
+  'proj.exportModal.labelSet.rule': '请输入标注集名称',
+  'proj.exportModal.submitSuccess':
+    '已成功导入至 "{name}" 结果集中，您可以移步数据集模块查看标注结果',
 
   'proj.workspace.eTask.startLabel': '开始标注',
   'proj.workspace.eTask.edit': '编辑',

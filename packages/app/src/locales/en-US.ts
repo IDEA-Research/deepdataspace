@@ -5,6 +5,7 @@ export default {
   annotate: 'Annotate',
   annotator: 'Annotator',
   lab: 'Lab',
+  docs: 'Docs',
 
   /** menu */
   'menu.Home': 'Home',
@@ -228,6 +229,7 @@ export default {
   'proj.table.action.init': 'Init',
   'proj.table.action.info': 'info',
   'proj.table.action.detail': 'Detail',
+  'proj.table.action.export': 'Export',
   'proj.table.newProject': 'New Project',
 
   'proj.table.detail.index': 'Index',
@@ -344,6 +346,8 @@ export default {
     'Connect at least one dataset to this project',
   'proj.editModal.stepForm.dataset.rule':
     'Please select at least one dataset for this project',
+  'proj.editModal.stepForm.preLabel.label': 'Pre Label',
+  'proj.editModal.stepForm.preLabel.placeholder': 'Please input pre label name',
   'proj.editModal.stepForm.category.label': 'Categories',
   'proj.editModal.stepForm.category.placeholder': `Please input project categories, split with ','`,
   'proj.editModal.stepForm.category.rule': 'Please input categories',
@@ -375,6 +379,12 @@ export default {
   'proj.infoModal.name': 'Project Name',
   'proj.infoModal.desc': 'Description',
   'proj.infoModal.label': 'Project Managers',
+
+  'proj.exportModal.title': 'Export to Dataset',
+  'proj.exportModal.labelSet.name': 'Labelset',
+  'proj.exportModal.labelSet.rule': 'Please input labelset name',
+  'proj.exportModal.submitSuccess':
+    'Successfully export to labelset "{name}", you can check results in datasets module.',
 
   'proj.workspace.eTask.startLabel': 'Start Label',
   'proj.workspace.eTask.edit': 'Edit',

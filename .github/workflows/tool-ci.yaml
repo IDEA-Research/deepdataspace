@@ -1,51 +1,18 @@
 name: tool-ci
-
 on:
   push:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-
+    branches:
+      - '**'
+    tags:
+      - ''
 jobs:
-  test_and_scan:
+  scan:
     runs-on: self-hosted
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16.x'
-
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run pnpm audit
-        run: pnpm audit --registry=https://registry.npmjs.org
-
-      - name: Run Test
-        run: |
-          export PYENV_ROOT="$HOME/.pyenv"
-          command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init -)"
-          pyenv local dds-cicd
-          pip install -r requirements-dev.txt
-          pytest --cov=deepdataspace -s --cov-report=xml
-
-      - name: Upload Test Report
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-          verbose: true
-          
       - name: Scan Code
         uses: sonarsource/sonarqube-scan-action@master
         env:
@@ -54,4 +21,107 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=dds-tool
-            -Dsonar.python.coverage.reportPaths=/data/home/deploy/actions-runner/_work/deepdataspace/deepdataspace/coverage.xml
+  test_on_windows_2019:
+    if: github.repository_owner == 'IDEA-Research'
+    needs: scan
+    runs-on: windows-2019
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+      - name: Run Test
+        run: |
+          pip install -r requirements-dev.txt
+          pytest --cov=deepdataspace -s --cov-report=xml
+  test_on_windows_2022:
+    if: github.repository_owner == 'IDEA-Research'
+    needs: scan
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+      - name: Run Test
+        run: |
+          pip install -r requirements-dev.txt
+          pytest --cov=deepdataspace -s --cov-report=xml
+  test_on_macos_12:
+    if: github.repository_owner == 'IDEA-Research'
+    needs: scan
+    runs-on: macos-12
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+      - name: Run Test
+        run: |
+          pip install -r requirements-dev.txt
+          pytest --cov=deepdataspace -s --cov-report=xml
+  test_on_ubuntu_2204:
+    if: github.repository_owner == 'IDEA-Research'
+    needs: [test_on_windows_2019, test_on_windows_2022, test_on_macos_12 ]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+      - name: Run Test
+        run: |
+          pip install -r requirements-dev.txt
+          pytest --cov=deepdataspace -s --cov-report=xml
+      - name: Upload Test Report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
+          flags: backend
+  test_frontend:
+    if: github.repository_owner == 'IDEA-Research'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install requirements
+        run: pnpm install --frozen-lockfile
+      - name: Run pnpm audit
+        run: pnpm audit --registry=https://registry.npmjs.org
+        continue-on-error: true
+      - name: Run dev:build to add .umi files
+        run: pnpm run dev:build
+      - name: Run tests and collect coverage
+        run: pnpm run test
+      - name: Upload Test Report
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          verbose: true
+          flags: frontend

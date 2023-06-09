@@ -1,26 +1,14 @@
-import { history } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import copy from 'copy-to-clipboard';
-import useDatasetListLoader from '@/hooks/useDatasetListLoader';
 import { DEFAULT_PAGE_SIZE } from '@/constants';
 import { message } from 'antd';
 import { DATA } from '@/services/type';
 import { getUrlQueryVal } from '@/utils/url';
 import { globalLocaleText } from '@/locales/helper';
-
-interface PageState {
-  page: number;
-  pageSize: number;
-}
+import { PaginationState } from '@/models/datasets';
 
 export default () => {
-  const {
-    loading,
-    pagination,
-    datasetsData,
-    loadDatasets,
-    setPagination,
-    onPageChange,
-  } = useDatasetListLoader();
+  const { loadDatasets, setPagination } = useModel('datasets');
   const labType = getUrlQueryVal('type') || 'flagtool';
 
   const onClickItem = (item: DATA.DataSet) => {
@@ -48,11 +36,7 @@ export default () => {
     e.stopPropagation();
   };
 
-  const pageState: PageState = {
-    ...pagination,
-  };
-
-  const onInitPageState = (urlPageState: PageState) => {
+  const onInitPageState = (urlPageState: PaginationState) => {
     setPagination((s) => {
       Object.assign(
         s,
@@ -67,13 +51,9 @@ export default () => {
   };
 
   return {
-    loading,
-    pageState,
-    onInitPageState,
-    datasetsData,
     labType,
+    onInitPageState,
     onClickItem,
     onClickCopyLink,
-    onPageChange,
   };
 };

@@ -56,11 +56,12 @@ class DDS(metaclass=SingletonMeta):
                  port: int = None,
                  reload: bool = None,
                  configfile: str = None,
+                 runtime_dir: str = None,
                  from_cmdline: bool = False):
 
         self.config_data = {}
         if configfile is not None:
-            with open(configfile, "r") as fp:
+            with open(configfile, "r", encoding="utf8") as fp:
                 config_data = yaml.safe_load(fp)
                 for key, val in config_data.items():
                     if val is not None:
@@ -76,6 +77,11 @@ class DDS(metaclass=SingletonMeta):
         self.port = int(self.argument_or_config("django_port", port, 8765))
         self.reload = self.argument_or_config("django_reload", reload, False)
 
+        if runtime_dir is None:
+            home_dir = os.path.expanduser("~")
+            runtime_dir = os.path.join(home_dir, ".deepdataspace")
+        self.runtime_dir = self.argument_or_config("runtime_dir", runtime_dir, None)
+
         self.configfile = configfile
         self.from_cmdline = from_cmdline
 
@@ -89,7 +95,7 @@ class DDS(metaclass=SingletonMeta):
 
         self.running_pids = {}  # {name:pid}, all subprocess started, will be closed at exit
 
-        self.dl_prefix = "https://deepdataspace.oss-cn-shenzhen.aliyuncs.com/install_files"
+        self.dl_prefix = "https://deepdataspace.oss-accelerate.aliyuncs.com/install_files"
         self.distro = PLATFORM if PLATFORM != Platforms.Linux else f"ubuntu{get_ubuntu_version()}"
 
     def argument_or_config(self, key, value, default):
@@ -132,35 +138,34 @@ class DDS(metaclass=SingletonMeta):
             msg = f"Port {self.port} is taken, please specify another port."
             self.exit_or_raise(msg)
 
-    @staticmethod
-    def init_samples():
-        data_dir = f"{config.RUNTIME_DIR}/dataset-samples"
-        if os.path.exists(data_dir) and os.listdir(data_dir):
-            return data_dir
+    def init_samples(self):
+        sample_dir = f"{self.runtime_dir}/dataset-samples"
+        sample_file = f"{sample_dir}/dataset-samples.zip"
 
-        os.makedirs(data_dir, exist_ok=True)
+        if os.path.exists(sample_file):
+            return
+
+        os.makedirs(sample_dir, exist_ok=True)
         sample_url = "https://deepdataspace.oss-cn-shenzhen.aliyuncs.com/install_files/datasets/dataset-samples.zip"
-        sample_file = f"{config.RUNTIME_DIR}/dataset-samples.zip"
         with progress_log(f"Downloading sample datasets"):
             download_by_requests(sample_url, sample_file)
 
         with zipfile.ZipFile(sample_file, "r") as fp:
-            fp.extractall(f"{config.RUNTIME_DIR}/")
-        os.remove(sample_file)
+            fp.extractall(f"{self.data_dir}/")
 
-        return data_dir
+        return
 
     def _init_shared_files_and_dirs(self):
         # init shared files and directories
-        home_dir = str(Path(os.path.expanduser("~")))
-
-        config.RUNTIME_DIR = self.config_data.get("runtime_dir", str(Path(home_dir, ".deepdataspace")))
+        config.RUNTIME_DIR = self.runtime_dir
         config.RUNTIME_DIR = os.path.expanduser(config.RUNTIME_DIR)
         config.RUNTIME_DIR = os.path.expandvars(config.RUNTIME_DIR)
         os.makedirs(config.RUNTIME_DIR, exist_ok=True)
 
         if self.quickstart is True:
-            self.data_dir = self.init_samples()
+            if self.data_dir is None:
+                self.data_dir = os.path.join(config.RUNTIME_DIR, "datasets")
+            self.init_samples()
         config.DATA_DIR = self.data_dir
 
         config.VERBOSE_LOG = self.verbose
@@ -272,11 +277,11 @@ class DDS(metaclass=SingletonMeta):
         django_secret = self.config_data.get("django_secret", None)
         if not django_secret:
             if os.path.exists(config.DJANGO_KEY_FILE):
-                with open(config.DJANGO_KEY_FILE, "r") as fp:
+                with open(config.DJANGO_KEY_FILE, "r", encoding="utf8") as fp:
                     django_secret = fp.read().strip()
             else:
                 django_secret = gen_random_str(32)
-        with open(config.DJANGO_KEY_FILE, "w") as fp:
+        with open(config.DJANGO_KEY_FILE, "w", encoding="utf8") as fp:
             fp.write(django_secret)
         config.DJANGO_KEY = django_secret
 
@@ -465,8 +470,11 @@ class DDS(metaclass=SingletonMeta):
 
         with progress_log("Starting DeepDataSpace(DDS)"):
             self.init()
-            self.start_all()
-            self.greeting()
+            if self.start_all():
+                self.greeting()
+            else:
+                time.sleep(1)
+                exit(1)
 
         self.started = True
         if self.from_cmdline:

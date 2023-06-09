@@ -34,6 +34,7 @@ export async function newProject(
     name?: string;
     description?: string;
     categories?: string;
+    preLabel: string;
     datasetIds?: string[];
     managerIds?: string[];
   },

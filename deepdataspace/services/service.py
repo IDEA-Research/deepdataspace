@@ -139,7 +139,6 @@ class Service:
         """
         Check if the process identified by cmd_is is running.
         """
-
         pids = get_pid_by_cmd_id(self.cmd_id)
         if pids:
             config.print_if_verbose(f"{self.name} is started")

@@ -10,6 +10,7 @@
     "lint:all": "pnpm -r --stream run lint",
     "format:all": "pnpm -r --stream run format",
     "prepare": "husky install",
+    "test": "pnpm run --filter app test",
     "build:app": "pnpm run --filter app build"
   },
   "devDependencies": {
@@ -29,7 +30,9 @@
       "axios@<0.21.2": ">=0.21.2",
       "node-fetch@<2.6.1": ">=2.6.1",
       "http-cache-semantics@<4.1.1": ">=4.1.1",
-      "ssri@<6.0.2": ">=6.0.2"
+      "ssri@<6.0.2": ">=6.0.2",
+      "vite@>=4.2.0 <4.3.9": ">=4.3.9",
+      "@antfu/utils": ">=0.7.3"
     }
   }
 }

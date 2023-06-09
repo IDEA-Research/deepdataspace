@@ -1,6 +1,6 @@
 import { IMG_FLAG } from '@/constants';
 import { request } from '@umijs/max';
-import { API } from './type';
+import { API, EnumModelType, EnumTaskStatus, ModelParam } from './type';
 
 // function sleep(time: number) {
 //   return new Promise((resolve) => setTimeout(resolve, time));
@@ -163,15 +163,13 @@ export async function labelClone(
   });
 }
 
-export async function fetchAiDetectionReq(
-  params: {
-    imagePath: string;
-    targets: string;
-  },
+async function fetchTaskUuid(
+  type: EnumModelType,
+  params: any,
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchAiDetectionRsp>(
-    `${process.env.MODEL_API_PATH}/aidetection`,
+  return request<API.fetchTaskUuid>(
+    `${process.env.MODEL_API_PATH}/tasks/${type}`,
     {
       method: 'POST',
       data: {
@@ -182,56 +180,55 @@ export async function fetchAiDetectionReq(
   );
 }
 
-export async function fetchAIPoseEstimationReq(
-  params: {
-    imagePath: string;
-    targets: string;
-    template: {
-      lines: number[];
-      pointNames: string[];
-      pointColors: string[];
-    };
-    objects?: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
-      points: number[];
-    }>;
-  },
+function fetchTaskResults<T extends EnumModelType>(
+  taskUuid: string,
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchAIPoseEstimationRsp>(
-    `${process.env.MODEL_API_PATH}/aipose`,
+  return request<API.FetchModelRsp<T>>(
+    `${process.env.MODEL_API_PATH}/task_statuses/${taskUuid}`,
     {
-      method: 'POST',
-      data: {
-        ...params,
-      },
+      method: 'GET',
       ...(options || {}),
     },
   );
 }
 
-export async function fetchAISegmentationReq(
-  params: {
-    imagePath: string;
-    categoryName: string;
-    clicks: {
-      isPositive: boolean;
-      position: number[];
-    }[];
-    polygons: number[][];
-    mask: string;
-  },
-  options?: { [key: string]: any },
+export async function pollTaskResults<T extends EnumModelType>(
+  taskUuid: string,
+  maxAttempts = 5000,
+  interval = 1000,
 ) {
-  return request<API.FetchAISegmentationRsp>(
-    `${process.env.MODEL_API_PATH}/aisegmentation`,
-    {
-      method: 'POST',
-      data: {
-        ...params,
-      },
-      ...(options || {}),
-    },
-  );
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    const results = await fetchTaskResults<T>(taskUuid);
+
+    if (results.status === EnumTaskStatus.Success) {
+      return results.result;
+    }
+
+    if (results.status === EnumTaskStatus.Failed) {
+      throw new Error(results.error);
+    }
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, interval);
+    });
+    attempts++;
+  }
+
+  throw new Error('Max attempts exceeded');
+}
+
+export async function fetchModelResults<T extends EnumModelType>(
+  type: EnumModelType,
+  params: ModelParam<T>,
+) {
+  try {
+    const { taskUuid } = await fetchTaskUuid(type, params);
+    const result = await pollTaskResults<T>(taskUuid);
+    return result;
+  } catch (error: any) {
+    throw new Error(error.message);
+  }
 }

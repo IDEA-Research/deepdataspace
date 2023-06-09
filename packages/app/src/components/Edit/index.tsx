@@ -1121,6 +1121,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 },
               );
               const points = getReferencePointsFromRect(rect);
+              const bbox = {
+                xmin: rect.x,
+                ymin: rect.y,
+                xmax: rect.x + rect.width,
+                ymax: rect.y + rect.height,
+              };
               const clicks = points.map((point, index) => {
                 return {
                   // Only the center point is positive
@@ -1131,7 +1137,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
               setDrawData((s) => {
                 s.segmentationClicks = [...clicks];
               });
-              onAiAnnotation({ ...drawData, segmentationClicks: clicks }, []);
+              onAiAnnotation(
+                { ...drawData, segmentationClicks: clicks },
+                [],
+                bbox,
+              );
             }
             setDrawData((s) => (s.creatingObject = undefined));
           }
