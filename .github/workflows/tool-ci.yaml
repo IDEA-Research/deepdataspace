@@ -22,6 +22,7 @@ jobs:
           args: >
             -Dsonar.projectKey=dds-tool
   test_on_windows_2019:
+    if: github.repository_owner == 'IDEA-Research'
     needs: scan
     runs-on: windows-2019
     steps:
@@ -40,6 +41,7 @@ jobs:
           pip install -r requirements-dev.txt
           pytest --cov=deepdataspace -s --cov-report=xml
   test_on_windows_2022:
+    if: github.repository_owner == 'IDEA-Research'
     needs: scan
     runs-on: windows-2022
     steps:
@@ -58,6 +60,7 @@ jobs:
           pip install -r requirements-dev.txt
           pytest --cov=deepdataspace -s --cov-report=xml
   test_on_macos_12:
+    if: github.repository_owner == 'IDEA-Research'
     needs: scan
     runs-on: macos-12
     steps:
@@ -76,6 +79,7 @@ jobs:
           pip install -r requirements-dev.txt
           pytest --cov=deepdataspace -s --cov-report=xml
   test_on_ubuntu_2204:
+    if: github.repository_owner == 'IDEA-Research'
     needs: [test_on_windows_2019, test_on_windows_2022, test_on_macos_12 ]
     runs-on: ubuntu-22.04
     steps:
@@ -101,6 +105,7 @@ jobs:
           verbose: true
           flags: backend
   test_frontend:
+    if: github.repository_owner == 'IDEA-Research'
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v1
