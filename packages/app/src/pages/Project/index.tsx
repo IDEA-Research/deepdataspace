@@ -15,6 +15,7 @@ import TableTags from './components/TableTags';
 import { EProjectAction } from './models/auth';
 import { useSize } from 'ahooks';
 import styles from './index.less';
+// import ProjectExportModal from './components/ProjectExportModal';
 
 const ProjectList: React.FC = () => {
   const { user } = useModel('user');
@@ -123,6 +124,17 @@ const ProjectList: React.FC = () => {
         </Link>,
       );
     }
+    // Todo: uncommented out when actual export API is avaliable
+    // if (
+    //   checkPermission(record.userRoles, EProjectAction.ProjectEdit)
+    //   && record.status === EProjectStatus.Accepted
+    // ) {
+    //   actions.push(
+    //     <a key="export">
+    //       <ProjectExportModal />
+    //     </a>
+    //   );
+    // }
     return actions;
   };
 
