@@ -54,7 +54,29 @@ python3 -m pip install pip --upgrade
 python3 -m pip install deepdataspace
 ```
 
-### 1.3 Installing from source code
+## 2. Quick Start
+
+The `dds` command will be available once the `deepdataspace` is installed, with which you can quickly start the DDS
+tool.
+
+```bash
+dds --quickstart
+
+# Started DDS[${pid}] at http://127.0.0.1:8765.
+# The DDS tool is importing datasets inside dir in the background: $HOME/.deepdataspace/dataset-samples.
+# Explore other useful commands by: ddsop --help.
+# You can quit the DDS tool with Ctrl+C.
+```
+
+It takes a while the first time you start the DDS tool, as it is downloading extra dependencies to set up a runtime
+environment.  
+Once the DDS tool is started, visit [http://127.0.0.1:8765](http://127.0.0.1:8765) and you will see the flowing sample datasets:  
+
+https://user-images.githubusercontent.com/10917115/240788538-f1fa8d52-7d93-4fe3-bf42-55284074febd.mp4
+
+## 3. Alternative Installation Methods
+
+### 3.1 Installing from Source Code
 
 ```bash
 
@@ -80,27 +102,58 @@ python3 -m pip install -r requirements.txt
 python3 setup.py install
 ```
 
-## 2. Quick Start
-
-The `dds` command will be available once the `deepdataspace` is installed, with which you can quickly start the DDS
-tool.
-
-```bash
+After the installation, you can start DDS the same way as above:
+```
 dds --quickstart
-
-# Started DDS[${pid}] at http://127.0.0.1:8765.
-# The DDS tool is importing datasets inside dir in the background: $HOME/.deepdataspace/dataset-samples.
-# Explore other useful commands by: ddsop --help.
-# You can quit the DDS tool with Ctrl+C.
 ```
 
-It takes a while the first time you start the DDS tool, as it is downloading extra dependencies to set up a runtime
-environment.  
-Once the DDS tool is started, visit [http://127.0.0.1:8765](http://127.0.0.1:8765) and you will see the flowing sample datasets:  
+### 3.2 Installing from Docker Image
+#### Step 1: Preparation
 
-https://user-images.githubusercontent.com/10917115/240788538-f1fa8d52-7d93-4fe3-bf42-55284074febd.mp4
+```shell
+# pull the latest docker image
+docker pull deepdataspace/dds
 
-## 3. Documentation
+# create a docker volume for dds to persistent data
+docker volume create dds-runtime
+
+# choose a visiting port for DDS
+export DDS_PORT=8765
+```
+
+#### Step 2: Start DDS in quickstart mode
+
+```shell
+# start the DDS in quickstart mode
+# DDS will download some sample datasets and import them
+docker run -it --name dds --rm \
+    -p $DDS_PORT:8765  \
+    -v dds-runtime:/dds/runtime \
+    deepdataspace/dds \
+    dds --quickstart -V
+```
+
+If everything goes well, you can start visit DDS at [http://127.0.0.1:8765](http://127.0.0.1:8765)
+
+#### Step 3: Mount your dataset directory(**Optional**)
+
+If you start DDS in `quickstart` mode, DDS will try to download some sample datasets and import them for you.  
+But most frequently, you want DDS to import your local dataset files. This is possible by mouting your local dataset directory to `/dds/datasets` inside container.
+
+```
+# assume $PWD/datasets is your local dataset directory
+mkdir -p datasets
+
+# start the container without quickstart mode
+docker run -it --name dds --rm \
+    -p 54321:8765  \
+    -v dds-runtime:/dds/runtime \
+    -v $PWD/datasets:/dds/datasets:ro \
+    deepdataspace/dds \
+    dds -V
+```
+
+## 4. Documentation
 
 Visit our [documentation](https://docs.deepdataspace.com) for more details on how to utilize the powers of DDS.
 
@@ -108,15 +161,23 @@ Visit our [documentation](https://docs.deepdataspace.com) for more details on ho
 - [Tutorials](https://docs.deepdataspace.com/tutorials)
 - [API Reference](https://python-docs.deepdataspace.com)
 
-## 4. Uninstallation
+## 5. Uninstallation
 
+For users who installed DDS from PyPi or source code, just uninstall DDS with `pip` and delete the runtime files. 
 ```shell
 pip uninstall deepdataspace
 
 rm -rf ~/.deepdataspace/* # use with caution, it will delete all datasets imported before
 ```
 
-## 5. License
+For users who installed DDS from docker image, just stop the container and remove the docker image and volume.  
+```
+docker stop dds
+docker rmi deepdataspace/dds
+docker volume remove dds-runtime # use with caution, it will delete all datasets imported before
+```
+
+## 6. License
 This project is released under the [Apache 2.0 License](https://github.com/IDEA-Research/deepdataspace/blob/main/LICENSE).
 ```text
 Copyright 2023-present, IDEA
