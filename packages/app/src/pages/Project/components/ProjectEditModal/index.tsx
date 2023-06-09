@@ -151,6 +151,14 @@ const ProjectEditModal = () => {
             ]}
             disabled={isEditingBasics}
           />
+          <ProFormText
+            label={localeText('proj.editModal.stepForm.preLabel.label')}
+            placeholder={localeText(
+              'proj.editModal.stepForm.preLabel.placeholder',
+            )}
+            name={['basics', 'preLabel']}
+            disabled={isEditingBasics}
+          />
           <ProFormTextArea
             label={localeText('proj.editModal.stepForm.category.label')}
             placeholder={localeText(

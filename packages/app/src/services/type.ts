@@ -104,6 +104,7 @@ export namespace DATA {
     name: string;
     description: string;
     categories: string;
+    preLabel: string;
     datasets: {
       id: string;
       name: string;

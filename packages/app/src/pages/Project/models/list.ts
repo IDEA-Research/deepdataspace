@@ -31,6 +31,7 @@ export interface ProjectModalForm {
     name?: string;
     description?: string;
     datasetIds?: string[];
+    preLabel?: string;
     categories?: string;
     managerIds?: string[];
   };
@@ -129,6 +130,7 @@ export default () => {
         description,
         categories,
         datasets,
+        preLabel,
         managers,
         batchSize,
         reviewTimes,
@@ -141,6 +143,7 @@ export default () => {
         name,
         description,
         categories,
+        preLabel,
         datasetIds: datasets.map((item) => item.id),
         managerIds: managers.map((item) => item.id),
       };
