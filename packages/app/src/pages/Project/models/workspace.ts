@@ -136,7 +136,7 @@ export default () => {
     });
     try {
       const { imageList, total, pageNum } = await requestLabelTaskImages(
-        taskId,
+        getUrlQueryVal('taskId') || '',
         {
           status: params.status || pageState.status,
           roleId: params.roleId || pageState.roleId,
@@ -161,8 +161,8 @@ export default () => {
   const { loading: loadingTaskInfos, run: loadTaskInfos } = useRequest(
     () => {
       return Promise.all([
-        requestLabelTaskRoles(taskId),
-        requestLabelTaskConfigs(taskId),
+        requestLabelTaskRoles(getUrlQueryVal('taskId') || ''),
+        requestLabelTaskConfigs(getUrlQueryVal('taskId') || ''),
       ]);
     },
     {
