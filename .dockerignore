@@ -1,0 +1,16 @@
+# for git
+.git
+.github
+.gitignore
+
+# for dev
+.idea
+.husky
+.vscode
+.commitlintrc
+
+# for local cache
+data
+dist
+node_modules
+deepdataspace.egg-info

@@ -56,6 +56,7 @@ class DDS(metaclass=SingletonMeta):
                  port: int = None,
                  reload: bool = None,
                  configfile: str = None,
+                 runtime_dir: str = None,
                  from_cmdline: bool = False):
 
         self.config_data = {}
@@ -75,6 +76,11 @@ class DDS(metaclass=SingletonMeta):
         self.host = self.argument_or_config("django_host", host, "127.0.0.1")
         self.port = int(self.argument_or_config("django_port", port, 8765))
         self.reload = self.argument_or_config("django_reload", reload, False)
+
+        if runtime_dir is None:
+            home_dir = os.path.expanduser("~")
+            runtime_dir = os.path.join(home_dir, ".deepdataspace")
+        self.runtime_dir = self.argument_or_config("runtime_dir", runtime_dir, None)
 
         self.configfile = configfile
         self.from_cmdline = from_cmdline
@@ -132,35 +138,34 @@ class DDS(metaclass=SingletonMeta):
             msg = f"Port {self.port} is taken, please specify another port."
             self.exit_or_raise(msg)
 
-    @staticmethod
-    def init_samples():
-        data_dir = f"{config.RUNTIME_DIR}/dataset-samples"
-        if os.path.exists(data_dir) and os.listdir(data_dir):
-            return data_dir
+    def init_samples(self):
+        sample_dir = f"{self.runtime_dir}/dataset-samples"
+        sample_file = f"{sample_dir}/dataset-samples.zip"
 
-        os.makedirs(data_dir, exist_ok=True)
+        if os.path.exists(sample_file):
+            return
+
+        os.makedirs(sample_dir, exist_ok=True)
         sample_url = "https://deepdataspace.oss-cn-shenzhen.aliyuncs.com/install_files/datasets/dataset-samples.zip"
-        sample_file = f"{config.RUNTIME_DIR}/dataset-samples.zip"
         with progress_log(f"Downloading sample datasets"):
             download_by_requests(sample_url, sample_file)
 
         with zipfile.ZipFile(sample_file, "r") as fp:
-            fp.extractall(f"{config.RUNTIME_DIR}/")
-        os.remove(sample_file)
+            fp.extractall(f"{self.data_dir}/")
 
-        return data_dir
+        return
 
     def _init_shared_files_and_dirs(self):
         # init shared files and directories
-        home_dir = str(Path(os.path.expanduser("~")))
-
-        config.RUNTIME_DIR = self.config_data.get("runtime_dir", str(Path(home_dir, ".deepdataspace")))
+        config.RUNTIME_DIR = self.runtime_dir
         config.RUNTIME_DIR = os.path.expanduser(config.RUNTIME_DIR)
         config.RUNTIME_DIR = os.path.expandvars(config.RUNTIME_DIR)
         os.makedirs(config.RUNTIME_DIR, exist_ok=True)
 
         if self.quickstart is True:
-            self.data_dir = self.init_samples()
+            if self.data_dir is None:
+                self.data_dir = os.path.join(config.RUNTIME_DIR, "datasets")
+            self.init_samples()
         config.DATA_DIR = self.data_dir
 
         config.VERBOSE_LOG = self.verbose
