@@ -11,11 +11,18 @@ import {
 import { GlobalLoading, LangSelector } from 'dds-component';
 import { STORAGE_KEY } from '@/constants';
 import LoginModal from '@/components/LoginModal';
-import { FileSearchOutlined, LeftOutlined, LoginOutlined, LogoutOutlined, RightOutlined } from '@ant-design/icons';
+import {
+  FileSearchOutlined,
+  LeftOutlined,
+  LoginOutlined,
+  LogoutOutlined,
+  RightOutlined,
+} from '@ant-design/icons';
 import routes from '@/routes';
 import classNames from 'classnames';
 import { useLocale } from '@/locales/helper';
 import CustomMenu from './menu';
+import MobileAlert from '@/components/MobileAlert';
 import styles from './index.less';
 
 const SLIDER_WIDTH = 226;
@@ -28,6 +35,7 @@ export default () => {
   const { pathname } = useLocation();
   const { localeText } = useLocale();
   const [collapsed, setCollapsed] = useState(true);
+  const { isMobile } = useModel('global');
 
   /** Compute hide slider paths */
   const hideSiderPaths = useMemo(() => {
@@ -138,14 +146,24 @@ export default () => {
                     {collapsed ? localeText('login') : <LoginOutlined />}
                   </Button>
                   {!collapsed && (
-                    <span className={styles.userName}>{localeText('login')}</span>
+                    <span className={styles.userName}>
+                      {localeText('login')}
+                    </span>
                   )}
                 </div>
               )}
               {/* </div> */}
-              <Tooltip placement='right' title={localeText('docs')}>
-                <a href="https://docs.deepdataspace.com" target="_blank" rel="noreferrer">
-                  <Button className={styles.docsBtn} type="text" icon={<FileSearchOutlined />} />
+              <Tooltip placement="right" title={localeText('docs')}>
+                <a
+                  href="https://docs.deepdataspace.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Button
+                    className={styles.docsBtn}
+                    type="text"
+                    icon={<FileSearchOutlined />}
+                  />
                 </a>
               </Tooltip>
               <LangSelector getLocale={getLocale} setLocale={setLocale} />
@@ -162,7 +180,9 @@ export default () => {
     }
   };
 
-  return (
+  return isMobile ? (
+    <MobileAlert />
+  ) : (
     <GlobalLoading active={loading}>
       <Layout>
         {renderSilder()}

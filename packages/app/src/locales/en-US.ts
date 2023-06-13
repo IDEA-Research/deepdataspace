@@ -434,6 +434,11 @@ export default {
   'notFound.title': 'Sorry, the page you visited does not exist.',
   'notFound.backHome': 'Back Home',
 
+  /** mobile alert **/
+  'mobileAlert.title': 'Kindly Reminder',
+  'mobileAlert.subTitle':
+    'This site not support mobile display yet, please switch to computer to open.',
+
   /** app */
   'layout.title': 'Deep Data Space',
   'requestConfig.errorData.msg': 'Request error, please retry ({code})',
