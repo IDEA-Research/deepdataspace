@@ -402,6 +402,10 @@ export default {
   'notFound.title': '抱歉，您访问的页面不存在。',
   'notFound.backHome': '返回首页',
 
+  /** mobile alert **/
+  'mobileAlert.title': '温馨提示',
+  'mobileAlert.subTitle': '本站暂不支持移动端显示，请使用电脑打开',
+
   /** app */
   'layout.title': 'Deep Data Space',
   'requestConfig.errorData.msg': '请求错误，请重试（{code}）',
