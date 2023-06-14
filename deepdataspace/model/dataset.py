@@ -54,6 +54,7 @@ class DataSet(BaseModel):
     object_types: list = []  # what kind of objects this dataset contains
     num_images: int = 0
     files: dict = {}  # the relevant files of this dataset
+    cover_url: str = None  # the cover image url
     group_id: str = None
     group_name: str = None
 
@@ -129,6 +130,19 @@ class DataSet(BaseModel):
         dataset.save()
         return dataset
 
+    def _add_cover(self, force_update: bool = False):
+        has_cover = self.cover_url is not None
+        if has_cover and not force_update:
+            return
+
+        IModel = Image(self.id)
+        images = list(IModel.find_many({}, sort=[("idx", 1)], size=1))
+        if not images:
+            return
+
+        self.cover_url = images[0].url.strip()
+        self.save()
+
     def add_image(self,
                   uri: str,
                   thumb_uri: str = None,
@@ -195,7 +209,7 @@ class DataSet(BaseModel):
 
         image.save()
         self.num_images = Model.count_num({})
-        self.save()
+        self._add_cover()
 
         # save whitelist to redis
         whitelist_dirs = set()
@@ -347,3 +361,4 @@ class DataSet(BaseModel):
         This saves all images in the buffer queue to database.
         """
         self._save_image_batch()
+        self._add_cover()
