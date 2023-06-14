@@ -4,6 +4,9 @@ deepdataspace.server.resources.api_v1.datasets
 The dataset RESTful APIs.
 """
 
+import importlib
+import logging
+
 from deepdataspace.constants import LabelType
 from deepdataspace.model import Category
 from deepdataspace.model import DataSet
@@ -13,6 +16,8 @@ from deepdataspace.server.resources.common import BaseAPIView
 from deepdataspace.server.resources.common import format_response
 from deepdataspace.server.resources.common import parse_arguments
 from deepdataspace.server.resources.common import raise_exception
+
+logger = logging.getLogger("django")
 
 
 class DatasetsView(BaseAPIView):
@@ -37,8 +42,10 @@ class DatasetsView(BaseAPIView):
         dataset_list = []
         offset = max(0, page_size * (page_num - 1))
         if offset <= total:
-            for dataset in DataSet.find_many({}, skip=offset, size=page_size, to_dict=True):
-                dataset["description"] = dataset["path"]
+            for dataset in DataSet.find_many({}, skip=offset, size=page_size):
+                description = dataset.eval_description()
+                dataset = dataset.to_dict(exclude=["description_func"])
+                dataset["description"] = description or dataset["path"]
                 dataset_list.append(dataset)
 
         data = {
