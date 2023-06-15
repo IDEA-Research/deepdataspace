@@ -131,7 +131,7 @@ class DataSet(BaseModel):
         return dataset
 
     def _add_cover(self, force_update: bool = False):
-        has_cover = self.cover_url is not None
+        has_cover = bool(self.cover_url)
         if has_cover and not force_update:
             return
 
