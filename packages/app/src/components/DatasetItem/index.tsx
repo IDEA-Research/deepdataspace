@@ -1,11 +1,11 @@
 import React from 'react';
-import { Card, List, Tooltip } from 'antd';
+import { Card, List, Tooltip, Image } from 'antd';
 import Icon from '@ant-design/icons';
 import { ReactComponent as DownloadIcon } from '@/assets/svg/download.svg';
 import { DATA } from '@/services/type';
 import { useLocale } from '@/locales/helper';
 import { ANNOTATION_TYPE_ICONS } from '@/constants';
-import { renderDatasetCover } from '@/utils/datasets';
+import { generateDefaultCover } from '@/utils/datasets';
 import styles from './index.less';
 
 export interface IProps {
@@ -33,9 +33,13 @@ const DatasetItem: React.FC<IProps> = (props) => {
       >
         <div className={styles.imgBox}>
           <div className={styles.imgWrap}>
-            <img
-              src={renderDatasetCover(data?.coverUrl, data?.objectTypes)}
+            <Image
+              src={data?.coverUrl}
               alt="cover"
+              onError={(e: any) => {
+                e.target.src = generateDefaultCover(data?.objectTypes);
+              }}
+              preview={false}
             />
           </div>
           <div className={styles.types}>
