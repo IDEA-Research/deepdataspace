@@ -408,7 +408,10 @@ export default {
 
   /** app */
   'layout.title': 'Deep Data Space',
+
+  /** error code & status msg or error handler msg **/
   'requestConfig.errorData.msg': '请求错误，请重试（{code}）',
+  'requestConfig.success.msg': '请求成功。',
   'requestConfig.unAuth.msg': '未授权的访问。请登录。',
   'requestConfig.permissionDenied.msg':
     '权限被拒绝。您的帐户没有执行此操作所需的权限。',
