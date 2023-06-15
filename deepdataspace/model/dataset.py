@@ -4,6 +4,7 @@ deepdataspace.model.dataset
 The dataset model.
 """
 
+import importlib
 import json
 import logging
 import os
@@ -55,6 +56,8 @@ class DataSet(BaseModel):
     num_images: int = 0
     files: dict = {}  # the relevant files of this dataset
     cover_url: str = None  # the cover image url
+    description: str = None  # the dataset description
+    description_func: str = None  # a function to generate description
     group_id: str = None
     group_name: str = None
 
@@ -68,6 +71,8 @@ class DataSet(BaseModel):
                        type: str = None,
                        path: str = None,
                        files: dict = None,
+                       description: str = None,
+                       description_func: str = None,
                        ) -> "DataSet":
         """
         Create a dataset.
@@ -79,8 +84,13 @@ class DataSet(BaseModel):
         :param type: the optional dataset type, can be "tsv", "coco2017".
         :param path: the optional dataset directory path.
         :param files: the optional dataset relevant files. The key is the file info, the value is the file path.
+        :param description: the optional dataset description.
+        :param description_func: an import path of a function to generate description.
+            The function takes the dataset instance as the only argument and returns a string.
+            If this is provided, it proceeds the description str.
         :return: the dataset object.
         """
+
         if id_:
             dataset = DataSet.find_one({"id": id_})
             if dataset is not None:
@@ -94,7 +104,9 @@ class DataSet(BaseModel):
             id_ = uuid.uuid4().hex
 
         files = files or {}
-        dataset = cls(name=name, id=id_, type=type, path=path, files=files, status=DatasetStatus.Ready)
+        dataset = cls(name=name, id=id_, type=type, path=path,
+                      files=files, status=DatasetStatus.Ready,
+                      description=description, description_func=description_func)
         dataset.post_init()
         dataset.save()
         return dataset
@@ -362,3 +374,22 @@ class DataSet(BaseModel):
         """
         self._save_image_batch()
         self._add_cover()
+
+    def eval_description(self):
+        """
+        Evaluate the description function and return the description.
+        """
+
+        if self.description_func is not None:
+            try:
+                module, func = self.description_func.rsplit(".", 1)
+                description_module = importlib.import_module(module)
+                description_func = getattr(description_module, func)
+                return description_func(self)
+            except (ImportError, AttributeError):
+                msg = f"Cannot import description_func[{self.description_func}] for dataset[{self.id}]"
+                logger.warning(msg)
+                return self.description or self.path
+            except:
+                logger.warning(f"Failed to eval description_func[{self.description_func}] for dataset[{self.id}]")
+                return self.description or self.path
