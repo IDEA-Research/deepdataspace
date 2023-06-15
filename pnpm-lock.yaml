@@ -291,6 +291,9 @@ importers:
       react-ga4:
         specifier: ^2.1.0
         version: 2.1.0
+      react-resize-detector:
+        specifier: ^7.1.2
+        version: 7.1.2(react-dom@16.14.0)(react@16.14.0)
       use-immer:
         specifier: ^0.9.0
         version: 0.9.0(immer@10.0.2)(react@16.14.0)
