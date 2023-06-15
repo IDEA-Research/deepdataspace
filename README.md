@@ -43,9 +43,10 @@ Deep Data Space (DDS) is an open-source dataset tool with these features out-of-
 
 ### 1.1 Prerequisites
 DeepDataSpace(DDS) requires **Python 3.8 - 3.10** and runs on the following platforms:
-- Mac, x86/arm64
-- Windows 10, x86/x64
-- Ubuntu 18.04/20.04/22.04, x86/x64
+- Mac OS: ✅ x86/x64, ✅ arm64
+- Windows 10: ✅ x86/x64, ❌ arm64
+- Ubuntu LTS since 18.04: ✅ x86/x64, ❌ arm64
+- Docker: ✅ x86/x64, ❌ arm64
 
 ### 1.2 Installing from PyPI
 
@@ -133,12 +134,12 @@ docker run -it --name dds --rm \
     dds --quickstart -V
 ```
 
-If everything goes well, you can start visit DDS at [http://127.0.0.1:8765](http://127.0.0.1:8765)
+If everything goes well, you can start visiting DDS at [http://127.0.0.1:8765](http://127.0.0.1:8765)
 
 #### Step 3: Mount your dataset directory(**Optional**)
 
-If you start DDS in `quickstart` mode, DDS will try to download some sample datasets and import them for you.  
-But most frequently, you want DDS to import your local dataset files. This is possible by mouting your local dataset directory to `/dds/datasets` inside container.
+If you start DDS in `quickstart` mode, DDS will try to download the sample datasets and import them for you.  
+But most frequently, you want DDS to import your local dataset files. This is possible by mounting your local dataset directory to `/dds/datasets` inside container.
 
 ```
 # assume $PWD/datasets is your local dataset directory
