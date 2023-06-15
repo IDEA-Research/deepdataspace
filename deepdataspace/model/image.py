@@ -265,6 +265,35 @@ class ImageModel(BaseModel):
         if modified:
             self.dataset.save()
 
+    def _add_annotation(self,
+                        category: str,
+                        label: str = LabelName.GroundTruth,
+                        label_type: Literal["GT", "Pred", "User"] = "GT",
+                        conf: float = 1.0,
+                        is_group: bool = False,
+                        bbox: Tuple[int, int, int, int] = None,
+                        segmentation: List[List[int]] = None,
+                        alpha_uri: str = None,
+                        coco_keypoints: List[Union[float, int]] = None,
+                        confirm_type: int = 0,
+                        ):
+        if bbox:
+            if not self.width or not self.height:
+                raise ValueError("image width and height must be set before setting bbox")
+
+        label_obj = self._add_label(label, label_type)
+        category_obj = self._add_category(category)
+        bounding_box = self._format_bbox(self.width, self.height, bbox)
+        segmentation = self._format_segmentation(segmentation)
+        points, colors, lines, names = self._format_coco_keypoints(coco_keypoints)
+        anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
+                          category_name=category, category_id=category_obj.id,
+                          bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
+                          points=points, lines=lines, point_colors=colors, point_names=names,
+                          conf=conf, is_group=is_group, confirm_type=confirm_type)
+        anno_obj.post_init()
+        self.objects.append(anno_obj)
+
     def add_annotation(self,
                        category: str,
                        label: str = LabelName.GroundTruth,
@@ -294,22 +323,9 @@ class ImageModel(BaseModel):
         :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         """
 
-        if bbox:
-            if not self.width or not self.height:
-                raise ValueError("image width and height must be set before setting bbox")
-
-        label_obj = self._add_label(label, label_type)
-        category_obj = self._add_category(category)
-        bounding_box = self._format_bbox(self.width, self.height, bbox)
-        segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_coco_keypoints(coco_keypoints)
-        anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
-                          category_name=category, category_id=category_obj.id,
-                          bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
-                          points=points, lines=lines, point_colors=colors, point_names=names,
-                          conf=conf, is_group=is_group, confirm_type=confirm_type)
-        anno_obj.post_init()
-        self.objects.append(anno_obj)
+        self._add_annotation(category, label, label_type, conf,
+                             is_group, bbox, segmentation, alpha_uri,
+                             coco_keypoints, confirm_type)
 
         self.save()
         self._update_dataset(bbox, segmentation, alpha_uri, coco_keypoints)

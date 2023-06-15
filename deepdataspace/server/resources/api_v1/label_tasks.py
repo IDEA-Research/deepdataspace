@@ -323,6 +323,40 @@ class ProjectQAView(AuthenticatedAPIView):
         return format_response({})
 
 
+class ProjectExportView(AuthenticatedAPIView):
+    """
+    - POST /api/v1/label_project_export/<project_id>
+    """
+
+    post_args = [
+        Argument("label_name", str, Argument.JSON, required=True),
+    ]
+
+    def post(self, request, project_id):
+        """
+        Export a label project back to datasets.
+
+        - POST /api/v1/label_project_export/<project_id>
+        """
+
+        user = request.user
+        label_name, = parse_arguments(request, self.post_args)
+
+        project = LabelProject.find_one({"id": project_id})
+        if project is None:
+            raise_exception(404, f"project[id={project_id}] is not found")
+
+        if not ProjectRole.can_export_project(user, project_id):
+            raise_exception(403, f"user[{user.id}] is not allowed to export project[{project_id}]")
+
+        try:
+            project.export_project(label_name)
+        except LabelProjectError as err:
+            raise_exception(400, str(err))
+
+        return format_response({})
+
+
 class TasksView(AuthenticatedAPIView):
     """
     - GET /api/v1/label_tasks
