@@ -82,8 +82,11 @@ export const request: RequestConfig = {
   // Error handler： umi@3
   errorConfig: {
     errorHandler: (error: any, opts: any) => {
+      // Pop 2XX error out into catch function in order to customize msg info
+      if (/^2/.test(error.status)) return;
+
       // Allow to skip errorHandler
-      if (opts?.skipErrorHandler) throw error;
+      if (opts?.skipErrorHandler) return;
 
       // Not logged in / Unauthorized access
       if (error.response?.status === 401) {
@@ -92,7 +95,7 @@ export const request: RequestConfig = {
       }
 
       // Allow to hide common code error msg tip
-      if (opts?.hideCodeErrorMsg) throw error;
+      if (opts?.hideCodeErrorMsg) return;
 
       if (error.response) {
         // The request was successful and the server responded with a status code, but the status code is outside the 2xx range.
@@ -126,21 +129,15 @@ export const request: RequestConfig = {
   responseInterceptors: [
     (response: any) => {
       // 2xx response
-      if (!response.config.shouldReturnCodeRsp) {
-        if (response.data?.code === 0) {
-          response.data = humps.camelizeKeys(response.data?.data || {});
-          return response;
-        } else {
-          if (!response.config?.hideCodeErrorMsg) {
-            // Match 2xx customs error code
-            message.error(matchErrorMsg(response.data?.code, 200));
-          }
-          throw response;
-        }
-      } else {
-        // Return backend data directly without checking the code value
-        response.data = humps.camelizeKeys(response.data);
+      if (response.data?.code === 0) {
+        response.data = humps.camelizeKeys(response.data?.data || {});
         return response;
+      } else {
+        if (!response.config?.hideCodeErrorMsg) {
+          // Match 2xx customs error code
+          message.error(matchErrorMsg(response.data?.code, 200));
+        }
+        throw response;
       }
     },
   ],
