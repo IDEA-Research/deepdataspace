@@ -441,7 +441,10 @@ export default {
 
   /** app */
   'layout.title': 'Deep Data Space',
+
+  /** error code & status msg or error handler msg **/
   'requestConfig.errorData.msg': 'Request error, please retry ({code})',
+  'requestConfig.success.msg': 'Request succeeded.',
   'requestConfig.unAuth.msg': 'Unauthorized access. Please Login.',
   'requestConfig.permissionDenied.msg':
     'Permission denied. Your account does not have the required permissions to perform this action.',
