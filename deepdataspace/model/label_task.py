@@ -5,6 +5,7 @@ The label project related models.
 """
 
 import copy
+import logging
 import time
 import uuid
 from typing import ClassVar
@@ -18,6 +19,8 @@ from pydantic import Field
 from pymongo.collection import Collection
 from pymongo.typings import _DocumentType
 
+from deepdataspace.constants import AnnotationType
+from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import LabelImageQAActions
 from deepdataspace.constants import LabelProjectQAActions
 from deepdataspace.constants import LabelProjectRoles
@@ -25,12 +28,20 @@ from deepdataspace.constants import LabelProjectStatus
 from deepdataspace.constants import LabelTaskImageStatus
 from deepdataspace.constants import LabelTaskQAActions
 from deepdataspace.constants import LabelTaskStatus
+from deepdataspace.constants import LabelType
 from deepdataspace.model._base import BaseModel
+from deepdataspace.model.category import Category
 from deepdataspace.model.dataset import DataSet
 from deepdataspace.model.image import Image
+from deepdataspace.model.image import ImageModel
+from deepdataspace.model.label import Label
+from deepdataspace.model.object import Object
 from deepdataspace.model.user import User
+from deepdataspace.utils.string import get_str_md5
 
 Num = Union[float, int]
+
+logger = logging.getLogger("io.model.label_task")
 
 
 def current_ts():
@@ -378,6 +389,143 @@ class LabelProject(BaseModel):
         else:
             raise LabelProjectError(f"Invalid project qa action: {action}.")
 
+    @staticmethod
+    def _get_image_batch(dataset_id, offset):
+        """
+        Get a batch of images from the dataset.
+        """
+
+        IModel = Image(dataset_id)
+        images: Dict[int, ImageModel] = {i.id: i for i in
+                                         IModel.find_many({}, sort=[("id", 1)], size=100, skip=offset)}
+        return images, offset + 100
+
+    @staticmethod
+    def _get_label(dataset_id: str, label_set_name: str):
+        """
+        Get the label set of saving annotations.
+        """
+        label_id = get_str_md5(f"{dataset_id}_{label_set_name}")
+        label_obj = Label(name=label_set_name, id=label_id, type=LabelType.GroundTruth, dataset_id=dataset_id)
+        label_obj.post_init()
+        label_obj.save()
+        return label_obj
+
+    @staticmethod
+    def _get_category(dataset_id: str, category_name: str, categories: dict):
+        """
+        Get the category of saving annotation.
+        """
+        cat_obj = categories.get(category_name, None)
+        if cat_obj is None:
+            cat_id = get_str_md5(f"{dataset_id}_{category_name}")
+            cat_obj = Category(id=cat_id, name=category_name, dataset_id=dataset_id)
+            cat_obj.post_init()
+            cat_obj.save()
+            categories[category_name] = cat_obj
+        return cat_obj
+
+    def _export_dataset(self, dataset: DataSet, label_set_name: str):
+        # the label set
+        label_obj = self._get_label(dataset.id, label_set_name)
+
+        # the categories cache, we cache it to avoid duplicated db query and insertion
+        categories = {}
+
+        # the queue of target images
+        LTImage = LabelTaskImage(dataset.id)
+        images, offset = self._get_image_batch(dataset.id, 0)
+
+        has_bbox = False  # whether the annotations have bbox
+
+        # iter every label image, save every annotation to target image
+        for ltimage in LTImage.find_many({}, sort=[("image_id", 1)]):
+            if not images:  # no more images in the queue, get a new batch
+                images, offset = self._get_image_batch(dataset.id, offset)
+
+            # match label image and target image
+            image_id = ltimage.image_id
+            image = images.pop(image_id, None)
+            if image is None:
+                continue
+            image.objects = [o for o in image.objects if o.label_id != label_obj.id]
+
+            # save annotations
+            labels = ltimage.labels
+            for labeler_id, label_list in labels.items():
+                if not label_list:
+                    continue
+
+                label_data = label_list[0]
+                annotations = label_data.annotations
+
+                for anno in annotations:
+                    category = anno["category_name"]
+                    if not category:
+                        continue
+
+                    bounding_box = anno["bounding_box"]
+                    if not bounding_box:
+                        continue
+
+                    has_bbox = True
+                    cat_obj = self._get_category(dataset.id, category, categories)
+
+                    anno_obj = Object(label_name=label_obj.name, label_type=label_obj.type, label_id=label_obj.id,
+                                      category_name=cat_obj.name, category_id=cat_obj.id,
+                                      bounding_box=anno["bounding_box"])
+                    anno_obj.post_init()
+                    image.objects.append(anno_obj)
+                    image.batch_save()
+
+        Image(dataset.id).finish_batch_save()
+
+        if has_bbox:
+            if AnnotationType.Classification not in dataset.object_types:
+                dataset.object_types.append(AnnotationType.Classification)
+            if AnnotationType.Detection not in dataset.object_types:
+                dataset.object_types.append(AnnotationType.Detection)
+            dataset.save()
+
+    def export_project(self, label_set_name: str):
+        """
+        Export the label data back to datasets.
+        """
+
+        if self.status != LabelProjectStatus.Accepted:
+            msg = f"Project can only be exported in status of 'accepted', current status is {self.status}."
+            raise LabelProjectError(msg)
+
+        label_set_name = f"{label_set_name}[{self.id[:8]}]"
+        logger.info(f"exporting project {self.id} to label set {label_set_name}")
+
+        num = len(self.datasets)
+        for idx, dataset in enumerate(self.datasets):
+            dataset_id = dataset["id"]
+            dataset = DataSet.find_one({"id": dataset_id})
+            if dataset is None:
+                continue
+
+            status = DatasetStatus.Ready
+            try:
+                update_data = {"status"                            : DatasetStatus.Importing,
+                               "detail_status.export_label_project": DatasetStatus.Importing}
+                DataSet.update_one({"id": dataset_id}, update_data)
+                logger.info(f"[{idx + 1}/{num}]exporting label project to dataset {dataset_id}")
+                self._export_dataset(dataset, label_set_name)
+                self.status = LabelProjectStatus.Exported
+                self.save()
+            except Exception as e:
+                status = DatasetStatus.Failed
+                logger.warning(f"[{idx + 1}/{num}]export label project to dataset {dataset_id} failed: {e}")
+            else:
+                status = DatasetStatus.Ready
+                logger.info(f"[{idx + 1}/{num}]export label project to dataset {dataset_id} success")
+            finally:
+                update_data = {"status"                            : DatasetStatus.Ready,
+                               "detail_status.export_label_project": status}
+                DataSet.update_one({"id": dataset_id}, update_data)
+
 
 class ProjectRole(BaseModel):
     """
@@ -629,6 +777,14 @@ class ProjectRole(BaseModel):
     def can_qa_project(user: User, project_id):
         """
         Check if target user can QA the project.
+        """
+
+        return ProjectRole.is_owner(user, project_id)
+
+    @staticmethod
+    def can_export_project(user: User, project_id):
+        """
+        Check if target user can export the project.
         """
 
         return ProjectRole.is_owner(user, project_id)

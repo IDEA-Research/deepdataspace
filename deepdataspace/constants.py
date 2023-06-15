@@ -261,6 +261,7 @@ class LabelProjectStatus:
     Reviewing = "reviewing"  #: Manager has finished the label project, waiting for owner to review.
     Rejected = "rejected"  #: Owner rejected the project.
     Accepted = "accepted"  #: Owner accepted the project.
+    Exported = "exported"  #: Owner has exported the project back to datasets.
 
 
 class LabelProjectRoles:
