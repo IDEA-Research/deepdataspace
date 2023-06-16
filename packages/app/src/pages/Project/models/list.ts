@@ -7,6 +7,7 @@ import {
   initProject,
   newProject,
   qaProject,
+  exportLabelProject,
 } from '@/services/project';
 import { DATA } from '@/services/type';
 import { message } from 'antd';
@@ -49,6 +50,10 @@ export interface ProjectModal {
   targetProject?: DATA.Project; // edit (if had value) | new
   initialValues: ProjectModalForm;
   disableInitProject?: boolean;
+}
+
+export interface ExportModalForm {
+  labelName: string;
 }
 
 export const SET_WORKFLOW_NOW = 'proj.editModal.setWorkflowNow';
@@ -255,6 +260,26 @@ export default () => {
     }
   };
 
+  /** For owner */
+  const onExportLabelProject = async (
+    projectId: string,
+    values: ExportModalForm,
+  ) => {
+    try {
+      await exportLabelProject(projectId, {
+        labelName: values?.labelName,
+      });
+      message.success(
+        globalLocaleText('proj.exportModal.submitSuccess', {
+          name: values?.labelName,
+        }),
+      );
+      loadPageData();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   /**
    * Initialize page parameters from the URL.
    * @param urlPageState
@@ -287,5 +312,6 @@ export default () => {
     projectModalNext,
     projectModalFinish,
     onChangeProjectResult,
+    onExportLabelProject,
   };
 };

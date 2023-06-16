@@ -104,6 +104,23 @@ export async function qaProject(
   });
 }
 
+/** export label project (for owner) */
+export async function exportLabelProject(
+  projectId: string,
+  params: {
+    labelName: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request(`/api/v1/label_project_export/${projectId}`, {
+    method: 'POST',
+    data: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
 /** dataset lint */
 export async function fetchDatasetLint(
   params: {

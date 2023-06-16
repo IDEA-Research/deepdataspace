@@ -16,6 +16,7 @@ export enum EProjectAction {
   ProjectInfo,
   ProjectInit,
   ProjectQa,
+  ProjectExport,
   /** task */
   AssignLeader = 100,
   TaskQa,
@@ -33,6 +34,7 @@ const RolePermissions: Record<EProjectRole, EProjectAction[]> = {
     EProjectAction.ProjectEdit,
     EProjectAction.ProjectQa,
     EProjectAction.View,
+    EProjectAction.ProjectExport,
   ],
   [EProjectRole.Manager]: [
     EProjectAction.ProjectInit,

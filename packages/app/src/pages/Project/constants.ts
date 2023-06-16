@@ -8,6 +8,7 @@ export enum EProjectStatus {
   Reviewing = 'reviewing',
   Rejected = 'rejected',
   Accepted = 'accepted',
+  Exported = 'exported',
 }
 
 export const PROJECT_STATUS_MAP = {
@@ -34,6 +35,10 @@ export const PROJECT_STATUS_MAP = {
   [EProjectStatus.Accepted]: {
     text: 'proj.statusMap.accepted',
     color: 'success',
+  },
+  [EProjectStatus.Exported]: {
+    text: 'proj.statusMap.exported',
+    color: 'default',
   },
 };
 

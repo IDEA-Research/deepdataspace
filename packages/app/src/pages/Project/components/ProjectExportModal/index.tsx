@@ -1,23 +1,22 @@
 import { ModalForm, ProFormText } from '@ant-design/pro-components';
+import { useModel } from '@umijs/max';
 import { useLocale } from '@/locales/helper';
-import { Form, message } from 'antd';
+import { Form } from 'antd';
 import styles from './index.less';
 
-const ProjectExportModal = () => {
-  const { localeText } = useLocale();
-  const [form] = Form.useForm<{ labelSet: string }>();
+interface IModalProps {
+  projectId: string;
+}
 
-  const waitTime = (time: number = 100) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(true);
-      }, time);
-    });
-  };
+const ProjectExportModal: React.FC<IModalProps> = (props) => {
+  const { projectId } = props;
+  const { onExportLabelProject } = useModel('Project.list');
+  const [form] = Form.useForm<{ labelName: string }>();
+  const { localeText } = useLocale();
 
   return (
     <ModalForm<{
-      labelSet: string;
+      labelName: string;
     }>
       title={localeText('proj.exportModal.title')}
       width={450}
@@ -32,28 +31,19 @@ const ProjectExportModal = () => {
         destroyOnClose: true,
       }}
       submitTimeout={2000}
-      onFinish={async (values) => {
-        // Todo: replace with actual export API
-        await waitTime(2000);
-        console.log(values.labelSet);
-        message.success(
-          localeText('proj.exportModal.submitSuccess', {
-            name: values.labelSet,
-          }),
-        );
-        return true;
-      }}
+      onFinish={async (values) => await onExportLabelProject(projectId, values)}
       className={styles.input}
     >
       <ProFormText
-        label={localeText('proj.exportModal.labelSet.name')}
-        name="labelSet"
+        label={localeText('proj.exportModal.labelName.name')}
+        name="labelName"
         rules={[
           {
             required: true,
-            message: localeText('proj.exportModal.labelSet.rule'),
+            message: localeText('proj.exportModal.labelName.rule'),
           },
         ]}
+        extra={localeText('proj.exportModal.labelName.tips')}
       />
     </ModalForm>
   );
