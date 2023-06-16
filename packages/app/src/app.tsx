@@ -5,9 +5,9 @@ import { message } from 'antd';
 import { RequestConfig, RunTimeLayoutConfig, history } from '@umijs/max';
 import { ErrorBoundary, ErrorBoundaryProps } from '@sentry/react';
 import { RunningErrorTip } from 'dds-component';
-import { CommonRsp } from './services/type';
 import { STORAGE_KEY } from './constants';
 import { globalLocaleText } from '@/locales/helper';
+import { matchErrorMsg } from '@/services/errorCode';
 
 // Global initialization data configuration for Layout user information and permission initialization
 // More info：https://next.umijs.org/docs/api/runtime-config#getinitialstate
@@ -68,9 +68,9 @@ export function rootContainer(container: JSX.Element) {
 /**
  * Custom request：
  * 1、By default, the request returns the "data" field in the API protocol and determines whether to throw an error based on the "code".
- * 2、Add options: shouldReturnCodeRsp to skip the default code error handling and return the complete backend data.
- * 3、Add options: skipErrorHandler to skip the default error prompt (including the status code).
- * 4、Add options: hideCodeErrorMsg to hide the default code error prompt (excluding the status code).
+ * 2、Add options: `shouldReturnCodeRsp` to skip the default code error handling and return the complete backend data.
+ * 3、Add options: `skipErrorHandler` to skip the default error prompt (including the status code).
+ * 4、Add options: `hideCodeErrorMsg` to hide the default code error prompt (excluding the status code).
  */
 export const request: RequestConfig = {
   baseURL: process.env.API_PATH,
@@ -82,36 +82,25 @@ export const request: RequestConfig = {
   // Error handler： umi@3
   errorConfig: {
     errorHandler: (error: any, opts: any) => {
+      // Pop 2XX error out into catch function in order to customize msg info
+      if (/^2/.test(error.status)) return;
+
       // Allow to skip errorHandler
-      if (opts?.skipErrorHandler) throw error;
-      if (error.data && error.data.code !== 0) {
-        // Request succes bug code not equal to 0.
-        const { code, message: msg = '' } =
-          (error.data as unknown as CommonRsp<any>) || {};
-        console.error(error);
-        if (!opts?.hideCodeErrorMsg) {
-          message.error(
-            `${msg}(${code})` ||
-              globalLocaleText('requestConfig.errorData.msg', { code }),
-          );
-        }
-      } else if (error.response) {
-        // Axios error
+      if (opts?.skipErrorHandler) return;
+
+      // Not logged in / Unauthorized access
+      if (error.response?.status === 401) {
+        history.push('/');
+        localStorage.removeItem(STORAGE_KEY.AUTH_TOKEN);
+      }
+
+      // Allow to hide common code error msg tip
+      if (opts?.hideCodeErrorMsg) return;
+
+      if (error.response) {
         // The request was successful and the server responded with a status code, but the status code is outside the 2xx range.
-        if (error.response.status === 401) {
-          // Not logged in / Unauthorized access
-          history.push('/');
-          message.error(globalLocaleText('requestConfig.unAuth.msg'));
-          localStorage.removeItem(STORAGE_KEY.AUTH_TOKEN);
-        } else if (error.response.status === 403) {
-          message.error(globalLocaleText('requestConfig.permissionDenied.msg'));
-        } else {
-          message.error(
-            globalLocaleText('requestConfig.responseStatus.msg', {
-              status: error.response.status,
-            }),
-          );
-        }
+        // Match Common error tip
+        message.error(matchErrorMsg(error.data?.code, error.response.status));
       } else if (error.request) {
         // The request has been successfully sent, but no response has been received
         message.error(globalLocaleText('requestConfig.noResponse.msg'));
@@ -138,22 +127,17 @@ export const request: RequestConfig = {
     },
   ],
   responseInterceptors: [
-    (response) => {
-      // @ts-ignore
-      if (!response.config.shouldReturnCodeRsp) {
-        // @ts-ignore
-        if (response.data?.code === 0) {
-          // @ts-ignore
-          response.data = humps.camelizeKeys(response.data?.data || {});
-          return response;
-        } else {
-          throw response;
-        }
-      } else {
-        // Return backend data directly without checking the code value
-        // @ts-ignore
-        response.data = humps.camelizeKeys(response.data);
+    (response: any) => {
+      // 2xx response
+      if (response.data?.code === 0) {
+        response.data = humps.camelizeKeys(response.data?.data || {});
         return response;
+      } else {
+        if (!response.config?.hideCodeErrorMsg) {
+          // Match 2xx customs error code
+          message.error(matchErrorMsg(response.data?.code, 200));
+        }
+        throw response;
       }
     },
   ],

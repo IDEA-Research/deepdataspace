@@ -64,6 +64,9 @@ importers:
       dds-component:
         specifier: workspace:^
         version: link:../dds-component
+      enquire-js:
+        specifier: ^0.2.1
+        version: 0.2.1
       html-to-image:
         specifier: ^1.10.8
         version: 1.10.8

@@ -15,7 +15,7 @@ import TableTags from './components/TableTags';
 import { EProjectAction } from './models/auth';
 import { useSize } from 'ahooks';
 import styles from './index.less';
-// import ProjectExportModal from './components/ProjectExportModal';
+import ProjectExportModal from './components/ProjectExportModal';
 
 const ProjectList: React.FC = () => {
   const { user } = useModel('user');
@@ -40,37 +40,29 @@ const ProjectList: React.FC = () => {
     const actions = [];
     if (
       checkPermission(record.userRoles, EProjectAction.ProjectQa) &&
-      [
-        EProjectStatus.Reviewing,
-        EProjectStatus.Accepted,
-        EProjectStatus.Rejected,
-      ].includes(record.status)
+      [EProjectStatus.Reviewing].includes(record.status)
     ) {
       // ProjectQa
-      if (record.status !== EProjectStatus.Accepted) {
-        actions.push(
-          <a
-            key="accept"
-            style={{ color: '#4fbb30' }}
-            onClick={() => onChangeProjectResult(record, EQaAction.Accept)}
-          >
-            {localeText('proj.table.action.accept')}
-          </a>,
-        );
-      }
-      if (record.status !== EProjectStatus.Rejected) {
-        actions.push(
-          <Popconfirm
-            key="reject"
-            title="Are you sure to reject this project?"
-            onConfirm={() => onChangeProjectResult(record, EQaAction.Reject)}
-          >
-            <a key="reject" style={{ color: 'red' }}>
-              {localeText('proj.table.action.reject')}
-            </a>
-          </Popconfirm>,
-        );
-      }
+      actions.push(
+        <a
+          key="accept"
+          style={{ color: '#4fbb30' }}
+          onClick={() => onChangeProjectResult(record, EQaAction.Accept)}
+        >
+          {localeText('proj.table.action.accept')}
+        </a>,
+      );
+      actions.push(
+        <Popconfirm
+          key="reject"
+          title="Are you sure to reject this project?"
+          onConfirm={() => onChangeProjectResult(record, EQaAction.Reject)}
+        >
+          <a key="reject" style={{ color: 'red' }}>
+            {localeText('proj.table.action.reject')}
+          </a>
+        </Popconfirm>,
+      );
     }
     if (checkPermission(record.userRoles, EProjectAction.ProjectEdit)) {
       // Init/info is not necessary when there is an edit function.
@@ -124,17 +116,16 @@ const ProjectList: React.FC = () => {
         </Link>,
       );
     }
-    // Todo: uncommented out when actual export API is avaliable
-    // if (
-    //   checkPermission(record.userRoles, EProjectAction.ProjectEdit)
-    //   && record.status === EProjectStatus.Accepted
-    // ) {
-    //   actions.push(
-    //     <a key="export">
-    //       <ProjectExportModal />
-    //     </a>
-    //   );
-    // }
+    if (
+      checkPermission(record.userRoles, EProjectAction.ProjectExport) &&
+      record.status === EProjectStatus.Accepted
+    ) {
+      actions.push(
+        <a key="export">
+          <ProjectExportModal projectId={record.id} />
+        </a>,
+      );
+    }
     return actions;
   };
 
@@ -157,15 +148,37 @@ const ProjectList: React.FC = () => {
     {
       title: localeText('proj.table.datasets'),
       ellipsis: true,
-      render: (_, record) => (
-        <TableTags
-          max={2}
-          data={record.datasets.map((item) => ({
-            text: item.name,
-            color: 'blue',
-          }))}
-        />
-      ),
+      render: (_, record) => {
+        const pageState = JSON.stringify({
+          datasetId: record?.datasets?.[0]?.id,
+          datasetName: record?.datasets?.[0]?.name,
+        });
+
+        return record.status === EProjectStatus.Exported ? (
+          <a
+            href={`${
+              window.location.origin
+            }/page/dataset/detail?pageState=${encodeURIComponent(pageState)}`}
+            target="blank"
+          >
+            <TableTags
+              max={2}
+              data={record.datasets.map((item) => ({
+                text: item.name,
+                color: 'blue',
+              }))}
+            />
+          </a>
+        ) : (
+          <TableTags
+            max={2}
+            data={record.datasets.map((item) => ({
+              text: item.name,
+              color: 'blue',
+            }))}
+          />
+        );
+      },
     },
     {
       title: localeText('proj.table.progress'),

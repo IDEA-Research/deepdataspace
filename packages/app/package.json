@@ -27,6 +27,7 @@
     "clientjs": "^0.2.1",
     "copy-to-clipboard": "^3.3.3",
     "dds-component": "workspace:^",
+    "enquire-js": "^0.2.1",
     "html-to-image": "^1.10.8",
     "html2canvas": "^1.4.1",
     "humps": "^2.0.1",

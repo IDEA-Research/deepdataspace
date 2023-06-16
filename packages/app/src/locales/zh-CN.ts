@@ -350,10 +350,12 @@ export default {
   'proj.infoModal.label': '项目经理',
 
   'proj.exportModal.title': '导出到数据集',
-  'proj.exportModal.labelSet.name': '标注集名称',
-  'proj.exportModal.labelSet.rule': '请输入标注集名称',
+  'proj.exportModal.labelName.name': '标注集名称',
+  'proj.exportModal.labelName.rule': '请输入标注集名称',
+  'proj.exportModal.labelName.tips':
+    '点击“确定”后，可以用标注集名称查看所选数据集的标注结果。',
   'proj.exportModal.submitSuccess':
-    '已成功导入至 "{name}" 结果集中，您可以移步数据集模块查看标注结果',
+    '已成功导出标注集 "{name}" 到所选数据集，您可以在数据集模块中查看标注结果。',
 
   'proj.workspace.eTask.startLabel': '开始标注',
   'proj.workspace.eTask.edit': '编辑',
@@ -370,6 +372,7 @@ export default {
   'proj.statusMap.reviewing': '审核中',
   'proj.statusMap.rejected': '已拒绝',
   'proj.statusMap.accepted': '已通过',
+  'proj.statusMap.exported': '已导出',
 
   'proj.eTaskStatus.waiting': '等待中',
   'proj.eTaskStatus.working': '进行中',
@@ -402,9 +405,16 @@ export default {
   'notFound.title': '抱歉，您访问的页面不存在。',
   'notFound.backHome': '返回首页',
 
+  /** mobile alert **/
+  'mobileAlert.title': '温馨提示',
+  'mobileAlert.subTitle': '本站暂不支持移动端显示，请使用电脑打开',
+
   /** app */
   'layout.title': 'Deep Data Space',
+
+  /** error code & status msg or error handler msg **/
   'requestConfig.errorData.msg': '请求错误，请重试（{code}）',
+  'requestConfig.success.msg': '请求成功。',
   'requestConfig.unAuth.msg': '未授权的访问。请登录。',
   'requestConfig.permissionDenied.msg':
     '权限被拒绝。您的帐户没有执行此操作所需的权限。',

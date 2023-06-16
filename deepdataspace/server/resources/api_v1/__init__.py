@@ -36,6 +36,7 @@ urls = [
     path("label_projects/<project_id>", label_tasks.ProjectView.as_view()),
     path("label_project_configs/<project_id>", label_tasks.ProjectConfigView.as_view()),
     path("label_project_qa/<project_id>", label_tasks.ProjectQAView.as_view()),
+    path("label_project_export/<project_id>", label_tasks.ProjectExportView.as_view()),
     path("label_tasks", label_tasks.TasksView.as_view()),
     path("label_task_configs/<task_id>", label_tasks.TaskConfigView.as_view()),
     path("label_task_roles/<task_id>", label_tasks.TaskRolesView.as_view()),

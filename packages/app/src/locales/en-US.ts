@@ -381,10 +381,12 @@ export default {
   'proj.infoModal.label': 'Project Managers',
 
   'proj.exportModal.title': 'Export to Dataset',
-  'proj.exportModal.labelSet.name': 'Labelset',
-  'proj.exportModal.labelSet.rule': 'Please input labelset name',
+  'proj.exportModal.labelName.name': 'Labelset',
+  'proj.exportModal.labelName.rule': 'Please input labelset name',
+  'proj.exportModal.labelName.tips':
+    'You can check labeling result in selected dataset with the labelset name after clicking "OK". ',
   'proj.exportModal.submitSuccess':
-    'Successfully export to labelset "{name}", you can check results in datasets module.',
+    'Successfully export labelset "{name}" into selected dataset, you can check labeled results in datasets module.',
 
   'proj.workspace.eTask.startLabel': 'Start Label',
   'proj.workspace.eTask.edit': 'Edit',
@@ -401,6 +403,7 @@ export default {
   'proj.statusMap.reviewing': 'Reviewing',
   'proj.statusMap.rejected': 'Rejected',
   'proj.statusMap.accepted': 'Accepted',
+  'proj.statusMap.exported': 'Exported',
 
   'proj.eTaskStatus.waiting': 'Waiting',
   'proj.eTaskStatus.working': 'Working',
@@ -434,9 +437,17 @@ export default {
   'notFound.title': 'Sorry, the page you visited does not exist.',
   'notFound.backHome': 'Back Home',
 
+  /** mobile alert **/
+  'mobileAlert.title': 'Kindly Reminder',
+  'mobileAlert.subTitle':
+    'This site not support mobile display yet, please switch to computer to open.',
+
   /** app */
   'layout.title': 'Deep Data Space',
+
+  /** error code & status msg or error handler msg **/
   'requestConfig.errorData.msg': 'Request error, please retry ({code})',
+  'requestConfig.success.msg': 'Request succeeded.',
   'requestConfig.unAuth.msg': 'Unauthorized access. Please Login.',
   'requestConfig.permissionDenied.msg':
     'Permission denied. Your account does not have the required permissions to perform this action.',

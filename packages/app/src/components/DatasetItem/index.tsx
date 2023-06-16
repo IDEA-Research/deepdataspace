@@ -1,12 +1,12 @@
 import React from 'react';
-import { Card, List, Tooltip } from 'antd';
+import { Card, List, Tooltip, Image } from 'antd';
 import Icon from '@ant-design/icons';
 import { ReactComponent as DownloadIcon } from '@/assets/svg/download.svg';
 import { DATA } from '@/services/type';
 import { useLocale } from '@/locales/helper';
 import { ANNOTATION_TYPE_ICONS } from '@/constants';
+import { generateDefaultCover } from '@/utils/datasets';
 import styles from './index.less';
-import { includes } from 'lodash';
 
 export interface IProps {
   data: DATA.DataSet;
@@ -22,36 +22,6 @@ const DatasetItem: React.FC<IProps> = (props) => {
   const { localeText } = useLocale();
   const { data, supportExport, onClickItem } = props;
 
-  const renderCover = () => {
-    const _types = data?.objectTypes;
-    let _img_index = 5;
-
-    if (includes(_types, 'Classification')) {
-      _img_index = 1;
-    }
-    if (includes(_types, 'Detection')) {
-      _img_index = 2;
-    }
-    if (includes(_types, 'Segmentation')) {
-      _img_index = 3;
-    }
-    if (includes(_types, 'Matting')) {
-      _img_index = 4;
-    }
-    if (includes(_types, 'KeyPoints')) {
-      _img_index = 5;
-    }
-
-    return (
-      <div className={styles.imgWrap}>
-        <img
-          src={require(`@/assets/images/cards/card_cover_${_img_index}.png`)}
-          alt="cover"
-        />
-      </div>
-    );
-  };
-
   return (
     <List.Item>
       <Card
@@ -62,7 +32,16 @@ const DatasetItem: React.FC<IProps> = (props) => {
         bordered={false}
       >
         <div className={styles.imgBox}>
-          {renderCover()}
+          <div className={styles.imgWrap}>
+            <Image
+              src={data?.coverUrl}
+              alt="cover"
+              onError={(e: any) => {
+                e.target.src = generateDefaultCover(data?.objectTypes);
+              }}
+              preview={false}
+            />
+          </div>
           <div className={styles.types}>
             {data.objectTypes.map((type) => (
               <div key={type} className={styles.iconWrap}>

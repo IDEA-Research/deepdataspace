@@ -25,6 +25,7 @@ export namespace DATA {
     objectTypes: string[];
     flagExportLink: string;
     groupName: string;
+    coverUrl: string;
   }
 
   export interface BaseObject {

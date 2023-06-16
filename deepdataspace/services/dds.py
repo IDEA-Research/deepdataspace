@@ -293,8 +293,6 @@ class DDS(metaclass=SingletonMeta):
         config.CELERY_LOG = str(Path(config.CELERY_DIR, "celery.log"))
         config.CELERY_WORKER_POOL = self.config_data.get("celery_worker_pool", "solo")
 
-        # log_and_save_env("DDS_CELERY_WORKERPOOL", config.CELERY_WORKER_POOL)
-
     def _init_shared_libs(self):
         # install shared lib for redis and mongodb for linux only
         if PLATFORM != Platforms.Linux:

@@ -124,6 +124,6 @@ DJANGO_LOG_PATH = str(os.environ.get("DDS_DJANGO_LOG_PATH", Path(DJANGO_DIR, "dj
 
 # celery configurations
 CELERY_BROKER = f"redis://:{REDIS_PASS}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DBNAME}"
-CELERY_WORKER_POOL = os.environ.get("DDS_CELERY_WORKERPOOL", "prefork")
+CELERY_WORKER_POOL = os.environ.get("DDS_CELERY_WORKER_POOL", "prefork")
 
 SENTRY_DSN: str = os.environ.get("DDS_SENTRY_DSN", None)
