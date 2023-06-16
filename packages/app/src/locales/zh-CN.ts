@@ -350,10 +350,12 @@ export default {
   'proj.infoModal.label': '项目经理',
 
   'proj.exportModal.title': '导出到数据集',
-  'proj.exportModal.labelSet.name': '标注集名称',
-  'proj.exportModal.labelSet.rule': '请输入标注集名称',
+  'proj.exportModal.labelName.name': '标注集名称',
+  'proj.exportModal.labelName.rule': '请输入标注集名称',
+  'proj.exportModal.labelName.tips':
+    '点击“确定”后，可以用标注集名称查看所选数据集的标注结果。',
   'proj.exportModal.submitSuccess':
-    '已成功导入至 "{name}" 结果集中，您可以移步数据集模块查看标注结果',
+    '已成功导出标注集 "{name}" 到所选数据集，您可以在数据集模块中查看标注结果。',
 
   'proj.workspace.eTask.startLabel': '开始标注',
   'proj.workspace.eTask.edit': '编辑',
@@ -370,6 +372,7 @@ export default {
   'proj.statusMap.reviewing': '审核中',
   'proj.statusMap.rejected': '已拒绝',
   'proj.statusMap.accepted': '已通过',
+  'proj.statusMap.exported': '已导出',
 
   'proj.eTaskStatus.waiting': '等待中',
   'proj.eTaskStatus.working': '进行中',

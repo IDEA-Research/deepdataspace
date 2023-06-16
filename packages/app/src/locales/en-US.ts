@@ -381,10 +381,12 @@ export default {
   'proj.infoModal.label': 'Project Managers',
 
   'proj.exportModal.title': 'Export to Dataset',
-  'proj.exportModal.labelSet.name': 'Labelset',
-  'proj.exportModal.labelSet.rule': 'Please input labelset name',
+  'proj.exportModal.labelName.name': 'Labelset',
+  'proj.exportModal.labelName.rule': 'Please input labelset name',
+  'proj.exportModal.labelName.tips':
+    'You can check labeling result in selected dataset with the labelset name after clicking "OK". ',
   'proj.exportModal.submitSuccess':
-    'Successfully export to labelset "{name}", you can check results in datasets module.',
+    'Successfully export labelset "{name}" into selected dataset, you can check labeled results in datasets module.',
 
   'proj.workspace.eTask.startLabel': 'Start Label',
   'proj.workspace.eTask.edit': 'Edit',
@@ -401,6 +403,7 @@ export default {
   'proj.statusMap.reviewing': 'Reviewing',
   'proj.statusMap.rejected': 'Rejected',
   'proj.statusMap.accepted': 'Accepted',
+  'proj.statusMap.exported': 'Exported',
 
   'proj.eTaskStatus.waiting': 'Waiting',
   'proj.eTaskStatus.working': 'Working',
