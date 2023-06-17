@@ -24,15 +24,15 @@ const Page: React.FC = () => {
   const [openModal, setModalOpen] = useState(true);
 
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue =
-        'The current changes will not be saved. Please export before leaving.';
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    // const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    //   event.preventDefault();
+    //   event.returnValue =
+    //     'The current changes will not be saved. Please export before leaving.';
+    // };
+    // window.addEventListener('beforeunload', handleBeforeUnload);
+    // return () => {
+    //   window.removeEventListener('beforeunload', handleBeforeUnload);
+    // };
   }, []);
 
   return (

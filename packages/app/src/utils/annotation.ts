@@ -24,33 +24,38 @@ export const zoomImgSize = (
   imgHeight: number,
   contianerWidth?: number,
   contianerHeight?: number,
-): [number, number] => {
-  if (!imgWidth || !imgHeight) return [0, 0];
+): [number, number, number] => {
+  if (!imgWidth || !imgHeight) return [0, 0, 1];
   // Only restrict the container width or height.
   if (!contianerWidth) {
     return [
       (imgWidth / imgHeight) * (contianerHeight || 0),
       contianerHeight || 0,
+      1,
     ];
   }
   if (!contianerHeight) {
     return [
       contianerWidth || 0,
       (imgHeight / imgWidth) * (contianerWidth || 0),
+      1,
     ];
   }
   let newWidth = imgWidth,
-    newHeight = imgHeight;
+    newHeight = imgHeight,
+    scale = 1;
   if (imgWidth / imgHeight >= contianerWidth / contianerHeight) {
     // Scale based on container width.
     newWidth = contianerWidth;
     newHeight = (imgHeight * contianerWidth) / imgWidth;
+    scale = contianerWidth / imgWidth;
   } else {
     // Scale based on container height.
     newHeight = contianerHeight;
     newWidth = (imgWidth * contianerHeight) / imgHeight;
+    scale = contianerHeight / imgHeight;
   }
-  return [newWidth || 0, newHeight || 0];
+  return [newWidth || 0, newHeight || 0, scale];
 };
 
 /** translate bounding box to rect */

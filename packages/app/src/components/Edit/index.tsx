@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  MouseEventHandler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { Button, Divider, message } from 'antd';
 import {
   EObjectType,
@@ -10,7 +16,7 @@ import {
   BODY_TEMPLATE,
 } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
-import { useEventListener, useKeyPress, usePrevious } from 'ahooks';
+import { useKeyPress } from 'ahooks';
 import {
   clearCanvas,
   drawCircleWithFill,
@@ -45,11 +51,13 @@ import {
   isPointOnPoint,
   getReferencePointsFromRect,
   getInnerPolygonIndexFromGroup,
+  translateAnnotCoord,
+  translatePointCoord,
+  translateRectCoord,
 } from '@/utils/compute';
 import { updateMouseCursor } from '@/utils/style';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
-import useScalableContainer from '@/hooks/useScalableContainer';
 import useLabels from './hooks/useLabels';
 import styles from './index.less';
 import useActions from './hooks/useActions';
@@ -77,6 +85,8 @@ import useObjects from './hooks/useObjects';
 import { cloneDeep } from 'lodash';
 import { Modal } from 'antd';
 import { useLocale } from '@/locales/helper';
+import { usePreviousState } from '@/hooks/usePreviousState';
+import useCanvasContainer from '@/hooks/useCanvasContainer';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -232,31 +242,30 @@ const Edit: React.FC<PreviewProps> = (props) => {
   const [allowMove, setAllowMove] = useImmer(false);
 
   const {
+    scale,
+    naturalSize,
+    clientSize,
+    containerMouse,
+    contentMouse,
+    imagePos,
+    onLoadImg,
     onZoomIn,
     onZoomOut,
     onReset,
-    naturalSize,
-    setNaturalSize,
-    ScalableContainer,
-    contentMouse,
-    clientSize,
-    scale,
-    containerRef,
-  } = useScalableContainer({
-    isRequiring,
-    visible,
+    CanvasContainer,
+  } = useCanvasContainer({
     allowMove,
-    showMouseAim:
-      mode !== EditorMode.View && drawData.selectedTool !== EBasicToolItem.Drag,
-    minPadding: { top: 150, left: 150 },
+    visible,
+    isRequiring,
+    showMouseAim: true,
+    minPadding: {
+      top: 30,
+      left: 30,
+    },
   });
-  const preClientSize = usePrevious(clientSize);
 
-  const onLoadImg = (e: React.UIEvent<HTMLImageElement, UIEvent>) => {
-    const img = e.target as HTMLImageElement;
-    const naturalSize = { width: img.naturalWidth, height: img.naturalHeight };
-    setNaturalSize(naturalSize);
-  };
+  const [preClientSize, clearPreClientSize] =
+    usePreviousState<ISize>(clientSize);
 
   const { undo, redo, updateHistory, clearHistory } = useHistory(annotations);
 
@@ -423,7 +432,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
         ];
       if (target) {
         return (
-          <PopoverMenu index={drawData.focusEleIndex} targetElement={target!} />
+          <PopoverMenu
+            index={drawData.focusEleIndex}
+            targetElement={target!}
+            imagePos={imagePos.current}
+          />
         );
       }
     }
@@ -433,13 +446,18 @@ const Edit: React.FC<PreviewProps> = (props) => {
   const updateRender = (updateDrawData?: DrawData) => {
     if (!visible || !canvasRef.current || !imgRef.current) return;
 
-    resizeSmoothCanvas(canvasRef.current, clientSize);
+    resizeSmoothCanvas(canvasRef.current, {
+      width: containerMouse.elementW,
+      height: containerMouse.elementH,
+    });
+
+    canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
 
     clearCanvas(canvasRef.current);
 
     drawImage(canvasRef.current, imgRef.current, {
-      x: 0,
-      y: 0,
+      x: imagePos.current.x,
+      y: imagePos.current.y,
       width: clientSize.width,
       height: clientSize.height,
     });
@@ -448,17 +466,29 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
     // draw currently annotated objects
     if (theDrawData.creatingObject) {
-      const mouse = { x: contentMouse.elementX, y: contentMouse.elementY };
       const strokeColor = ANNO_STROKE_COLOR.CREATING;
       const fillColor = ANNO_FILL_COLOR.CREATING;
       switch (theDrawData.creatingObject.type) {
         case EObjectType.Rectangle: {
-          drawRect(
-            canvasRef.current,
-            getRectFromPoints(theDrawData.creatingObject.startPoint!, mouse, {
+          const { startPoint } = theDrawData.creatingObject;
+          const rect = getRectFromPoints(
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
               width: contentMouse.elementW,
               height: contentMouse.elementH,
-            }),
+            },
+          );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawRect(
+            canvasRef.current,
+            canvasCoordRect,
             strokeColor,
             2,
             LABELS_STROKE_DASH[0],
@@ -468,7 +498,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
         }
         case EObjectType.Polygon: {
           // draw unfinished points and lines
-          const { polygon, currIndex } = theDrawData.creatingObject;
+          const { currIndex } = theDrawData.creatingObject;
+          const annotObject = translateAnnotCoord(theDrawData.creatingObject, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          const { polygon } = annotObject;
           if (polygon) {
             const innerPolygonIdx = getInnerPolygonIndexFromGroup(
               polygon.group,
@@ -478,26 +513,14 @@ const Edit: React.FC<PreviewProps> = (props) => {
               if (currIndex === polygonIdx) {
                 polygon.forEach((point, pointIdx) => {
                   // draw points
-                  if (pointIdx === 0) {
-                    const isFoucs = isPointOnPoint(point, contentMouse);
-                    drawCircleWithFill(
-                      canvasRef.current!,
-                      point,
-                      isFoucs ? 6 : 4,
-                      strokeColor,
-                      3,
-                      '#1f4dd8',
-                    );
-                  } else {
-                    drawCircleWithFill(
-                      canvasRef.current!,
-                      point,
-                      4,
-                      '#fff',
-                      3,
-                      '#1f4dd8',
-                    );
-                  }
+                  drawCircleWithFill(
+                    canvasRef.current!,
+                    point,
+                    pointIdx === 0 ? 6 : 4,
+                    strokeColor,
+                    3,
+                    '#1f4dd8',
+                  );
                   // draw lines
                   if (polygon.length > 1 && pointIdx < polygon.length - 1) {
                     drawLine(
@@ -512,7 +535,10 @@ const Edit: React.FC<PreviewProps> = (props) => {
                     drawLine(
                       canvasRef.current!,
                       polygon[pointIdx],
-                      mouse,
+                      {
+                        x: containerMouse.elementX,
+                        y: containerMouse.elementY,
+                      },
                       hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
                       2.5,
                       LABELS_STROKE_DASH[2],
@@ -546,11 +572,22 @@ const Edit: React.FC<PreviewProps> = (props) => {
           break;
         }
         case EObjectType.Skeleton: {
+          const { startPoint } = theDrawData.creatingObject;
           const rect = getRectFromPoints(
-            theDrawData.creatingObject.startPoint!,
-            mouse,
-            { width: contentMouse.elementW, height: contentMouse.elementH },
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
+              width: contentMouse.elementW,
+              height: contentMouse.elementH,
+            },
           );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
           const { points, lines, pointColors, pointNames } = BODY_TEMPLATE;
           const pointObjs = translatePointsToPointObjs(
             points,
@@ -559,10 +596,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
             naturalSize,
             clientSize,
           );
-          const updatedKeypoints = getKeypointsFromRect(pointObjs, rect);
+          const updatedKeypoints = getKeypointsFromRect(
+            pointObjs,
+            canvasCoordRect,
+          );
 
           // draw rect
-          drawRect(canvasRef.current, rect, strokeColor, 2);
+          drawRect(canvasRef.current, canvasCoordRect, strokeColor, 2);
 
           // draw circles
           updatedKeypoints.forEach((p) => {
@@ -630,7 +670,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
         }
       }
 
-      const { rect, keypoints, polygon, label, type } = obj;
+      const canvasCoordObject = translateAnnotCoord(obj, {
+        x: -imagePos.current.x,
+        y: -imagePos.current.y,
+      });
+
+      const { rect, keypoints, polygon, label, type } = canvasCoordObject;
 
       switch (type) {
         case EObjectType.Custom:
@@ -652,7 +697,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         case EObjectType.Polygon: {
           const color = labelColors[label] || '#fff';
           if (polygon && polygon.visible) {
-            obj.polygon?.group.forEach((polygon) => {
+            polygon?.group.forEach((polygon) => {
               drawPolygonWithFill(
                 canvasRef.current,
                 polygon,
@@ -850,9 +895,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
     // draw segmentation reference points
     if (theDrawData.segmentationClicks) {
       theDrawData.segmentationClicks.forEach((click) => {
+        const canvasCoordPoint = translatePointCoord(click.point, {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        });
         drawCircleWithFill(
           canvasRef.current!,
-          click.point,
+          canvasCoordPoint,
           3,
           click.isPositive ? 'green' : 'red',
           0,
@@ -1033,7 +1082,9 @@ const Edit: React.FC<PreviewProps> = (props) => {
     }
   };
 
-  const finishCreatingWhenMouseUp = (event: MouseEvent) => {
+  const finishCreatingWhenMouseUp = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     if (!drawData.creatingObject) return;
 
     const mouse = {
@@ -1482,35 +1533,16 @@ const Edit: React.FC<PreviewProps> = (props) => {
   // Register Mouse Event
   // =================================================================================================================
 
-  /** Mousedown */
-  useEventListener(
-    'mousedown',
-    () => {
-      if (!visible || allowMove || isRequiring) return;
+  const onMouseDown: MouseEventHandler<HTMLDivElement> = () => {
+    if (!visible || allowMove || isRequiring) return;
 
-      if (selectedAnyObject) {
-        if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
-          startEditingWhenMouseDown();
-        } else {
-          if (isDragToolActive || isAIPoseEstimation) {
-            if (isInCanvas(contentMouse)) {
-              setCurrSelectedObject();
-              if (!hoverAnyObject) {
-                setAllowMove(true);
-              }
-            }
-          } else {
-            if (drawData.creatingObject) {
-              updateCreatingWhenMouseDown();
-            } else {
-              startCreateWhenMouseDown();
-            }
-          }
-        }
+    if (selectedAnyObject) {
+      if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
+        startEditingWhenMouseDown();
       } else {
         if (isDragToolActive || isAIPoseEstimation) {
           setCurrSelectedObject();
-          if (!hoverAnyObject && isInCanvas(contentMouse)) {
+          if (!hoverAnyObject) {
             setAllowMove(true);
           }
         } else {
@@ -1521,59 +1553,57 @@ const Edit: React.FC<PreviewProps> = (props) => {
           }
         }
       }
-    },
-    { target: () => containerRef.current },
-  );
-
-  /** Mousemove */
-  useEventListener(
-    'mousemove',
-    () => {
-      if (!visible || !canvasRef.current || isRequiring || allowMove) return;
-
-      /** Edit currently hovered element */
-      if (mode === EditorMode.Edit && drawData.activeObjectIndex > -1) {
-        const exit = updateEditingWhenMouseMove();
-        if (exit) return;
-      }
-
-      /** Update hovered instance */
-      updateFocusObjectWhenHover();
-
-      /** Determine if there is currently a selected instance */
-      if (selectedAnyObject) {
-        /** Determine if hovering over the selected instance */
-        if (hoverAnyObject && hoverSelectedObject) {
-          /** Update hover info */
-          const object = drawData.objectList[drawData.activeObjectIndex];
-          updateFocusElementInfoWhenHover(object);
-
-          /** When the instance contains a polygon, it is necessary to determine whether hovering over a point or a line */
-          if (object.polygon) {
-            const hoverDetail = getFocusPartInPolygonGroup(
-              object.polygon,
-              contentMouse,
-            );
-            setDrawData((s) => {
-              s.focusPolygonInfo = hoverDetail;
-            });
-          }
-
-          /** Update mouse based on current hover coordinates and element type */
-          updateMouseWhenHoverElement(drawData.focusEleType);
-        } else {
-          /** Different instances for hovered and selected */
-          if (isDragToolActive || isAIPoseEstimation) {
-            /** Drag mode: Update hovered instance and mouse state */
-            updateMouseWhenHoverObject();
-          } else {
-            /** Create mode: Refresh canvas and mouse state */
-            updateCreatingWhenMouseMove();
-            updateMouseWhenCreating();
-          }
+    } else {
+      if (isDragToolActive || isAIPoseEstimation) {
+        setCurrSelectedObject();
+        if (!hoverAnyObject) {
+          setAllowMove(true);
         }
       } else {
-        /** No selected instance */
+        if (drawData.creatingObject) {
+          updateCreatingWhenMouseDown();
+        } else {
+          startCreateWhenMouseDown();
+        }
+      }
+    }
+  };
+
+  const onMouseMove: MouseEventHandler<HTMLDivElement> = () => {
+    if (!visible || !canvasRef.current || isRequiring || allowMove) return;
+
+    /** Edit currently hovered element */
+    if (mode === EditorMode.Edit && drawData.activeObjectIndex > -1) {
+      const exit = updateEditingWhenMouseMove();
+      if (exit) return;
+    }
+
+    /** Update hovered instance */
+    updateFocusObjectWhenHover();
+
+    /** Determine if there is currently a selected instance */
+    if (selectedAnyObject) {
+      /** Determine if hovering over the selected instance */
+      if (hoverAnyObject && hoverSelectedObject) {
+        /** Update hover info */
+        const object = drawData.objectList[drawData.activeObjectIndex];
+        updateFocusElementInfoWhenHover(object);
+
+        /** When the instance contains a polygon, it is necessary to determine whether hovering over a point or a line */
+        if (object.polygon) {
+          const hoverDetail = getFocusPartInPolygonGroup(
+            object.polygon,
+            contentMouse,
+          );
+          setDrawData((s) => {
+            s.focusPolygonInfo = hoverDetail;
+          });
+        }
+
+        /** Update mouse based on current hover coordinates and element type */
+        updateMouseWhenHoverElement(drawData.focusEleType);
+      } else {
+        /** Different instances for hovered and selected */
         if (isDragToolActive || isAIPoseEstimation) {
           /** Drag mode: Update hovered instance and mouse state */
           updateMouseWhenHoverObject();
@@ -1583,37 +1613,41 @@ const Edit: React.FC<PreviewProps> = (props) => {
           updateMouseWhenCreating();
         }
       }
-    },
-    { target: () => containerRef.current },
-  );
-
-  /** Mouseup */
-  useEventListener(
-    'mouseup',
-    (event) => {
-      if (!visible || !canvasRef.current || isRequiring) return;
-
-      if (allowMove) {
-        setAllowMove(false);
-        return;
+    } else {
+      /** No selected instance */
+      if (isDragToolActive || isAIPoseEstimation) {
+        /** Drag mode: Update hovered instance and mouse state */
+        updateMouseWhenHoverObject();
+      } else {
+        /** Create mode: Refresh canvas and mouse state */
+        updateCreatingWhenMouseMove();
+        updateMouseWhenCreating();
       }
+    }
+  };
 
-      if (selectedAnyObject) {
-        if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
-          finishEditingWhenMouseUp();
-        } else {
-          if (!isDragToolActive && drawData.creatingObject) {
-            finishCreatingWhenMouseUp(event);
-          }
-        }
+  const onMouseUp: MouseEventHandler<HTMLDivElement> = (event) => {
+    if (!visible || !canvasRef.current || isRequiring) return;
+
+    if (allowMove) {
+      setAllowMove(false);
+      return;
+    }
+
+    if (selectedAnyObject) {
+      if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
+        finishEditingWhenMouseUp();
       } else {
         if (!isDragToolActive && drawData.creatingObject) {
           finishCreatingWhenMouseUp(event);
         }
       }
-    },
-    { target: () => containerRef.current },
-  );
+    } else {
+      if (!isDragToolActive && drawData.creatingObject) {
+        finishCreatingWhenMouseUp(event);
+      }
+    }
+  };
 
   /** Update canvas while data changing */
   useEffect(() => {
@@ -1639,6 +1673,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
         const newObj = { ...obj };
         if (!preClientSize) return newObj;
+
         if (newObj.rect) {
           const newRect = translateRectZoom(
             newObj.rect,
@@ -1703,6 +1738,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
             return click;
           });
       }
+      clearPreClientSize();
       setDrawData(updateDrawData);
       updateRender(updateDrawData);
     }
@@ -1711,7 +1747,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
-  }, [clientSize.width, clientSize.height]);
+  }, [
+    imagePos.current.x,
+    imagePos.current.y,
+    clientSize.height,
+    clientSize.width,
+  ]);
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {
@@ -1907,7 +1948,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
   useKeyPress(
     EDITOR_SHORTCUTS[EShortcuts.PanImage].shortcut,
     (event: KeyboardEvent) => {
-      if (!visible || !isInCanvas(contentMouse)) return;
+      if (!visible) return;
       event.preventDefault();
       if (event.type === 'keydown') {
         setAllowMove(true);
@@ -2020,10 +2061,14 @@ const Edit: React.FC<PreviewProps> = (props) => {
           )}
         </TopTools>
         <div className={styles.container}>
-          {/* todo */}
           <div className={styles.leftSlider}></div>
-          <div className={styles.centerContent}>
-            {ScalableContainer({
+          <div
+            className={styles.centerContent}
+            onMouseMove={onMouseMove}
+            onMouseDown={onMouseDown}
+            onMouseUp={onMouseUp}
+          >
+            {CanvasContainer({
               className: styles.editWrap,
               children: (
                 <>
@@ -2032,8 +2077,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
                     src={list[current]?.urlFullRes}
                     alt="pic"
                     onLoad={onLoadImg}
-                    width={clientSize.width}
-                    height={clientSize.height}
                   />
                   <canvas
                     ref={canvasRef}

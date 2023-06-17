@@ -171,8 +171,8 @@ export enum KEYPOINTS_VISIBLE_TYPE {
 /**
  * Zoom control related.
  */
-export const MIN_SCALE = 0.5;
-export const MAX_SCALE = 5;
+export const MIN_SCALE = 0.1;
+export const MAX_SCALE = 20;
 export const BUTTON_SCALE_STEP = 0.5;
 export const WHEEL_SCALE_STEP = 0.1;
 

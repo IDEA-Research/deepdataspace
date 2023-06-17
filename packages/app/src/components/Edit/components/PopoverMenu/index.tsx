@@ -4,16 +4,21 @@ import { FloatWrapper } from '@/components/FloatWrapper';
 interface IPopoverMenu {
   index: number;
   targetElement: IElement<IPoint>;
+  imagePos: IPoint;
 }
 
-const PopoverMenu: React.FC<IPopoverMenu> = ({ index, targetElement }) => {
+const PopoverMenu: React.FC<IPopoverMenu> = ({
+  index,
+  targetElement,
+  imagePos,
+}) => {
   return (
     <FloatWrapper>
       <div
         className={styles.container}
         style={{
-          left: targetElement.x + 5,
-          top: targetElement.y + 5,
+          left: targetElement.x + imagePos.x + 5,
+          top: targetElement.y + imagePos.y + 5,
         }}
       >
         <div className={styles.content}>
