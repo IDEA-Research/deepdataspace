@@ -454,4 +454,6 @@ export default {
   'requestConfig.responseStatus.msg': 'Response status: {status}',
   'requestConfig.noResponse.msg': 'None response! Please retry.',
   'requestConfig.requestError.msg': 'Request error, please retry.',
+  'requestConfig.errorContent.msg':
+    'Request contains sensitive content, please check.',
 };

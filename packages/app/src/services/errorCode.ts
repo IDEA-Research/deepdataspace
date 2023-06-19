@@ -1,6 +1,6 @@
 import { globalLocaleText } from '@/locales/helper';
 
-export const ERROR_CODE_MSG_MAP: Record<number, string> = {
+export const ERROR_STATUS_MSG_MAP: Record<number, string> = {
   /** CODE_2XX */
   200: 'requestConfig.success.msg',
   /** CODE_4xx */
@@ -10,7 +10,8 @@ export const ERROR_CODE_MSG_MAP: Record<number, string> = {
   500: 'requestConfig.responseStatus.msg',
 };
 
-export const ERROR_STATUS_MSG_MAP: Record<number, string> = {
+export const ERROR_CODE_MSG_MAP: Record<number, string> = {
+  101: 'requestConfig.errorContent.msg',
   /** CODE_2XXXXX */
   200001: 'requestConfig.success.msg',
   /** CODE_4XXXXX */
