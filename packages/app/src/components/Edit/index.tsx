@@ -14,6 +14,7 @@ import {
   LABELS_STROKE_DASH,
   EToolType,
   BODY_TEMPLATE,
+  ESubToolItem,
 } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import { useKeyPress } from 'ahooks';
@@ -63,7 +64,7 @@ import styles from './index.less';
 import useActions from './hooks/useActions';
 import PopoverMenu from './components/PopoverMenu';
 import ObjectList from './components/ObjectList';
-import { SideToolBar } from './components/SideToolBar';
+import { MainToolBar } from './components/MainToolBar';
 import { changeRgbaOpacity, hexToRgba } from '@/utils/color';
 import SmartAnnotationControl from './components/SmartAnnotationControl';
 import { ScaleToolBar } from './components/ScaleToolBar';
@@ -87,6 +88,7 @@ import { Modal } from 'antd';
 import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
+import { SubToolBar } from './components/SubToolBar';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -102,6 +104,7 @@ export interface IAnnotationObject {
 }
 export interface DrawData {
   selectedTool: EToolType;
+  selectedSubTool: ESubToolItem;
   AIAnnotation: boolean;
   initialized: boolean;
   changed: boolean;
@@ -203,6 +206,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     changed: false,
     objectList: [],
     selectedTool: EBasicToolItem.Drag,
+    selectedSubTool: ESubToolItem.PenAdd,
     AIAnnotation: false,
     focusObjectIndex: -1,
     activeObjectIndex: -1,
@@ -1818,6 +1822,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
     });
   };
 
+  const selectSubTool = (tool: ESubToolItem) => {
+    if (mode !== EditorMode.Edit) return;
+    setDrawData((s) => {
+      s.selectedSubTool = tool;
+    });
+  };
+
   const displayAIModeUnavailableModal = () => {
     Modal.info({
       centered: true,
@@ -2200,17 +2211,29 @@ const Edit: React.FC<PreviewProps> = (props) => {
               onReset={onReset}
             />
             {mode === EditorMode.Edit && (
-              <SideToolBar
-                selectedTool={drawData.selectedTool}
-                isAIAnnotationActive={drawData.AIAnnotation}
-                onChangeSelectedTool={(type) => {
-                  selectTool(type);
-                  setAiLabels([]);
-                }}
-                onActiveAIAnnotation={activeAIAnnotation}
-                undo={onUndo}
-                redo={onRedo}
-              />
+              <>
+                <MainToolBar
+                  selectedTool={drawData.selectedTool}
+                  isAIAnnotationActive={drawData.AIAnnotation}
+                  onChangeSelectedTool={(type) => {
+                    selectTool(type);
+                    setAiLabels([]);
+                  }}
+                  onActiveAIAnnotation={activeAIAnnotation}
+                  undo={onUndo}
+                  redo={onRedo}
+                />
+                {drawData.selectedTool === EBasicToolItem.Mask && (
+                  <SubToolBar
+                    selectedSubTool={drawData.selectedSubTool}
+                    isAIAnnotationActive={drawData.AIAnnotation}
+                    onChangeSubTool={(type) => {
+                      selectSubTool(type);
+                    }}
+                    onActiveAIAnnotation={activeAIAnnotation}
+                  />
+                )}
+              </>
             )}
           </div>
           <ObjectList

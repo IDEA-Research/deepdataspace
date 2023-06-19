@@ -64,6 +64,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
       name: localeText('smartAnnotation.pose.name'),
       icon: OBJECT_ICON[EObjectType.Skeleton],
     },
+    [EBasicToolItem.Mask]: {
+      name: localeText('smartAnnotation.pose.name'),
+      icon: OBJECT_ICON[EObjectType.Mask],
+    },
   };
 
   const labelOptions = useMemo(() => {

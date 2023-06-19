@@ -145,6 +145,7 @@ export default {
   'editor.toolbar.skeleton': '骨骼（人体）',
   'editor.toolbar.aiAnno': '智能标注',
   'editor.toolbar.drag': '拖拽/选择工具',
+  'editor.toolbar.mask': '遮罩分割工具',
   'editor.zoomTool.reset': '重置尺寸',
   'editor.zoomIn': '放大',
   'editor.zoomOut': '缩小',
@@ -155,6 +156,7 @@ export default {
   'editor.toolbar.polygon.desc': '围绕目标单击添加顶点，创建闭合的多边形标注。',
   'editor.toolbar.skeleton.desc':
     '单击并拖动鼠标以创建人体骨骼模型，然后修改各个点的位置。',
+  'editor.toolbar.mask.desc': 'Mask TODO',
   'editor.toolbar.aiAnno.desc':
     '在矩形/多边形/骨骼工具下开启智能标注，可进入对应的智能标注模式。',
   'editor.toolbar.drag.desc':
@@ -172,6 +174,7 @@ export default {
   'editor.shortcuts.tools.polygon': '多边形',
   'editor.shortcuts.tools.skeleton': '骨骼',
   'editor.shortcuts.tools.drag': '拖拽/选择工具',
+  'editor.shortcuts.tools.mask': '遮罩分割工具',
   'editor.shortcuts.general': '通用控制',
   'editor.shortcuts.general.smart': '开启/关闭智能标注模式',
   'editor.shortcuts.general.undo': '撤销',

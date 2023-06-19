@@ -150,6 +150,7 @@ export default {
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
   'editor.toolbar.aiAnno': 'Intelligent Annotate',
   'editor.toolbar.drag': 'Drag / Select Tool',
+  'editor.toolbar.mask': 'Mask Tool',
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
@@ -163,6 +164,7 @@ export default {
     'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
   'editor.toolbar.aiAnno.desc':
     'Activate this mode under any of Rectangle / Polygon / Skeleton tools for auto-generating corresponding annotations.',
+  'editor.toolbar.mask.desc': 'Mask ',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
   'editor.annotsEditor.title': 'Annotation Editor',
@@ -179,6 +181,7 @@ export default {
   'editor.shortcuts.tools.polygon': 'Polygon Tool',
   'editor.shortcuts.tools.skeleton': 'Skeleton Tool',
   'editor.shortcuts.tools.drag': 'Drag / Select Tool',
+  'editor.shortcuts.tools.mask': 'Mask Tool',
   'editor.shortcuts.general': 'General Controls',
   'editor.shortcuts.general.smart':
     'Activate / Deactivate Intelligent Annotate',

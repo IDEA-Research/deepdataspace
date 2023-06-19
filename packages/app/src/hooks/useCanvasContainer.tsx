@@ -122,8 +122,6 @@ export default function useCanvasContainer({
     const y = mouseY - clientSize.height * posRatioY;
 
     imagePos.current = { x, y };
-
-    console.log(x.toFixed(0), y.toFixed(0));
   };
 
   useEffect(() => {

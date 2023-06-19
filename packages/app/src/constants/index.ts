@@ -3,6 +3,7 @@ import { ReactComponent as SkeletonIcon } from '@/assets/svg/keypoints.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/magic.svg';
 import { ReactComponent as PolygonIcon } from '@/assets/svg/polygon.svg';
 import { ReactComponent as CustomIcon } from '@/assets/svg/custom.svg';
+import { ReactComponent as MaskIcon } from '@/assets/svg/brush.svg';
 import { ReactComponent as UndoIcon } from '@/assets/svg/undo.svg';
 import { ReactComponent as RedoIcon } from '@/assets/svg/redo.svg';
 import { ReactComponent as ClassifyIcon } from '@/assets/svg/classification.svg';
@@ -192,6 +193,7 @@ export enum EObjectType {
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
   Custom = 'Custom',
+  Mask = 'Mask',
 }
 
 export enum EElementType {
@@ -205,6 +207,14 @@ export enum EBasicToolItem {
   Rectangle = 'Rect',
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
+  Mask = 'Mask',
+}
+
+export enum ESubToolItem {
+  PenAdd = 'PenAdd',
+  PenErase = 'PenErase',
+  BrushAdd = 'BrushAdd',
+  BrushErase = 'BrushErase',
 }
 
 export enum EActionToolItem {
@@ -223,6 +233,7 @@ export const OBJECT_ICON: Record<
   [EObjectType.Skeleton]: SkeletonIcon,
   [EObjectType.Polygon]: PolygonIcon,
   [EObjectType.Custom]: CustomIcon,
+  [EObjectType.Mask]: MaskIcon,
 };
 
 export const EDITOR_TOOL_ICON: Record<
