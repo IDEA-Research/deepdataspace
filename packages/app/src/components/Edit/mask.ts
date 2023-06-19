@@ -1,14 +1,10 @@
 import { decode } from '@thi.ng/rle-pack';
-import { EObjectType } from '@/constants';
 import { mockRle } from './mockRle';
 import { hexToRgbArray } from '@/utils/color';
 
-export const mockMaskObject = {
-  label: 'person',
-  type: EObjectType.Mask,
-  hidden: false,
-  conf: 1,
-  mask: mockRle,
+export const mockMaskAnnotation = {
+  categoryName: 'person',
+  maskRle: mockRle,
 };
 
 export const rleToImage = (rle: number[], size: ISize, color: string) => {
@@ -41,8 +37,8 @@ export const rleToImage = (rle: number[], size: ISize, color: string) => {
   }
 
   ctx.putImageData(newdata, 0, 0);
-
   const newImage = new Image();
   newImage.src = canvas.toDataURL();
+
   return newImage;
 };

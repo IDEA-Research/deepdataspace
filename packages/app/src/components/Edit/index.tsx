@@ -89,7 +89,6 @@ import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
-import { rleToImage } from './mask';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -101,7 +100,8 @@ export interface IAnnotationObject {
     points: IElement<IPoint>[];
     lines: number[];
   };
-  mask?: number[];
+  maskRle?: number[];
+  maskImage?: any;
   conf?: number;
 }
 export interface DrawData {
@@ -225,6 +225,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   const isDragToolActive = useMemo(() => {
@@ -449,8 +450,23 @@ const Edit: React.FC<PreviewProps> = (props) => {
     return <></>;
   };
 
+  const updateMaskActiveRender = () => {
+    if (!visible || !maskCanvasRef.current || !imgRef.current) return;
+
+    resizeSmoothCanvas(maskCanvasRef.current, {
+      width: containerMouse.elementW,
+      height: containerMouse.elementH,
+    });
+
+    maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+
+    // TODO: active mask edit || new mask
+  };
+
   const updateRender = (updateDrawData?: DrawData) => {
     if (!visible || !canvasRef.current || !imgRef.current) return;
+
+    updateMaskActiveRender();
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,
@@ -681,7 +697,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
         y: -imagePos.current.y,
       });
 
-      const { rect, keypoints, polygon, mask, label, type } = canvasCoordObject;
+      const { rect, keypoints, polygon, maskImage, label, type } =
+        canvasCoordObject;
 
       switch (type) {
         case EObjectType.Custom:
@@ -898,9 +915,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
 
       // TODO: draw mask
-      if (mask) {
-        const image = rleToImage(mask, naturalSize, '#0000f5');
-        drawImage(canvasRef.current!, image!, {
+      if (maskImage) {
+        drawImage(canvasRef.current!, maskImage!, {
           x: imagePos.current.x,
           y: imagePos.current.y,
           width: clientSize.width,
@@ -2104,6 +2120,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   />
                   <canvas
                     ref={canvasRef}
+                    onContextMenu={(
+                      event: React.MouseEvent<HTMLCanvasElement>,
+                    ) => event.preventDefault()}
+                    draggable={false}
+                  />
+                  <canvas
+                    ref={maskCanvasRef}
                     onContextMenu={(
                       event: React.MouseEvent<HTMLCanvasElement>,
                     ) => event.preventDefault()}

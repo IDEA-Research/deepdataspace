@@ -47,6 +47,8 @@ export namespace DATA {
     pointNames?: string[];
     /** Keypoint connection. [start point index, end point index, ...] */
     lines?: number[];
+    /** mask */
+    maskRle?: number[];
   }
 
   export interface BaseImage {

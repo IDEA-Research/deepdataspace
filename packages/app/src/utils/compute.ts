@@ -888,6 +888,8 @@ export const getObjectType = (obj: IAnnotationObject): EObjectType => {
     return EObjectType.Polygon;
   } else if (obj.keypoints && !obj.polygon) {
     return EObjectType.Skeleton;
+  } else if (obj.maskRle) {
+    return EObjectType.Mask;
   }
   return EObjectType.Custom;
 };

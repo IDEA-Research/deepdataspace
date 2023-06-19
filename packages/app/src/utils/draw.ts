@@ -38,6 +38,25 @@ export function drawImage(
   }
 }
 
+export function putImageData(
+  canvas: HTMLCanvasElement,
+  imageData: ImageData,
+  imageRect: IRect,
+) {
+  if (!!imageData && !!canvas) {
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    ctx.putImageData(
+      imageData,
+      0,
+      0,
+      imageRect.x,
+      imageRect.y,
+      imageRect.width,
+      imageRect.height,
+    );
+  }
+}
+
 export function drawLine(
   canvas: HTMLCanvasElement,
   startPoint: IPoint,
