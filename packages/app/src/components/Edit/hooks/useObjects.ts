@@ -9,6 +9,7 @@ import {
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
 import { DrawData, EditorMode, IAnnotationObject } from '..';
+import { mockMaskObject } from '../mask';
 
 interface IProps {
   objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];
@@ -104,6 +105,9 @@ const useObjects = ({
       s.objectList = annotations.map((annotation) => {
         return translateAnnotationToObject(annotation);
       });
+      // TODO: mask test
+      s.objectList = [mockMaskObject];
+      console.log('init >>>>', s.objectList);
     });
   };
 

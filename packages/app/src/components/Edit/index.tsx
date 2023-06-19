@@ -89,6 +89,7 @@ import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
+import { rleToImage } from './mask';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -100,6 +101,7 @@ export interface IAnnotationObject {
     points: IElement<IPoint>[];
     lines: number[];
   };
+  mask?: number[];
   conf?: number;
 }
 export interface DrawData {
@@ -679,7 +681,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         y: -imagePos.current.y,
       });
 
-      const { rect, keypoints, polygon, label, type } = canvasCoordObject;
+      const { rect, keypoints, polygon, mask, label, type } = canvasCoordObject;
 
       switch (type) {
         case EObjectType.Custom:
@@ -893,6 +895,17 @@ const Edit: React.FC<PreviewProps> = (props) => {
             }
           }
         }
+      }
+
+      // TODO: draw mask
+      if (mask) {
+        const image = rleToImage(mask, naturalSize, '#0000f5');
+        drawImage(canvasRef.current!, image!, {
+          x: imagePos.current.x,
+          y: imagePos.current.y,
+          width: clientSize.width,
+          height: clientSize.height,
+        });
       }
     });
 
