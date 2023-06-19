@@ -118,6 +118,7 @@ export function shadeEverythingButRect(
 
 export function drawPolygon(
   canvas: HTMLCanvasElement | null,
+  offset: IPoint = { x: 0, y: 0 },
   anchors: IPoint[],
   color = '#fff',
   thickness = 1,
@@ -128,9 +129,10 @@ export function drawPolygon(
   ctx.strokeStyle = color;
   ctx.lineWidth = thickness;
   ctx.beginPath();
-  ctx.moveTo(anchors[0].x, anchors[0].y);
+  const { x: offsetX, y: offsetY } = offset;
+  ctx.moveTo(anchors[0].x + offsetX, anchors[0].y + offsetY);
   for (let i = 1; i < anchors.length; i++) {
-    ctx.lineTo(anchors[i].x, anchors[i].y);
+    ctx.lineTo(anchors[i].x + offsetX, anchors[i].y + offsetX);
   }
   ctx.closePath();
   ctx.stroke();
