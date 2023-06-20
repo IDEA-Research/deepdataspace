@@ -25,11 +25,13 @@ interface IProps {
   isAIAnnotationActive: boolean;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
+  onFinish: () => void;
 }
 
 export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
   onChangeSubTool,
+  onFinish,
 }) => {
   const { localeText } = useLocale();
 
@@ -100,7 +102,7 @@ export const SubToolBar: React.FC<IProps> = ({
           className={classNames(styles.action)}
           onClick={(event) => {
             event.preventDefault();
-            // onFinishCurrCreate(objLabel);
+            onFinish();
           }}
         >
           {localeText('editor.annotsEditor.finish')}

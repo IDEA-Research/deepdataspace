@@ -450,7 +450,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     return <></>;
   };
 
-  const updateMaskActiveRender = () => {
+  const updateMaskCanvasSize = () => {
     if (!visible || !maskCanvasRef.current || !imgRef.current) return;
 
     resizeSmoothCanvas(maskCanvasRef.current, {
@@ -459,14 +459,10 @@ const Edit: React.FC<PreviewProps> = (props) => {
     });
 
     maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-
-    // TODO: active mask edit || new mask
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
     if (!visible || !canvasRef.current || !imgRef.current) return;
-
-    updateMaskActiveRender();
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,
@@ -1780,6 +1776,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
+    // update mask canvas size
+    updateMaskCanvasSize();
   }, [
     imagePos.current.x,
     imagePos.current.y,
@@ -1856,6 +1854,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
     setDrawData((s) => {
       s.selectedSubTool = tool;
     });
+  };
+
+  const onFinishEditTool = () => {
+    if (mode !== EditorMode.Edit) return;
+    if (drawData.selectedTool === EBasicToolItem.Mask) {
+      // TODO: confirm to add / change mask annotation (convert to rle)
+    }
   };
 
   const displayAIModeUnavailableModal = () => {
@@ -2267,6 +2272,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                       selectSubTool(type);
                     }}
                     onActiveAIAnnotation={activeAIAnnotation}
+                    onFinish={onFinishEditTool}
                   />
                 )}
               </>
