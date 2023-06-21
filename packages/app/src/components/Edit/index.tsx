@@ -90,6 +90,7 @@ import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
+import { canvasToRle } from './mask';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -466,17 +467,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
     }
     return <></>;
-  };
-
-  const updateMaskCanvasSize = () => {
-    if (!visible || !maskCanvasRef.current || !imgRef.current) return;
-
-    resizeSmoothCanvas(maskCanvasRef.current, {
-      width: containerMouse.elementW,
-      height: containerMouse.elementH,
-    });
-
-    maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
@@ -1010,8 +1000,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
 
       // TODO: draw mask
-      if (maskImage) {
-        drawImage(canvasRef.current!, maskImage!, {
+      if (maskImage && maskCanvasRef.current) {
+        clearCanvas(maskCanvasRef.current);
+        drawImage(maskCanvasRef.current!, maskImage!, {
+          // x: 0,
+          // y: 0,
           x: imagePos.current.x,
           y: imagePos.current.y,
           width: clientSize.width,
@@ -1969,8 +1962,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
-    // update mask canvas size
-    updateMaskCanvasSize();
+
+    // pixel mask canvas
+    if (maskCanvasRef.current) {
+      maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+    }
   }, [
     imagePos.current.x,
     imagePos.current.y,
@@ -2049,10 +2045,16 @@ const Edit: React.FC<PreviewProps> = (props) => {
     });
   };
 
-  const onFinishEditTool = () => {
+  const onFinishEditTool = async () => {
     if (mode !== EditorMode.Edit) return;
     if (drawData.selectedTool === EBasicToolItem.Mask) {
       // TODO: confirm to add / change mask annotation (convert to rle)
+      await canvasToRle(
+        maskCanvasRef.current!,
+        imagePos.current,
+        clientSize,
+        naturalSize,
+      );
     }
   };
 
@@ -2325,6 +2327,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   />
                   <canvas
                     ref={maskCanvasRef}
+                    width={containerMouse.elementW || 0}
+                    height={containerMouse.elementH || 0}
                     onContextMenu={(
                       event: React.MouseEvent<HTMLCanvasElement>,
                     ) => event.preventDefault()}
