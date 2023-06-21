@@ -55,6 +55,7 @@ import {
   translateAnnotCoord,
   translatePointCoord,
   translateRectCoord,
+  translatePolygonCoord,
 } from '@/utils/compute';
 import { updateMouseCursor } from '@/utils/style';
 import { DATA } from '@/services/type';
@@ -104,6 +105,19 @@ export interface IAnnotationObject {
   maskImage?: any;
   conf?: number;
 }
+interface ICreatingMaskStep {
+  tool:
+    | ESubToolItem.BrushAdd
+    | ESubToolItem.BrushErase
+    | ESubToolItem.PenAdd
+    | ESubToolItem.PenErase;
+  /** Add / Erase an area for Mask */
+  positive: boolean;
+  /** The points stroked by Pen Tool or Brush Tool */
+  points: IPoint[];
+  radius?: number;
+}
+
 export interface DrawData {
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
@@ -134,6 +148,10 @@ export interface DrawData {
         currIndex?: number;
         /** Starting stretching point when creating a new Rect/Skeleton object */
         startPoint?: IPoint;
+        /** Currently drawing path creating by Pen Tool or Brush Tool */
+        maskStep?: ICreatingMaskStep;
+        /** Steps for creating mask object */
+        tempMaskSteps?: ICreatingMaskStep[];
       })
     | undefined;
   segmentationClicks?: {
@@ -462,7 +480,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
-    if (!visible || !canvasRef.current || !imgRef.current) return;
+    if (
+      !visible ||
+      !canvasRef.current ||
+      !imgRef.current ||
+      !maskCanvasRef.current
+    )
+      return;
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,
@@ -472,6 +496,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
     canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
 
     clearCanvas(canvasRef.current);
+
+    clearCanvas(maskCanvasRef.current);
 
     drawImage(canvasRef.current, imgRef.current, {
       x: imagePos.current.x,
@@ -645,6 +671,79 @@ const Edit: React.FC<PreviewProps> = (props) => {
               2.5,
               LABELS_STROKE_DASH[0],
             );
+          }
+          break;
+        }
+        case EObjectType.Mask: {
+          const { maskStep, tempMaskSteps } = theDrawData.creatingObject;
+
+          // draw currently step when mouse move
+          if (maskStep && maskStep.points.length > 0) {
+            const canvasCoordPath = translatePolygonCoord(maskStep.points, {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            });
+
+            if (
+              maskStep.tool === ESubToolItem.PenAdd ||
+              maskStep.tool === ESubToolItem.PenErase
+            ) {
+              // draw start point
+              drawCircleWithFill(
+                maskCanvasRef.current!,
+                canvasCoordPath[0],
+                6,
+                strokeColor,
+                3,
+                '#1f4dd8',
+              );
+
+              // draw line
+              canvasCoordPath.forEach((point, pointIdx) => {
+                if (
+                  canvasCoordPath.length > 1 &&
+                  pointIdx < canvasCoordPath.length - 1
+                ) {
+                  drawLine(
+                    maskCanvasRef.current!,
+                    point,
+                    canvasCoordPath[pointIdx + 1],
+                    hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
+                    1,
+                    LABELS_STROKE_DASH[0],
+                  );
+                } else if (pointIdx === canvasCoordPath.length - 1) {
+                  drawLine(
+                    maskCanvasRef.current!,
+                    canvasCoordPath[pointIdx],
+                    {
+                      x: containerMouse.elementX,
+                      y: containerMouse.elementY,
+                    },
+                    hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
+                    1,
+                    LABELS_STROKE_DASH[2],
+                  );
+                }
+              });
+            }
+          }
+
+          // draw temp mask according to step queue
+          if (tempMaskSteps && tempMaskSteps?.length > 0) {
+            tempMaskSteps.forEach((step) => {
+              const canvasCoordPoints = translatePolygonCoord(step.points, {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              });
+
+              drawPolygonWithFill(
+                maskCanvasRef.current!,
+                canvasCoordPoints,
+                'rgba(255, 255, 255, 0.8)',
+                'transparent',
+              );
+            });
           }
           break;
         }
@@ -1057,6 +1156,21 @@ const Edit: React.FC<PreviewProps> = (props) => {
           };
           break;
         }
+        case EBasicToolItem.Mask: {
+          s.creatingObject = {
+            ...basic,
+            type: EObjectType.Mask,
+            startPoint: point,
+            maskStep: {
+              tool: s.selectedSubTool,
+              positive:
+                s.selectedSubTool === ESubToolItem.PenAdd ||
+                s.selectedSubTool === ESubToolItem.BrushAdd,
+              points: [point],
+            },
+            tempMaskSteps: [],
+          };
+        }
       }
     });
   };
@@ -1080,6 +1194,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 .polygon as IElement<IPolygonGroup>;
               if (currIndex > -1) {
                 const startPoint = polygon.group[currIndex][0];
+                // finish creating polygon when click on startpoint
                 if (isPointOnPoint(startPoint, contentMouse)) {
                   s.creatingObject.currIndex = -1;
                 } else {
@@ -1096,6 +1211,26 @@ const Edit: React.FC<PreviewProps> = (props) => {
         });
         break;
       }
+      case EBasicToolItem.Mask: {
+        setDrawData((s) => {
+          if (s.creatingObject) {
+            if (s.creatingObject.maskStep) {
+              // add points for currently path
+              s.creatingObject.maskStep.points.push(mouse);
+            } else {
+              // init new step for creating points
+              s.creatingObject.maskStep = {
+                tool: s.selectedSubTool,
+                positive:
+                  s.selectedSubTool === ESubToolItem.PenAdd ||
+                  s.selectedSubTool === ESubToolItem.BrushAdd,
+                points: [mouse],
+              };
+            }
+          }
+        });
+        break;
+      }
       case EBasicToolItem.Rectangle: {
         break;
       }
@@ -1105,8 +1240,32 @@ const Edit: React.FC<PreviewProps> = (props) => {
     }
   };
 
-  const updateCreatingWhenMouseMove = () => {
+  const updateCreatingWhenMouseMove = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
     if (drawData.creatingObject) {
+      if (drawData.selectedTool === EBasicToolItem.Mask) {
+        const mouse = {
+          x: contentMouse.elementX,
+          y: contentMouse.elementY,
+        };
+        setDrawData((s) => {
+          switch (s.selectedSubTool) {
+            case ESubToolItem.PenAdd:
+            case ESubToolItem.PenErase: {
+              if (event.buttons === 1) {
+                s.creatingObject?.maskStep?.points.push(mouse);
+              }
+            }
+            case ESubToolItem.BrushAdd:
+            case ESubToolItem.BrushErase: {
+            }
+            default: {
+              break;
+            }
+          }
+        });
+      }
       updateRender();
     }
   };
@@ -1279,6 +1438,40 @@ const Edit: React.FC<PreviewProps> = (props) => {
           addObject(newObject);
         }
         break;
+      }
+      case EBasicToolItem.Mask: {
+        if (drawData.creatingObject) {
+          setDrawData((s) => {
+            switch (s.selectedSubTool) {
+              case ESubToolItem.PenAdd:
+              case ESubToolItem.PenErase: {
+                // finish mask element
+                if (
+                  s.creatingObject &&
+                  s.creatingObject.tempMaskSteps &&
+                  s.creatingObject.maskStep &&
+                  s.creatingObject.maskStep.points.length > 1 &&
+                  isPointOnPoint(
+                    s.creatingObject.maskStep.points[0],
+                    contentMouse,
+                  )
+                ) {
+                  s.creatingObject.tempMaskSteps?.push(
+                    s.creatingObject.maskStep,
+                  );
+                  s.creatingObject.maskStep = undefined;
+                }
+              }
+              case ESubToolItem.BrushAdd:
+              case ESubToolItem.BrushErase: {
+              }
+              default: {
+                break;
+              }
+            }
+          });
+          break;
+        }
       }
     }
   };
@@ -1598,7 +1791,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     }
   };
 
-  const onMouseMove: MouseEventHandler<HTMLDivElement> = () => {
+  const onMouseMove: MouseEventHandler<HTMLDivElement> = (event) => {
     if (!visible || !canvasRef.current || isRequiring || allowMove) return;
 
     /** Edit currently hovered element */
@@ -1638,7 +1831,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
           updateMouseWhenHoverObject();
         } else {
           /** Create mode: Refresh canvas and mouse state */
-          updateCreatingWhenMouseMove();
+          updateCreatingWhenMouseMove(event);
           updateMouseWhenCreating();
         }
       }
@@ -1649,7 +1842,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         updateMouseWhenHoverObject();
       } else {
         /** Create mode: Refresh canvas and mouse state */
-        updateCreatingWhenMouseMove();
+        updateCreatingWhenMouseMove(event);
         updateMouseWhenCreating();
       }
     }
