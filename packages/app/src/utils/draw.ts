@@ -263,3 +263,37 @@ export function drawCircle(
   ctx.stroke();
   ctx.restore();
 }
+
+export function drawBooleanPolygon(
+  canvas: HTMLCanvasElement,
+  anchors: IPoint[],
+  addPolygon = true,
+  fillColor = '#fff',
+  strokeColor = '#fff',
+  thickness = 1,
+  lineDash?: number[],
+) {
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.save();
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = thickness;
+  if (lineDash) {
+    ctx.setLineDash(lineDash);
+  }
+  ctx.beginPath();
+  ctx.moveTo(anchors[0].x, anchors[0].y);
+  for (let i = 1; i < anchors.length; i++) {
+    ctx.lineTo(anchors[i].x, anchors[i].y);
+  }
+  ctx.closePath();
+  ctx.clip();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (addPolygon) {
+    if (thickness > 0) {
+      ctx.stroke();
+    }
+    ctx.fill();
+  }
+  ctx.restore();
+}

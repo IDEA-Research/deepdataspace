@@ -20,6 +20,7 @@ import { Updater, useImmer } from 'use-immer';
 import { useKeyPress } from 'ahooks';
 import {
   clearCanvas,
+  drawBooleanPolygon,
   drawCircleWithFill,
   drawImage,
   drawLine,
@@ -667,6 +668,24 @@ const Edit: React.FC<PreviewProps> = (props) => {
         case EObjectType.Mask: {
           const { maskStep, tempMaskSteps } = theDrawData.creatingObject;
 
+          // draw temp mask according to step queue
+          if (tempMaskSteps && tempMaskSteps?.length > 0) {
+            tempMaskSteps.forEach((step) => {
+              const canvasCoordPoints = translatePolygonCoord(step.points, {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              });
+
+              drawBooleanPolygon(
+                maskCanvasRef.current!,
+                canvasCoordPoints,
+                step.positive,
+                'rgba(255, 255, 255, 0.8)',
+                'transparent',
+              );
+            });
+          }
+
           // draw currently step when mouse move
           if (maskStep && maskStep.points.length > 0) {
             const canvasCoordPath = translatePolygonCoord(maskStep.points, {
@@ -717,23 +736,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 }
               });
             }
-          }
-
-          // draw temp mask according to step queue
-          if (tempMaskSteps && tempMaskSteps?.length > 0) {
-            tempMaskSteps.forEach((step) => {
-              const canvasCoordPoints = translatePolygonCoord(step.points, {
-                x: -imagePos.current.x,
-                y: -imagePos.current.y,
-              });
-
-              drawPolygonWithFill(
-                maskCanvasRef.current!,
-                canvasCoordPoints,
-                'rgba(255, 255, 255, 0.8)',
-                'transparent',
-              );
-            });
           }
           break;
         }
@@ -1932,6 +1934,33 @@ const Edit: React.FC<PreviewProps> = (props) => {
           updateDrawData.creatingObject = {
             ...updateDrawData.creatingObject,
             polygon: { visible: true, group: newGroups },
+          };
+        }
+        if (updateDrawData.creatingObject.maskStep) {
+          const newPoints = updateDrawData.creatingObject.maskStep.points.map(
+            (point) => {
+              return translatePointZoom(point, preClientSize, clientSize);
+            },
+          );
+          updateDrawData.creatingObject.maskStep = {
+            ...updateDrawData.creatingObject.maskStep,
+            points: newPoints,
+          };
+        }
+        if (updateDrawData.creatingObject.tempMaskSteps) {
+          const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
+            (step) => {
+              return {
+                ...step,
+                points: step.points.map((point) =>
+                  translatePointZoom(point, preClientSize, clientSize),
+                ),
+              };
+            },
+          );
+          updateDrawData.creatingObject = {
+            ...updateDrawData.creatingObject,
+            tempMaskSteps: newSteps,
           };
         }
       }
