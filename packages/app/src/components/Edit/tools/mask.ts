@@ -55,7 +55,9 @@ export const renderMaskSteps = (
           maskCanvas!,
           canvasCoordPoints,
           step.positive,
-          hexToRgba(strokeColor, 0.8),
+          step.positive
+            ? hexToRgba(strokeColor, 0.8)
+            : hexToRgba(strokeColor, 1),
           step.radius,
         );
       }
