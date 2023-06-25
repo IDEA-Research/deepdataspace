@@ -65,7 +65,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
       icon: OBJECT_ICON[EObjectType.Skeleton],
     },
     [EBasicToolItem.Mask]: {
-      name: localeText('smartAnnotation.pose.name'),
+      name: localeText('smartAnnotation.mask.name'),
       icon: OBJECT_ICON[EObjectType.Mask],
     },
   };

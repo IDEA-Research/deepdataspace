@@ -320,6 +320,8 @@ export function drawBooleanPolygon(
   ctx.fillStyle = fillColor;
   ctx.strokeStyle = strokeColor;
   ctx.lineWidth = thickness;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   if (lineDash) {
     ctx.setLineDash(lineDash);
   }
@@ -353,6 +355,7 @@ export function drawBooleanBrush(
   ctx.strokeStyle = color;
   ctx.lineWidth = thickness;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.beginPath();
   if (lineDash) {
     ctx.setLineDash(lineDash);

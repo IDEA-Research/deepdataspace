@@ -162,6 +162,30 @@ export const MainToolBar: React.FC<IProps> = ({
     },
   );
 
+  /** Undo */
+  useKeyPress(
+    EDITOR_SHORTCUTS[EShortcuts.Undo].shortcut,
+    (event: KeyboardEvent) => {
+      event.preventDefault();
+      undo();
+    },
+    {
+      exactMatch: true,
+    },
+  );
+
+  /** Redo */
+  useKeyPress(
+    EDITOR_SHORTCUTS[EShortcuts.Redo].shortcut,
+    (event: KeyboardEvent) => {
+      event.preventDefault();
+      redo();
+    },
+    {
+      exactMatch: true,
+    },
+  );
+
   const popoverContent = (
     item: TToolItem<EBasicToolItem | EActionToolItem>,
   ) => {

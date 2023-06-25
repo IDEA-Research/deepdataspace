@@ -265,6 +265,9 @@ const Edit: React.FC<PreviewProps> = (props) => {
     if (drawData.selectedTool !== EBasicToolItem.Drag) {
       setDrawData((s) => {
         s.activeObjectIndex = -1;
+        if (drawData.creatingObject) {
+          s.creatingObject = undefined;
+        }
       });
     }
   }, [drawData.selectedTool]);
@@ -1227,22 +1230,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
           y: contentMouse.elementY,
         };
         setDrawData((s) => {
-          switch (s.selectedSubTool) {
-            case ESubToolItem.PenAdd:
-            case ESubToolItem.PenErase: {
-              if (event.buttons === 1) {
-                s.creatingObject?.maskStep?.points.push(mouse);
-              }
-            }
-            case ESubToolItem.BrushAdd:
-            case ESubToolItem.BrushErase: {
-              if (event.buttons === 1) {
-                s.creatingObject?.maskStep?.points.push(mouse);
-              }
-            }
-            default: {
-              break;
-            }
+          if (event.buttons === 1) {
+            s.creatingObject?.maskStep?.points.push(mouse);
           }
         });
       }
@@ -1422,49 +1411,31 @@ const Edit: React.FC<PreviewProps> = (props) => {
       case EBasicToolItem.Mask: {
         if (drawData.creatingObject) {
           setDrawData((s) => {
-            switch (s.selectedSubTool) {
-              case ESubToolItem.PenAdd:
-              case ESubToolItem.PenErase: {
-                // finish mask element
-                if (
-                  s.creatingObject &&
-                  s.creatingObject.tempMaskSteps &&
-                  s.creatingObject.maskStep &&
-                  s.creatingObject.maskStep.points.length > 1 &&
+            if (
+              s.creatingObject &&
+              s.creatingObject.tempMaskSteps &&
+              s.creatingObject.maskStep &&
+              s.creatingObject.maskStep.points.length > 1
+            ) {
+              if (
+                [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+                  s.selectedSubTool,
+                ) ||
+                ([ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+                  s.selectedSubTool,
+                ) &&
                   isPointOnPoint(
                     s.creatingObject.maskStep.points[0],
                     contentMouse,
-                  )
-                ) {
-                  s.creatingObject.tempMaskSteps?.push(
-                    s.creatingObject.maskStep,
-                  );
-                  s.creatingObject.maskStep = undefined;
-                }
-                break;
-              }
-              case ESubToolItem.BrushAdd:
-              case ESubToolItem.BrushErase: {
-                if (
-                  s.creatingObject &&
-                  s.creatingObject.tempMaskSteps &&
-                  s.creatingObject.maskStep &&
-                  s.creatingObject.maskStep.points.length > 1
-                ) {
-                  s.creatingObject.tempMaskSteps?.push(
-                    s.creatingObject.maskStep,
-                  );
-                  s.creatingObject.maskStep = undefined;
-                }
-                break;
-              }
-              default: {
-                break;
+                  ))
+              ) {
+                s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
+                s.creatingObject.maskStep = undefined;
               }
             }
           });
-          break;
         }
+        break;
       }
     }
   };
@@ -2018,9 +1989,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
               return translatePointZoom(point, preClientSize, clientSize);
             },
           );
-          updateDrawData.creatingObject.maskStep = {
-            ...updateDrawData.creatingObject.maskStep,
-            points: newPoints,
+          updateDrawData.creatingObject = {
+            ...updateDrawData.creatingObject,
+            maskStep: {
+              ...updateDrawData.creatingObject.maskStep,
+              points: newPoints,
+            },
           };
         }
         if (updateDrawData.creatingObject.tempMaskSteps) {

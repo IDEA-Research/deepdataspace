@@ -98,8 +98,9 @@ export default {
     '抱歉, DeepDataSpace的本地版本暂时不支持智能标注功能, 您可以前往官网了解更多信息或联系我们（deepdataspace_dm@idea.edu.cn）获取智能标注的体验通道。',
   'smartAnnotation.infoModal.action': '前往官网',
   'smartAnnotation.detection.name': '智能目标检测',
-  'smartAnnotation.segmentation.name': '智能图像分割',
+  'smartAnnotation.segmentation.name': '智能图像分割(多边形)',
   'smartAnnotation.pose.name': '智能姿态估计',
+  'smartAnnotation.mask.name': '智能图像分割（Mask）',
   'smartAnnotation.annotate': '生成标注',
   'smartAnnotation.detection.input': '选择或输入类别',
   'smartAnnotation.pose.input': '选择模版',
@@ -107,8 +108,6 @@ export default {
   'smartAnnotation.segmentation.tipsInitial':
     '提示：在目标对象周围拉一个包围框或单击其中心点，生成初始结果。',
   'smartAnnotation.segmentation.tipsNext':
-    '请修正标注结果: 请单击左键添加正点（目标包含该点），单击右键添加负点（目标不包含该点）。',
-  'smartAnnotation.pose.tipsNext':
     '请修正标注结果: 请单击左键添加正点（目标包含该点），单击右键添加负点（目标不包含该点）。',
   'smartAnnotation.msg.loading': '正在请求智能标注结果...',
   'smartAnnotation.msg.success': '智能标注请求成功',

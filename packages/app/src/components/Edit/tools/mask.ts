@@ -42,7 +42,7 @@ export const renderMaskSteps = (
           maskCanvas!,
           canvasCoordPoints,
           step.positive,
-          hexToRgba(strokeColor, 0.8),
+          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_MASK),
           'transparent',
         );
       }
@@ -113,31 +113,26 @@ export const renderMask = (
         '#1f4dd8',
       );
 
-      // draw line
-      canvasCoordPath.forEach((point, pointIdx) => {
-        if (
-          canvasCoordPath.length > 1 &&
-          pointIdx < canvasCoordPath.length - 1
-        ) {
-          drawLine(
-            maskCanvas!,
-            point,
-            canvasCoordPath[pointIdx + 1],
-            hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
-            1,
-            LABELS_STROKE_DASH[0],
-          );
-        } else if (pointIdx === canvasCoordPath.length - 1) {
-          drawLine(
-            maskCanvas!,
-            canvasCoordPath[pointIdx],
-            mousePoint,
-            hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
-            1,
-            LABELS_STROKE_DASH[2],
-          );
-        }
-      });
+      if (canvasCoordPath.length > 0) {
+        // draw path
+        drawPath(
+          maskCanvas!,
+          canvasCoordPath,
+          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
+          1,
+          LABELS_STROKE_DASH[0],
+        );
+
+        // draw dash line for mouse
+        drawLine(
+          maskCanvas!,
+          canvasCoordPath[canvasCoordPath.length - 1],
+          mousePoint,
+          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
+          1,
+          LABELS_STROKE_DASH[2],
+        );
+      }
     }
 
     if (

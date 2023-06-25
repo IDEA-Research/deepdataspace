@@ -9,6 +9,7 @@ export const ANNO_FILL_ALPHA = {
 export const ANNO_STROKE_ALPHA = {
   DEFAULT: 1,
   CREATING: 1,
+  CREATING_MASK: 0.7,
   CREATING_LINE: 0.8,
   FOCUS: 1,
   ACTIVE: 1,
