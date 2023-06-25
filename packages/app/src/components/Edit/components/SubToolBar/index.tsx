@@ -1,5 +1,5 @@
 import styles from './index.less';
-import { Button, Popover } from 'antd';
+import { Button, Popover, Slider } from 'antd';
 import Icon from '@ant-design/icons';
 import classNames from 'classnames';
 import { ESubToolItem } from '@/constants';
@@ -24,12 +24,14 @@ interface IProps {
   isAIAnnotationActive: boolean;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
+  onChangeBrushSize: (size: number) => void;
   // onFinish: () => void;
 }
 
 export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
   onChangeSubTool,
+  onChangeBrushSize,
   // onFinish,
 }) => {
   const MaskTools: TToolItem<ESubToolItem>[] = [
@@ -92,7 +94,16 @@ export const SubToolBar: React.FC<IProps> = ({
         ))}
         {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
           selectedSubTool,
-        ) && <>{/* <Slider min={1} max={30}/> */}</>}
+        ) && (
+          <div style={{ width: '100px' }}>
+            <Slider
+              defaultValue={20}
+              min={1}
+              max={200}
+              onChange={(value) => onChangeBrushSize(value)}
+            />
+          </div>
+        )}
         {/* <div className={styles.divider}></div>
         <Button
           type="primary"

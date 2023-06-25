@@ -56,7 +56,7 @@ export const renderMaskSteps = (
           canvasCoordPoints,
           step.positive,
           hexToRgba(strokeColor, 0.8),
-          25,
+          step.radius,
         );
       }
     });
@@ -149,7 +149,7 @@ export const renderMask = (
           maskCanvas!,
           canvasCoordPath,
           hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
-          25,
+          maskStep.radius,
         );
       }
     }

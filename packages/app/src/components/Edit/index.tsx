@@ -162,6 +162,7 @@ export interface DrawData {
     isPositive: boolean;
   }[];
   segmentationMask?: string;
+  brushSize: number;
 }
 
 export const enum EditorMode {
@@ -243,6 +244,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     },
     creatingObject: undefined,
     activeClassName: '',
+    brushSize: 20,
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1140,7 +1142,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 s.selectedSubTool === ESubToolItem.PenAdd ||
                 s.selectedSubTool === ESubToolItem.BrushAdd,
               points: [point],
-              radius: 25,
+              radius: s.brushSize,
             },
             tempMaskSteps: [],
           };
@@ -1199,6 +1201,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   s.selectedSubTool === ESubToolItem.PenAdd ||
                   s.selectedSubTool === ESubToolItem.BrushAdd,
                 points: [mouse],
+                radius: s.brushSize,
               };
             }
           }
@@ -2090,6 +2093,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       s.segmentationClicks = undefined;
       s.segmentationMask = undefined;
       s.selectedTool = EBasicToolItem.Drag;
+      s.brushSize = 20;
       s.activeClassName = '';
       s.latestLabel = '';
     });
@@ -2139,6 +2143,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
     if (mode !== EditorMode.Edit) return;
     setDrawData((s) => {
       s.selectedSubTool = tool;
+    });
+  };
+
+  const setBrushSize = (size: number) => {
+    if (mode !== EditorMode.Edit) return;
+    setDrawData((s) => {
+      s.brushSize = size;
     });
   };
 
@@ -2559,6 +2570,9 @@ const Edit: React.FC<PreviewProps> = (props) => {
                     isAIAnnotationActive={drawData.AIAnnotation}
                     onChangeSubTool={(type) => {
                       selectSubTool(type);
+                    }}
+                    onChangeBrushSize={(value) => {
+                      setBrushSize(value);
                     }}
                     onActiveAIAnnotation={activeAIAnnotation}
                   />

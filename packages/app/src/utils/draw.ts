@@ -91,7 +91,7 @@ export function drawPath(
   canvas: HTMLCanvasElement,
   points: IPoint[],
   color = '#111111',
-  thickness = 1,
+  thickness = 20,
   lineDash?: number[],
 ): void {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -345,7 +345,7 @@ export function drawBooleanBrush(
   points: IPoint[],
   addBrush = true,
   color = '#111111',
-  thickness = 1,
+  thickness = 20,
   lineDash?: number[],
 ): void {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
