@@ -116,7 +116,7 @@ export interface ICreatingMaskStep {
   positive: boolean;
   /** The points stroked by Pen Tool or Brush Tool */
   points: IPoint[];
-  radius?: number;
+  radius: number;
 }
 
 export interface ICreatingObject extends IAnnotationObject {
@@ -1989,11 +1989,16 @@ const Edit: React.FC<PreviewProps> = (props) => {
               return translatePointZoom(point, preClientSize, clientSize);
             },
           );
+          const newRadius =
+            (updateDrawData.creatingObject.maskStep.radius /
+              preClientSize.width) *
+            clientSize.width;
           updateDrawData.creatingObject = {
             ...updateDrawData.creatingObject,
             maskStep: {
               ...updateDrawData.creatingObject.maskStep,
               points: newPoints,
+              radius: newRadius,
             },
           };
         }
@@ -2005,6 +2010,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 points: step.points.map((point) =>
                   translatePointZoom(point, preClientSize, clientSize),
                 ),
+                radius: (step.radius / preClientSize.width) * clientSize.width,
               };
             },
           );
@@ -2032,6 +2038,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
             return click;
           });
       }
+
+      if (updateDrawData.brushSize && preClientSize) {
+        updateDrawData.brushSize =
+          (updateDrawData.brushSize / preClientSize.width) * clientSize.width;
+      }
+
       clearPreClientSize();
       setDrawData(updateDrawData);
       updateRender(updateDrawData);
@@ -2542,6 +2554,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   <SubToolBar
                     selectedSubTool={drawData.selectedSubTool}
                     isAIAnnotationActive={drawData.AIAnnotation}
+                    brushSize={drawData.brushSize}
                     onChangeSubTool={(type) => {
                       selectSubTool(type);
                     }}

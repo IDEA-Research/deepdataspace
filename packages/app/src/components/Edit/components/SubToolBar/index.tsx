@@ -22,6 +22,7 @@ type TToolItem<T> = {
 interface IProps {
   selectedSubTool: ESubToolItem;
   isAIAnnotationActive: boolean;
+  brushSize: number;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
   onChangeBrushSize: (size: number) => void;
@@ -32,6 +33,7 @@ export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
   onChangeSubTool,
   onChangeBrushSize,
+  brushSize,
   // onFinish,
 }) => {
   const MaskTools: TToolItem<ESubToolItem>[] = [
@@ -100,6 +102,7 @@ export const SubToolBar: React.FC<IProps> = ({
               defaultValue={20}
               min={1}
               max={200}
+              value={brushSize}
               onChange={(value) => onChangeBrushSize(value)}
             />
           </div>
