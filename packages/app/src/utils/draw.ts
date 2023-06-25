@@ -80,6 +80,48 @@ export function drawLine(
   ctx.restore();
 }
 
+const midPointBtw = (p1: any, p2: any) => {
+  return {
+    x: p1.x + (p2.x - p1.x) / 2,
+    y: p1.y + (p2.y - p1.y) / 2,
+  };
+};
+
+export function drawPath(
+  canvas: HTMLCanvasElement,
+  points: IPoint[],
+  color = '#111111',
+  thickness = 1,
+  lineDash?: number[],
+): void {
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (lineDash) {
+    ctx.setLineDash(lineDash);
+  }
+
+  ctx.beginPath();
+
+  let p1 = points[0];
+  let p2 = points[1];
+
+  ctx.moveTo(p1.x, p1.y);
+
+  for (let i = 1, len = points.length; i < len; i++) {
+    let midPoint = midPointBtw(p1, p2);
+    ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+    p1 = points[i];
+    p2 = points[i + 1];
+  }
+  ctx.lineTo(p1.x, p1.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
 export function drawRect(
   canvas: HTMLCanvasElement | null,
   rect: IRect,
@@ -300,8 +342,7 @@ export function drawBooleanPolygon(
 
 export function drawBooleanBrush(
   canvas: HTMLCanvasElement,
-  startPoint: IPoint,
-  endPoint: IPoint,
+  points: IPoint[],
   addBrush = true,
   color = '#111111',
   thickness = 1,
@@ -317,8 +358,18 @@ export function drawBooleanBrush(
     ctx.setLineDash(lineDash);
   }
 
-  ctx.moveTo(startPoint.x, startPoint.y);
-  ctx.lineTo(endPoint.x + 1, endPoint.y + 1);
+  let p1 = points[0];
+  let p2 = points[1];
+
+  ctx.moveTo(p1.x, p1.y);
+
+  for (let i = 1, len = points.length; i < len; i++) {
+    let midPoint = midPointBtw(p1, p2);
+    ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+    p1 = points[i];
+    p2 = points[i + 1];
+  }
+  ctx.lineTo(p1.x, p1.y);
 
   if (addBrush) {
     if (thickness > 0) {
