@@ -46,7 +46,7 @@ DeepDataSpace(DDS) requires **Python 3.8 - 3.10** and runs on the following plat
 - Mac OS: ✅ x86/x64, ✅ arm64
 - Windows 10: ✅ x86/x64, ❌ arm64
 - Ubuntu LTS since 18.04: ✅ x86/x64, ❌ arm64
-- Docker: ✅ x86/x64, ❌ arm64
+- Docker Compose: ✅ x86/x64, ✅ arm64
 
 ### 1.2 Installing from PyPI
 
@@ -108,51 +108,25 @@ After the installation, you can start DDS the same way as above:
 dds --quickstart
 ```
 
-### 3.2 Installing from Docker Image
-#### Step 1: Preparation
+### 3.2 Installing by Docker Compose
 
 ```shell
-# pull the latest docker image
-docker pull deepdataspace/dds
+# clone the source code
+git clone https://github.com/IDEA-Research/deepdataspace.git
 
-# create a docker volume for dds to persistent data
-docker volume create dds-runtime
+# prepare dataset directory(where you put all your datasets inside)
+mkdir -p datasets
+export DDS_DATASET_DIR=$PWD/datasets
 
 # choose a visiting port for DDS
 export DDS_PORT=8765
-```
 
-#### Step 2: Start DDS in quickstart mode
-
-```shell
-# start the DDS in quickstart mode
-# DDS will download some sample datasets and import them
-docker run -it --name dds --rm \
-    -p $DDS_PORT:8765  \
-    -v dds-runtime:/dds/runtime \
-    deepdataspace/dds \
-    dds --quickstart -V
+# start DDS with docker compose
+cd deepdataspace
+docker compose up
 ```
 
 If everything goes well, you can start visiting DDS at [http://127.0.0.1:8765](http://127.0.0.1:8765)
-
-#### Step 3: Mount your dataset directory(**Optional**)
-
-If you start DDS in `quickstart` mode, DDS will try to download the sample datasets and import them for you.  
-But most frequently, you want DDS to import your local dataset files. This is possible by mounting your local dataset directory to `/dds/datasets` inside container.
-
-```
-# assume $PWD/datasets is your local dataset directory
-mkdir -p datasets
-
-# start the container without quickstart mode
-docker run -it --name dds --rm \
-    -p 54321:8765  \
-    -v dds-runtime:/dds/runtime \
-    -v $PWD/datasets:/dds/datasets:ro \
-    deepdataspace/dds \
-    dds -V
-```
 
 ## 4. Documentation
 

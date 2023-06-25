@@ -10,7 +10,9 @@
 .commitlintrc
 
 # for local cache
+op
 data
 dist
+docs
 node_modules
 deepdataspace.egg-info

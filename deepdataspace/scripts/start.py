@@ -48,32 +48,5 @@ from deepdataspace.services import DDS
               help="Load the target yaml file to initialize more configurations. "
                    "The command line options take precedence of the config file.")
 def start_dds(data_dir, quickstart, verbose, public, host, port, reload, configfile):
-    in_docker = os.environ.get("DDS_IN_DOCKER", None)
-    runtime_dir = None
-    if bool(in_docker):
-        runtime_dir = "/dds/runtime"
-        os.makedirs(runtime_dir, exist_ok=True)
-        print(f"DDS is running in docker, runtime_dir is forced to {runtime_dir}")
-
-        data_dir = "/dds/datasets"
-        os.makedirs(data_dir, exist_ok=True)
-        print(f"DDS is running in docker, data_dir is forced to {data_dir}")
-
-        host = "0.0.0.0"
-        print(f"DDS is running in docker, host is forced to {host}")
-
-        port = 8765
-        print(f"DDS is running in docker, port is forced to {port}")
-
-        verbose = True
-        print(f"DDS is running in docker, verbose is forced to {verbose}")
-
-        reload = False
-        print(f"DDS is running in docker, reload is forced to {reload}")
-
-        configfile = None
-        print(f"DDS is running in docker, configfile is forced to {configfile}")
-
-    dds = DDS(data_dir, quickstart, verbose, public, host, port, reload, configfile,
-              runtime_dir=runtime_dir, from_cmdline=True)
+    dds = DDS(data_dir, quickstart, verbose, public, host, port, reload, configfile, from_cmdline=True)
     dds.start()
