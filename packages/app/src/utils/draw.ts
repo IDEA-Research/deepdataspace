@@ -297,3 +297,36 @@ export function drawBooleanPolygon(
   }
   ctx.restore();
 }
+
+export function drawBooleanBrush(
+  canvas: HTMLCanvasElement,
+  startPoint: IPoint,
+  endPoint: IPoint,
+  addBrush = true,
+  color = '#111111',
+  thickness = 1,
+  lineDash?: number[],
+): void {
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (lineDash) {
+    ctx.setLineDash(lineDash);
+  }
+
+  ctx.moveTo(startPoint.x, startPoint.y);
+  ctx.lineTo(endPoint.x + 1, endPoint.y + 1);
+
+  if (addBrush) {
+    if (thickness > 0) {
+      ctx.stroke();
+    }
+  } else {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.stroke();
+  }
+  ctx.restore();
+}

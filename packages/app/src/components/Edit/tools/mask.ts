@@ -9,6 +9,7 @@ import {
   drawCircleWithFill,
   drawImage,
   drawLine,
+  drawBooleanBrush,
 } from '@/utils/draw';
 import { ESubToolItem, LABELS_STROKE_DASH } from '@/constants';
 import { ANNO_STROKE_ALPHA } from '../constants/render';
@@ -32,13 +33,40 @@ export const renderMaskSteps = (
         y: -imagePos.y,
       });
 
-      drawBooleanPolygon(
-        maskCanvas!,
-        canvasCoordPoints,
-        step.positive,
-        hexToRgba(strokeColor, 0.8),
-        'transparent',
-      );
+      if (
+        step.tool === ESubToolItem.PenAdd ||
+        step.tool === ESubToolItem.PenErase
+      ) {
+        drawBooleanPolygon(
+          maskCanvas!,
+          canvasCoordPoints,
+          step.positive,
+          hexToRgba(strokeColor, 0.8),
+          'transparent',
+        );
+      }
+
+      if (
+        step.tool === ESubToolItem.BrushAdd ||
+        step.tool === ESubToolItem.BrushErase
+      ) {
+        canvasCoordPoints.forEach((point, pointIdx) => {
+          if (
+            canvasCoordPoints.length > 1 &&
+            pointIdx < canvasCoordPoints.length - 1
+          ) {
+            drawBooleanBrush(
+              maskCanvas!,
+              point,
+              canvasCoordPoints[pointIdx + 1],
+              step.positive,
+              hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
+              25,
+              // LABELS_STROKE_DASH[0],
+            );
+          }
+        });
+      }
     });
   }
 };
@@ -115,6 +143,37 @@ export const renderMask = (
             hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
             1,
             LABELS_STROKE_DASH[2],
+          );
+        }
+      });
+    }
+
+    if (
+      maskStep.tool === ESubToolItem.BrushAdd ||
+      maskStep.tool === ESubToolItem.BrushErase
+    ) {
+      // draw line
+      canvasCoordPath.forEach((point, pointIdx) => {
+        if (
+          canvasCoordPath.length > 1 &&
+          pointIdx < canvasCoordPath.length - 1
+        ) {
+          drawLine(
+            maskCanvas!,
+            point,
+            canvasCoordPath[pointIdx + 1],
+            hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
+            25,
+            // LABELS_STROKE_DASH[0],
+          );
+        } else if (pointIdx === canvasCoordPath.length - 1) {
+          drawLine(
+            maskCanvas!,
+            canvasCoordPath[pointIdx],
+            mousePoint,
+            hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
+            25,
+            // LABELS_STROKE_DASH[2],
           );
         }
       });

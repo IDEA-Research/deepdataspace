@@ -1114,6 +1114,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 s.selectedSubTool === ESubToolItem.PenAdd ||
                 s.selectedSubTool === ESubToolItem.BrushAdd,
               points: [point],
+              radius: 25,
             },
             tempMaskSteps: [],
           };
@@ -1206,6 +1207,9 @@ const Edit: React.FC<PreviewProps> = (props) => {
             }
             case ESubToolItem.BrushAdd:
             case ESubToolItem.BrushErase: {
+              if (event.buttons === 1) {
+                s.creatingObject?.maskStep?.points.push(mouse);
+              }
             }
             default: {
               break;
@@ -1411,6 +1415,17 @@ const Edit: React.FC<PreviewProps> = (props) => {
               }
               case ESubToolItem.BrushAdd:
               case ESubToolItem.BrushErase: {
+                if (
+                  s.creatingObject &&
+                  s.creatingObject.tempMaskSteps &&
+                  s.creatingObject.maskStep &&
+                  s.creatingObject.maskStep.points.length > 1
+                ) {
+                  s.creatingObject.tempMaskSteps?.push(
+                    s.creatingObject.maskStep,
+                  );
+                  s.creatingObject.maskStep = undefined;
+                }
               }
               default: {
                 break;
