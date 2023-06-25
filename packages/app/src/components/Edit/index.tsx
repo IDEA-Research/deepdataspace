@@ -55,8 +55,8 @@ import {
   translateAnnotCoord,
   translatePointCoord,
   translateRectCoord,
+  Direction,
 } from '@/utils/compute';
-import { updateMouseCursor } from '@/utils/style';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
 import useLabels from './hooks/useLabels';
@@ -990,11 +990,41 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** update mouse style 
   /** ================================================================================================================= */
 
+  const updateMouseCursor = useCallback(
+    (value: string, position?: Direction) => {
+      if (!maskCanvasRef.current) return;
+
+      let cursor = value;
+      if (position) {
+        switch (position) {
+          case Direction.TOP:
+          case Direction.BOTTOM:
+            cursor = 'ns-resize';
+            break;
+          case Direction.TOP_LEFT:
+          case Direction.BOTTOM_RIGHT:
+            cursor = 'nwse-resize';
+            break;
+          case Direction.BOTTOM_LEFT:
+          case Direction.TOP_RIGHT:
+            cursor = 'nesw-resize';
+            break;
+          default:
+            cursor = 'ew-resize';
+        }
+      }
+      if (cursor !== maskCanvasRef.current.style.cursor) {
+        maskCanvasRef.current.style.cursor = cursor;
+      }
+    },
+    [maskCanvasRef.current],
+  );
+
   const updateMouseWhenHoverObject = () => {
     if (drawData.focusObjectIndex > -1) {
-      updateMouseCursor(canvasRef.current, 'pointer');
+      updateMouseCursor('pointer');
     } else {
-      updateMouseCursor(canvasRef.current, 'grab');
+      updateMouseCursor('grab');
     }
   };
 
@@ -1009,40 +1039,36 @@ const Edit: React.FC<PreviewProps> = (props) => {
           });
           // focus on the resize point
           if (anchorUnderMouse) {
-            updateMouseCursor(
-              canvasRef.current,
-              'resize',
-              anchorUnderMouse.type,
-            );
+            updateMouseCursor('resize', anchorUnderMouse.type);
           } else {
-            updateMouseCursor(canvasRef.current, 'move');
+            updateMouseCursor('move');
           }
         }
         break;
       }
       case EElementType.Polygon: {
-        updateMouseCursor(canvasRef.current, 'pointer');
+        updateMouseCursor('pointer');
         break;
       }
       case EElementType.Circle: {
-        updateMouseCursor(canvasRef.current, 'pointer');
+        updateMouseCursor('pointer');
         break;
       }
     }
   };
 
   const updateMouseWhenCreating = () => {
-    updateMouseCursor(canvasRef.current, 'crosshair');
+    updateMouseCursor('crosshair');
   };
 
   useEffect(() => {
     if (allowMove) {
-      updateMouseCursor(canvasRef.current, 'grabbing');
+      updateMouseCursor('grabbing');
     } else {
       if (drawData.selectedTool === EBasicToolItem.Drag) {
-        updateMouseCursor(canvasRef.current, 'grab');
+        updateMouseCursor('grab');
       } else {
-        updateMouseCursor(canvasRef.current, 'crosshair');
+        updateMouseCursor('crosshair');
       }
     }
   }, [allowMove]);
@@ -1550,11 +1576,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
       // resize rectangle
       if (drawData.startRectResizeAnchor) {
-        updateMouseCursor(
-          canvasRef.current,
-          'resize',
-          drawData.startRectResizeAnchor.type,
-        );
+        updateMouseCursor('resize', drawData.startRectResizeAnchor.type);
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
@@ -1575,7 +1597,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
       // move rectangle
       if (drawData.startElementMovePoint) {
-        updateMouseCursor(canvasRef.current, 'move');
+        updateMouseCursor('move');
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
@@ -1597,7 +1619,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     } else if (focusEleType === EElementType.Circle) {
       // move point
       if (drawData.startElementMovePoint) {
-        updateMouseCursor(canvasRef.current, 'move');
+        updateMouseCursor('move');
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
@@ -1617,7 +1639,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     } else if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
       const { index, pointIndex } = drawData.focusPolygonInfo;
       if (drawData.startElementMovePoint && index > -1) {
-        updateMouseCursor(canvasRef.current, 'move');
+        updateMouseCursor('move');
         if (pointIndex > -1) {
           // move single point
           setDrawData((s) => {
@@ -2287,12 +2309,20 @@ const Edit: React.FC<PreviewProps> = (props) => {
       if (event.type === 'keyup') {
         if (drawData.creatingObject) {
           setDrawData((s) => {
-            s.creatingObject = undefined;
-            if (s.AIAnnotation) {
-              s.segmentationClicks = undefined;
-              s.segmentationMask = undefined;
+            if (
+              s.creatingObject?.type === EObjectType.Mask &&
+              s.creatingObject?.maskStep?.points?.length
+            ) {
+              // Creating single Mask
+              s.creatingObject.maskStep = undefined;
+            } else {
+              s.creatingObject = undefined;
+              if (s.AIAnnotation) {
+                s.segmentationClicks = undefined;
+                s.segmentationMask = undefined;
+              }
+              s.activeObjectIndex = -1;
             }
-            s.activeObjectIndex = -1;
           });
         } else {
           setDrawData((s) => {
