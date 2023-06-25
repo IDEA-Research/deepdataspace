@@ -290,15 +290,21 @@ export const objectToRle = async (
   );
 
   // Grayscale pixels respecting the opacity
+  let maskPixelCount = 0;
   for (let i = maskData.data.length / 4; i--; ) {
+    let maskAplha = 0;
+    if (maskData.data[i * 4 + 3] > 0) {
+      maskPixelCount++;
+      maskAplha = 1;
+    }
     maskData.data[i * 4] =
       maskData.data[i * 4 + 1] =
       maskData.data[i * 4 + 2] =
       maskData.data[i * 4 + 3] =
-        maskData.data[i * 4 + 3] > 0 ? 1 : 0;
+        maskAplha;
   }
 
   const arr = encode(maskData.data, maskData.data.length);
   // console.log('>>>> output', maskData, Array.from(arr));
-  return Array.from(arr);
+  return maskPixelCount > 0 ? Array.from(arr) : [];
 };

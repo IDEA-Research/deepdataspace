@@ -215,6 +215,9 @@ export default {
   'editor.annotsList.point.notInImage': 'Not In Image',
   'editor.annotsList.point.notVisible': 'Not Visible',
   'editor.annotsList.point.visible': 'Visible',
+  'editor.anno.mask.emptyWarning':
+    'Please add at least one valid Mask annotation.',
+  'editor.anno.mask.translateToRleError': 'Error converting Mask format.',
 
   /** projects */
   'proj.title': 'Projects',

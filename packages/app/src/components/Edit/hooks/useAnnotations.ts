@@ -30,7 +30,7 @@ const useAnnotations = ({
   const translateObjectToAnnotation = (
     object: IAnnotationObject,
   ): DATA.BaseObject => {
-    const { label, rect, keypoints, polygon } = object;
+    const { label, rect, keypoints, polygon, maskRle } = object;
     const annoObj = {
       categoryName: label,
     };
@@ -66,6 +66,11 @@ const useAnnotations = ({
       );
       Object.assign(annoObj, {
         segmentation,
+      });
+    }
+    if (maskRle) {
+      Object.assign(annoObj, {
+        maskRle,
       });
     }
     return annoObj;

@@ -202,6 +202,8 @@ export default {
   'editor.annotsList.point.notInImage': '不在图片内',
   'editor.annotsList.point.notVisible': '在图中但不可见',
   'editor.annotsList.point.visible': '可见',
+  'editor.anno.mask.emptyWarning': '请至少添加一个有效 Mask 标注',
+  'editor.anno.mask.translateToRleError': '转换 Mask 格式错误',
 
   /** projects */
   'proj.title': '项目',

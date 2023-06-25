@@ -1024,7 +1024,7 @@ export const translateObjectsToAnnotations = (
   needNormalizeBbox: boolean = true,
 ): DATA.BaseObject[] => {
   const annotations = objectList.map((obj) => {
-    const { label, rect, keypoints, polygon } = obj;
+    const { label, rect, keypoints, polygon, maskRle } = obj;
     const annoObj = {
       categoryName: label,
     };
@@ -1062,6 +1062,11 @@ export const translateObjectsToAnnotations = (
       );
       Object.assign(annoObj, {
         segmentation,
+      });
+    }
+    if (maskRle) {
+      Object.assign(annoObj, {
+        maskRle,
       });
     }
     return annoObj;

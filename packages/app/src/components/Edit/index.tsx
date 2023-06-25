@@ -1412,6 +1412,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   );
                   s.creatingObject.maskStep = undefined;
                 }
+                break;
               }
               case ESubToolItem.BrushAdd:
               case ESubToolItem.BrushErase: {
@@ -1426,6 +1427,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   );
                   s.creatingObject.maskStep = undefined;
                 }
+                break;
               }
               default: {
                 break;
@@ -1751,7 +1753,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         drawData.creatingObject?.tempMaskSteps,
         drawData.creatingObject?.maskImage,
       );
-      if (maskRle) {
+      if (maskRle && maskRle.length > 0) {
         const color = labelColors[label] || '#fff';
         const newObject = {
           type: EObjectType.Mask,
@@ -1763,22 +1765,29 @@ const Edit: React.FC<PreviewProps> = (props) => {
         };
         if (drawData.activeObjectIndex < 0) {
           // add mask object
-          addObject(newObject);
+          addObject(newObject, true);
         } else {
           // edit mask object
           updateObject(newObject, drawData.activeObjectIndex);
-          setDrawData((s) => {
-            s.activeObjectIndex = -1;
-          });
         }
+        setDrawData((s) => {
+          s.creatingObject = undefined;
+          s.activeObjectIndex = -1;
+        });
+      } else if (maskRle) {
+        // Empty mask
+        message.warning(localeText('editor.anno.mask.emptyWarning'));
+      } else {
+        // Other error
+        message.error(localeText('editor.anno.mask.translateToRleError'));
       }
     } else {
       onChangeObjectLabel(drawData.activeObjectIndex, label);
+      setDrawData((s) => {
+        s.creatingObject = undefined;
+        s.activeObjectIndex = -1;
+      });
     }
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.activeObjectIndex = -1;
-    });
   };
 
   const onCloseAnnotationEditor = () => {

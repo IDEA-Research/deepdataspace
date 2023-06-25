@@ -122,12 +122,12 @@ const useObjects = ({
     });
   };
 
-  const addObject = (object: IAnnotationObject) => {
+  const addObject = (object: IAnnotationObject, notActive?: boolean) => {
     if (mode !== EditorMode.Edit) return;
     setDrawData((s) => {
       s.objectList.push(object);
       s.creatingObject = undefined;
-      s.activeObjectIndex = s.objectList.length - 1;
+      s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
       s.changed = true;
     });
     addAnnotation(object);
