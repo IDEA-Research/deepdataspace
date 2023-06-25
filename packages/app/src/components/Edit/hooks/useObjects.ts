@@ -9,7 +9,7 @@ import {
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
 import { DrawData, EditorMode, IAnnotationObject } from '..';
-import { rleToImage } from '../mask';
+import { rleToImage } from '../tools/mask';
 
 interface IProps {
   objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];
@@ -39,6 +39,7 @@ const useObjects = ({
 }: IProps) => {
   const translateAnnotationToObject = (
     annotation: DATA.BaseObject,
+    labelColors: Record<string, string>,
   ): IAnnotationObject => {
     let {
       categoryName,
@@ -50,6 +51,7 @@ const useObjects = ({
       segmentation,
       maskRle,
     } = annotation;
+    const color = labelColors[categoryName || ''] || '#ffffff';
 
     const newObj: IAnnotationObject = {
       label: categoryName || '',
@@ -99,7 +101,7 @@ const useObjects = ({
     }
     if (maskRle) {
       Object.assign(newObj, {
-        maskImage: rleToImage(maskRle, naturalSize, '#0000f5'),
+        maskImage: rleToImage(maskRle, naturalSize, color),
       });
     }
 
@@ -107,10 +109,13 @@ const useObjects = ({
     return newObj;
   };
 
-  const initObjectList = (annotations: DATA.BaseObject[]) => {
+  const initObjectList = (
+    annotations: DATA.BaseObject[],
+    labelColors: Record<string, string>,
+  ) => {
     setDrawData((s) => {
       s.objectList = annotations.map((annotation) => {
-        return translateAnnotationToObject(annotation);
+        return translateAnnotationToObject(annotation, labelColors);
       });
       // TODO: mask mock
       // s.objectList = [translateAnnotationToObject(mockMaskAnnotation)];

@@ -20,7 +20,6 @@ import { Updater, useImmer } from 'use-immer';
 import { useKeyPress } from 'ahooks';
 import {
   clearCanvas,
-  drawBooleanPolygon,
   drawCircleWithFill,
   drawImage,
   drawLine,
@@ -56,7 +55,6 @@ import {
   translateAnnotCoord,
   translatePointCoord,
   translateRectCoord,
-  translatePolygonCoord,
 } from '@/utils/compute';
 import { updateMouseCursor } from '@/utils/style';
 import { DATA } from '@/services/type';
@@ -91,7 +89,7 @@ import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
-import { canvasToRle } from './mask';
+import { objectToRle, renderMask, rleToImage } from './tools/mask';
 
 export interface IAnnotationObject {
   type: EObjectType;
@@ -107,7 +105,8 @@ export interface IAnnotationObject {
   maskImage?: any;
   conf?: number;
 }
-interface ICreatingMaskStep {
+
+export interface ICreatingMaskStep {
   tool:
     | ESubToolItem.BrushAdd
     | ESubToolItem.BrushErase
@@ -118,6 +117,19 @@ interface ICreatingMaskStep {
   /** The points stroked by Pen Tool or Brush Tool */
   points: IPoint[];
   radius?: number;
+}
+
+export interface ICreatingObject extends IAnnotationObject {
+  /** To determine Which polygon corresponds to the creation of a new polygon */
+  currIndex?: number;
+  /** Starting stretching point when creating a new Rect/Skeleton object */
+  startPoint?: IPoint;
+  /** Currently drawing path creating by Pen Tool or Brush Tool */
+  maskStep?: ICreatingMaskStep;
+  /** Steps for creating mask object */
+  tempMaskSteps?: ICreatingMaskStep[];
+  /** editing mask image */
+  basicMaskImage?: any;
 }
 
 export interface DrawData {
@@ -144,18 +156,7 @@ export interface DrawData {
     pointIndex: number;
     lineIndex: number;
   };
-  creatingObject:
-    | (IAnnotationObject & {
-        /** To determine Which polygon corresponds to the creation of a new polygon */
-        currIndex?: number;
-        /** Starting stretching point when creating a new Rect/Skeleton object */
-        startPoint?: IPoint;
-        /** Currently drawing path creating by Pen Tool or Brush Tool */
-        maskStep?: ICreatingMaskStep;
-        /** Steps for creating mask object */
-        tempMaskSteps?: ICreatingMaskStep[];
-      })
-    | undefined;
+  creatingObject?: ICreatingObject;
   segmentationClicks?: {
     point: IPoint;
     isPositive: boolean;
@@ -331,32 +332,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
     updateAllAnnotation,
   });
 
-  const onRedo = () => {
-    const record = redo();
-    if (record) {
-      setAnnotations(record);
-      initObjectList(record);
-      setDrawData((s) => {
-        if (!s.objectList[s.activeObjectIndex]) {
-          s.activeObjectIndex = -1;
-        }
-      });
-    }
-  };
-
-  const onUndo = () => {
-    const record = undo();
-    if (record) {
-      setAnnotations(record);
-      initObjectList(record);
-      setDrawData((s) => {
-        if (!s.objectList[s.activeObjectIndex]) {
-          s.activeObjectIndex = -1;
-        }
-      });
-    }
-  };
-
   const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
     {
       list,
@@ -392,6 +367,32 @@ const Edit: React.FC<PreviewProps> = (props) => {
     setDrawData,
     updateObject,
   });
+
+  const onRedo = () => {
+    const record = redo();
+    if (record) {
+      setAnnotations(record);
+      initObjectList(record, labelColors);
+      setDrawData((s) => {
+        if (!s.objectList[s.activeObjectIndex]) {
+          s.activeObjectIndex = -1;
+        }
+      });
+    }
+  };
+
+  const onUndo = () => {
+    const record = undo();
+    if (record) {
+      setAnnotations(record);
+      initObjectList(record, labelColors);
+      setDrawData((s) => {
+        if (!s.objectList[s.activeObjectIndex]) {
+          s.activeObjectIndex = -1;
+        }
+      });
+    }
+  };
 
   /** =================================================================================================================
   /** States related to hovering and selection
@@ -471,24 +472,23 @@ const Edit: React.FC<PreviewProps> = (props) => {
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
-    if (
-      !visible ||
-      !canvasRef.current ||
-      !imgRef.current ||
-      !maskCanvasRef.current
-    )
-      return;
+    if (!visible || !canvasRef.current || !imgRef.current) return;
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,
       height: containerMouse.elementH,
     });
-
     canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-
     clearCanvas(canvasRef.current);
 
-    clearCanvas(maskCanvasRef.current);
+    if (maskCanvasRef.current) {
+      resizeSmoothCanvas(maskCanvasRef.current, {
+        width: containerMouse.elementW,
+        height: containerMouse.elementH,
+      });
+      maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+      clearCanvas(maskCanvasRef.current);
+    }
 
     drawImage(canvasRef.current, imgRef.current, {
       x: imagePos.current.x,
@@ -666,77 +666,22 @@ const Edit: React.FC<PreviewProps> = (props) => {
           break;
         }
         case EObjectType.Mask: {
-          const { maskStep, tempMaskSteps } = theDrawData.creatingObject;
-
-          // draw temp mask according to step queue
-          if (tempMaskSteps && tempMaskSteps?.length > 0) {
-            tempMaskSteps.forEach((step) => {
-              const canvasCoordPoints = translatePolygonCoord(step.points, {
-                x: -imagePos.current.x,
-                y: -imagePos.current.y,
-              });
-
-              drawBooleanPolygon(
-                maskCanvasRef.current!,
-                canvasCoordPoints,
-                step.positive,
-                'rgba(255, 255, 255, 0.8)',
-                'transparent',
-              );
-            });
-          }
-
-          // draw currently step when mouse move
-          if (maskStep && maskStep.points.length > 0) {
-            const canvasCoordPath = translatePolygonCoord(maskStep.points, {
-              x: -imagePos.current.x,
-              y: -imagePos.current.y,
-            });
-
-            if (
-              maskStep.tool === ESubToolItem.PenAdd ||
-              maskStep.tool === ESubToolItem.PenErase
-            ) {
-              // draw start point
-              drawCircleWithFill(
-                maskCanvasRef.current!,
-                canvasCoordPath[0],
-                6,
-                strokeColor,
-                3,
-                '#1f4dd8',
-              );
-
-              // draw line
-              canvasCoordPath.forEach((point, pointIdx) => {
-                if (
-                  canvasCoordPath.length > 1 &&
-                  pointIdx < canvasCoordPath.length - 1
-                ) {
-                  drawLine(
-                    maskCanvasRef.current!,
-                    point,
-                    canvasCoordPath[pointIdx + 1],
-                    hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
-                    1,
-                    LABELS_STROKE_DASH[0],
-                  );
-                } else if (pointIdx === canvasCoordPath.length - 1) {
-                  drawLine(
-                    maskCanvasRef.current!,
-                    canvasCoordPath[pointIdx],
-                    {
-                      x: containerMouse.elementX,
-                      y: containerMouse.elementY,
-                    },
-                    hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
-                    1,
-                    LABELS_STROKE_DASH[2],
-                  );
-                }
-              });
-            }
-          }
+          const color =
+            theDrawData.activeObjectIndex >= 0
+              ? labelColors[theDrawData.creatingObject.label]
+              : strokeColor;
+          if (maskCanvasRef.current)
+            renderMask(
+              maskCanvasRef.current,
+              theDrawData.creatingObject,
+              imagePos.current,
+              color,
+              {
+                x: containerMouse.elementX,
+                y: containerMouse.elementY,
+              },
+              clientSize,
+            );
           break;
         }
         default:
@@ -1001,17 +946,24 @@ const Edit: React.FC<PreviewProps> = (props) => {
         }
       }
 
-      // TODO: draw mask
-      if (maskImage && maskCanvasRef.current) {
-        clearCanvas(maskCanvasRef.current);
-        drawImage(maskCanvasRef.current!, maskImage!, {
-          // x: 0,
-          // y: 0,
+      // draw mask
+      if (maskImage && theDrawData.activeObjectIndex !== index) {
+        const ctx = canvasRef.current!.getContext(
+          '2d',
+        ) as CanvasRenderingContext2D;
+        ctx.globalAlpha = 0.35;
+        if (theDrawData.creatingObject) {
+          ctx.globalAlpha = 0.2;
+        } else if (theDrawData.focusObjectIndex === index) {
+          ctx.globalAlpha = 0.8;
+        }
+        drawImage(canvasRef.current!, maskImage, {
           x: imagePos.current.x,
           y: imagePos.current.y,
           width: clientSize.width,
           height: clientSize.height,
         });
+        ctx.globalAlpha = 1;
       }
     });
 
@@ -1880,7 +1832,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
     if (!clientSize.width || !clientSize.height) return;
     if (isUpdateDrawData || !drawData.initialized) {
       // Initialization
-      initObjectList(annotations);
+      initObjectList(annotations, labelColors);
       setDrawData((s) => {
         s.initialized = true;
       });
@@ -1991,11 +1943,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
-
-    // pixel mask canvas
-    if (maskCanvasRef.current) {
-      maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-    }
   }, [
     imagePos.current.x,
     imagePos.current.y,
@@ -2077,13 +2024,36 @@ const Edit: React.FC<PreviewProps> = (props) => {
   const onFinishEditTool = async () => {
     if (mode !== EditorMode.Edit) return;
     if (drawData.selectedTool === EBasicToolItem.Mask) {
-      // TODO: confirm to add / change mask annotation (convert to rle)
-      await canvasToRle(
-        maskCanvasRef.current!,
-        imagePos.current,
+      console.log('done', drawData.creatingObject);
+      const maskRle = await objectToRle(
         clientSize,
         naturalSize,
+        drawData.creatingObject?.tempMaskSteps,
+        drawData.creatingObject?.maskImage,
       );
+      if (maskRle) {
+        // TODO: confirm to add / change mask annotation (convert to rle)
+        const label = drawData.creatingObject?.label || '';
+        const color = labelColors[label] || '#fff';
+        const newObject = {
+          type: EObjectType.Mask,
+          label,
+          hidden: false,
+          maskRle,
+          maskImage: rleToImage(maskRle, naturalSize, color),
+          conf: 1,
+        };
+        if (drawData.activeObjectIndex < 0) {
+          // add mask object
+          addObject(newObject);
+        } else {
+          // edit mask object
+          updateObject(newObject, drawData.activeObjectIndex);
+          setDrawData((s) => {
+            s.activeObjectIndex = -1;
+          });
+        }
+      }
     }
   };
 
@@ -2113,6 +2083,22 @@ const Edit: React.FC<PreviewProps> = (props) => {
     },
     [mode],
   );
+
+  const activeMaskObject = (index: number) => {
+    // Enter mask edit
+    selectTool(EBasicToolItem.Mask);
+    setAiLabels([]);
+    setDrawData((s) => {
+      s.creatingObject = {
+        hidden: false,
+        label: drawData.objectList[index].label,
+        type: EObjectType.Mask,
+        maskStep: undefined,
+        tempMaskSteps: [],
+        maskImage: drawData.objectList[index].maskImage,
+      };
+    });
+  };
 
   const supportActions = useMemo(() => {
     const actions = actionElements
@@ -2356,8 +2342,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   />
                   <canvas
                     ref={maskCanvasRef}
-                    width={containerMouse.elementW || 0}
-                    height={containerMouse.elementH || 0}
                     onContextMenu={(
                       event: React.MouseEvent<HTMLCanvasElement>,
                     ) => event.preventDefault()}
@@ -2520,12 +2504,16 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 s.focusObjectIndex = index;
               })
             }
-            onActiveObject={(index) =>
+            onActiveObject={(index) => {
               setDrawData((s) => {
                 s.selectedTool = EBasicToolItem.Drag;
                 s.activeObjectIndex = index;
-              })
-            }
+              });
+              // Mask object active
+              if (drawData.objectList[index].type === EObjectType.Mask) {
+                activeMaskObject(index);
+              }
+            }}
             onFocusElement={(index) =>
               setDrawData((s) => {
                 s.focusEleIndex = index;

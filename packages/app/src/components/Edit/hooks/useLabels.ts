@@ -3,8 +3,9 @@ import { Updater } from 'use-immer';
 import { getCategoryColors } from '@/utils/color';
 import { DATA } from '@/services/type';
 import { DrawData, EditorMode, IAnnotationObject } from '..';
-import { EElementType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
+import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
+import { changeMaskImageColor } from '../tools/mask';
 
 interface IProps {
   visible: boolean;
@@ -55,12 +56,20 @@ export default function useLabels({
 
   const curObjects = drawData.objectList;
 
-  const onChangeObjectLabel = (index: number, label: string) => {
+  const onChangeObjectLabel = async (index: number, label: string) => {
     setDrawData((s) => {
       s.latestLabel = label;
     });
     const newObject = { ...drawData.objectList[index] };
     newObject.label = label;
+    // mask color change
+    if (newObject.type === EObjectType.Mask && newObject.maskImage) {
+      const color = labelColors[label] || '#ffffff';
+      newObject.maskImage = await changeMaskImageColor(
+        newObject.maskImage,
+        color,
+      );
+    }
     updateObject(newObject, index);
   };
 
