@@ -1714,6 +1714,81 @@ const Edit: React.FC<PreviewProps> = (props) => {
   };
 
   // =================================================================================================================
+  // Annotation Eidtor
+  // =================================================================================================================
+
+  const currEditObject = useMemo(() => {
+    if (drawData.activeObjectIndex > -1) {
+      // Edit object
+      return drawData.objectList[drawData.activeObjectIndex];
+    } else if (
+      drawData.creatingObject &&
+      drawData.creatingObject.type === EObjectType.Mask &&
+      (drawData.creatingObject.maskImage ||
+        drawData.creatingObject.tempMaskSteps?.length)
+    ) {
+      // New mask
+      return drawData.creatingObject;
+    }
+    return undefined;
+  }, [drawData]);
+
+  const onDeleteCurrObject = () => {
+    if (drawData.activeObjectIndex > -1) {
+      removeObject(drawData.activeObjectIndex);
+    }
+    setDrawData((s) => {
+      s.creatingObject = undefined;
+      s.activeObjectIndex = -1;
+    });
+  };
+
+  const onFinishCurrCreate = async (label: string) => {
+    if (currEditObject?.type === EObjectType.Mask) {
+      const maskRle = await objectToRle(
+        clientSize,
+        naturalSize,
+        drawData.creatingObject?.tempMaskSteps,
+        drawData.creatingObject?.maskImage,
+      );
+      if (maskRle) {
+        const color = labelColors[label] || '#fff';
+        const newObject = {
+          type: EObjectType.Mask,
+          label,
+          hidden: false,
+          maskRle,
+          maskImage: rleToImage(maskRle, naturalSize, color),
+          conf: 1,
+        };
+        if (drawData.activeObjectIndex < 0) {
+          // add mask object
+          addObject(newObject);
+        } else {
+          // edit mask object
+          updateObject(newObject, drawData.activeObjectIndex);
+          setDrawData((s) => {
+            s.activeObjectIndex = -1;
+          });
+        }
+      }
+    } else {
+      onChangeObjectLabel(drawData.activeObjectIndex, label);
+    }
+    setDrawData((s) => {
+      s.creatingObject = undefined;
+      s.activeObjectIndex = -1;
+    });
+  };
+
+  const onCloseAnnotationEditor = () => {
+    setDrawData((s) => {
+      s.creatingObject = undefined;
+      s.activeObjectIndex = -1;
+    });
+  };
+
+  // =================================================================================================================
   // Register Mouse Event
   // =================================================================================================================
 
@@ -2036,42 +2111,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
     });
   };
 
-  const onFinishEditTool = async () => {
-    if (mode !== EditorMode.Edit) return;
-    if (drawData.selectedTool === EBasicToolItem.Mask) {
-      console.log('done', drawData.creatingObject);
-      const maskRle = await objectToRle(
-        clientSize,
-        naturalSize,
-        drawData.creatingObject?.tempMaskSteps,
-        drawData.creatingObject?.maskImage,
-      );
-      if (maskRle) {
-        // TODO: confirm to add / change mask annotation (convert to rle)
-        const label = drawData.creatingObject?.label || '';
-        const color = labelColors[label] || '#fff';
-        const newObject = {
-          type: EObjectType.Mask,
-          label,
-          hidden: false,
-          maskRle,
-          maskImage: rleToImage(maskRle, naturalSize, color),
-          conf: 1,
-        };
-        if (drawData.activeObjectIndex < 0) {
-          // add mask object
-          addObject(newObject);
-        } else {
-          // edit mask object
-          updateObject(newObject, drawData.activeObjectIndex);
-          setDrawData((s) => {
-            s.activeObjectIndex = -1;
-          });
-        }
-      }
-    }
-  };
-
   const displayAIModeUnavailableModal = () => {
     Modal.info({
       centered: true,
@@ -2372,29 +2411,15 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 drawData.AIAnnotation
               ) && (
                 <AnnotationEditor
+                  hideTitle={currEditObject?.type === EObjectType.Mask}
                   allowAddCategory={isSeperate}
                   drawData={drawData}
                   categories={categories}
-                  currEditObject={
-                    drawData.objectList[drawData.activeObjectIndex]
-                  }
+                  currEditObject={currEditObject}
                   onCreateCategory={onCreateCategory}
-                  onDeleteCurrObject={() => {
-                    removeObject(drawData.activeObjectIndex);
-                  }}
-                  onFinishCurrCreate={(label: string) => {
-                    if (label) {
-                      onChangeObjectLabel(drawData.activeObjectIndex, label);
-                    }
-                    setDrawData((s) => {
-                      s.activeObjectIndex = -1;
-                    });
-                  }}
-                  onCloseAnnotationEditor={() => {
-                    setDrawData((s) => {
-                      s.activeObjectIndex = -1;
-                    });
-                  }}
+                  onDeleteCurrObject={onDeleteCurrObject}
+                  onFinishCurrCreate={onFinishCurrCreate}
+                  onCloseAnnotationEditor={onCloseAnnotationEditor}
                 />
               )}
             <SmartAnnotationControl
@@ -2497,7 +2522,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
                       selectSubTool(type);
                     }}
                     onActiveAIAnnotation={activeAIAnnotation}
-                    onFinish={onFinishEditTool}
                   />
                 )}
               </>

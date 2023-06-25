@@ -12,6 +12,7 @@ import CategoryCreator from '../CategoryCreator';
 import { DATA } from '@/services/type';
 
 interface IProps {
+  hideTitle: boolean;
   allowAddCategory: boolean;
   drawData: DrawData;
   categories: DATA.Category[];
@@ -23,6 +24,7 @@ interface IProps {
 }
 
 const AnnotationEditor: React.FC<IProps> = ({
+  hideTitle,
   allowAddCategory,
   drawData,
   categories,
@@ -60,17 +62,19 @@ const AnnotationEditor: React.FC<IProps> = ({
           [styles.containedVisible]: currEditObject,
         })}
         title={
-          <div className={styles.title}>
-            {localeText('editor.annotsEditor.title')}
-            <Button
-              ghost
-              className={styles.btn}
-              icon={<CloseOutlined />}
-              shape="circle"
-              size="small"
-              onClick={onCloseAnnotationEditor}
-            ></Button>
-          </div>
+          hideTitle ? null : (
+            <div className={styles.title}>
+              {localeText('editor.annotsEditor.title')}
+              <Button
+                ghost
+                className={styles.btn}
+                icon={<CloseOutlined />}
+                shape="circle"
+                size="small"
+                onClick={onCloseAnnotationEditor}
+              ></Button>
+            </div>
+          )
         }
       >
         <div className={styles.content}>

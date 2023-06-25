@@ -10,7 +10,6 @@ import { ReactComponent as PenEraseIcon } from '@/assets/svg/pen-erase.svg';
 import { ReactComponent as BrushAddIcon } from '@/assets/svg/brush-add.svg';
 import { ReactComponent as BrushEraseIcon } from '@/assets/svg/brush-erase.svg';
 import { getIconFromShortcut } from '../ShortcutsInfo';
-import { useLocale } from '@/locales/helper';
 
 type TToolItem<T> = {
   key: T;
@@ -25,16 +24,14 @@ interface IProps {
   isAIAnnotationActive: boolean;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
-  onFinish: () => void;
+  // onFinish: () => void;
 }
 
 export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
   onChangeSubTool,
-  onFinish,
+  // onFinish,
 }) => {
-  const { localeText } = useLocale();
-
   const MaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.PenAdd,
@@ -96,7 +93,7 @@ export const SubToolBar: React.FC<IProps> = ({
         {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
           selectedSubTool,
         ) && <>{/* <Slider min={1} max={30}/> */}</>}
-        <div className={styles.divider}></div>
+        {/* <div className={styles.divider}></div>
         <Button
           type="primary"
           className={classNames(styles.action)}
@@ -106,7 +103,7 @@ export const SubToolBar: React.FC<IProps> = ({
           }}
         >
           {localeText('editor.annotsEditor.finish')}
-        </Button>
+        </Button> */}
       </div>
     </FloatWrapper>
   );
