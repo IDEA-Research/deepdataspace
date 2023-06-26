@@ -99,8 +99,22 @@ export const SubToolBar: React.FC<IProps> = ({
     );
   };
 
+  const mouseEventHandler = (event: React.MouseEvent) => {
+    // enable mouseup propagate only for brush
+    if (
+      [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+        selectedSubTool,
+      ) &&
+      event.type === 'mouseup'
+    ) {
+      return;
+    } else {
+      event.stopPropagation();
+    }
+  };
+
   return (
-    <FloatWrapper>
+    <FloatWrapper eventHandler={mouseEventHandler}>
       <div className={styles.container}>
         {BasicMaskTools.map((item) => (
           <Popover
