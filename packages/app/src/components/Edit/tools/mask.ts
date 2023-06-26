@@ -1,7 +1,7 @@
 import { decode, encode } from '@thi.ng/rle-pack';
 import { mockRle } from './mockRle';
 import { hexToRgbArray, hexToRgba } from '@/utils/color';
-import { ICreatingMaskStep, ICreatingObject } from '..';
+import { ICreatingMaskStep, ICreatingObject } from '../type';
 import { translatePointZoom, translatePolygonCoord } from '@/utils/compute';
 import {
   clearCanvas,

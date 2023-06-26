@@ -14,7 +14,7 @@ import Icon, {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { IAnnotationObject } from '../..';
+import { IAnnotationObject } from '../../type';
 import PointItem from '../Items/PointItem';
 import RectItem from '../Items/RectItem';
 import PolygonItem from '../Items/PolygonItem';

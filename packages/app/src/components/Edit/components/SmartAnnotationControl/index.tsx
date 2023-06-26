@@ -10,7 +10,7 @@ import Icon from '@ant-design/icons/lib/components/Icon';
 import { Button, Card, Select, Slider } from 'antd';
 import classNames from 'classnames';
 import { useMemo } from 'react';
-import { DrawData } from '../..';
+import { DrawData } from '../../type';
 import styles from './index.less';
 import { FloatWrapper } from '@/components/FloatWrapper';
 import { ReactComponent as DragToolIcon } from '@/assets/svg/drag.svg';

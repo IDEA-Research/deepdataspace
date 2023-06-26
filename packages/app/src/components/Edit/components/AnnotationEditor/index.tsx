@@ -1,7 +1,6 @@
 import { CloseOutlined } from '@ant-design/icons';
 import { Button, Card, Select } from 'antd';
 import classNames from 'classnames';
-import { IAnnotationObject } from '../..';
 import styles from './index.less';
 import { FloatWrapper } from '@/components/FloatWrapper';
 import { useEffect, useState } from 'react';
@@ -10,6 +9,7 @@ import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from '@/locales/helper';
 import CategoryCreator from '../CategoryCreator';
 import { DATA } from '@/services/type';
+import { IAnnotationObject } from '../../type';
 
 interface IProps {
   hideTitle: boolean;

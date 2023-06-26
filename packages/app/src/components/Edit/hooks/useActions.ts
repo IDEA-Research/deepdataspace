@@ -7,7 +7,6 @@ import {
   translatePointsToPointObjs,
 } from '@/utils/compute';
 import { message, Modal } from 'antd';
-import { DrawData, EditImageData, IAnnotationObject } from '..';
 import { Updater } from 'use-immer';
 import { DATA, EnumModelType } from '@/services/type';
 import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
@@ -19,6 +18,7 @@ import {
 } from '@/utils/annotation';
 import { useLocale } from '@/locales/helper';
 import { useModel } from '@umijs/max';
+import { DrawData, EditImageData, IAnnotationObject } from '../type';
 
 interface IProps {
   list: EditImageData[];

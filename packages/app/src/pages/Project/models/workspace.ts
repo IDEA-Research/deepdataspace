@@ -11,7 +11,7 @@ import {
 import { EQaAction, ETaskImageStatus } from '../constants';
 import { useMemo } from 'react';
 import { message } from 'antd';
-import { EditorMode } from '@/components/Edit';
+import { EditorMode } from '@/components/Edit/type';
 import { useModel } from '@umijs/max';
 import { EProjectRole } from './auth';
 import { getUrlQueryVal } from '@/utils/url';

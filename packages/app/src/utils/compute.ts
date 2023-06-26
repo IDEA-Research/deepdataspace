@@ -1,5 +1,5 @@
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
-import { IAnnotationObject } from '@/components/Edit';
+import { IAnnotationObject } from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
 import {

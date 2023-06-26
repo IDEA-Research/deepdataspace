@@ -12,7 +12,6 @@ import {
   EBasicToolItem,
   KEYPOINTS_VISIBLE_TYPE,
   LABELS_STROKE_DASH,
-  EToolType,
   BODY_TEMPLATE,
   ESubToolItem,
 } from '@/constants';
@@ -36,7 +35,6 @@ import {
   judgeFocusOnElement,
   mapRectToAnchors,
   moveRect,
-  RectAnchor,
   resizeRect,
   setRectBetweenPixels,
   translatePointZoom,
@@ -90,94 +88,15 @@ import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
 import { objectToRle, renderMask, rleToImage } from './tools/mask';
-
-export interface IAnnotationObject {
-  type: EObjectType;
-  label: string;
-  hidden: boolean;
-  rect?: IElement<IRect>;
-  polygon?: IElement<IPolygonGroup>;
-  keypoints?: {
-    points: IElement<IPoint>[];
-    lines: number[];
-  };
-  maskRle?: number[];
-  maskImage?: any;
-  conf?: number;
-}
-
-export interface ICreatingMaskStep {
-  tool: ESubToolItem;
-  /** Add / Erase an area for Mask */
-  positive: boolean;
-  /** The points stroked by Pen Tool or Brush Tool */
-  points: IPoint[];
-  radius: number;
-}
-
-export interface ICreatingObject extends IAnnotationObject {
-  /** To determine Which polygon corresponds to the creation of a new polygon */
-  currIndex?: number;
-  /** Starting stretching point when creating a new Rect/Skeleton object */
-  startPoint?: IPoint;
-  /** Currently drawing path creating by Pen Tool or Brush Tool */
-  maskStep?: ICreatingMaskStep;
-  /** Steps for creating mask object */
-  tempMaskSteps?: ICreatingMaskStep[];
-  /** editing mask image */
-  basicMaskImage?: any;
-}
-
-/**
- * Need to be saved in history
- */
-export interface DrawData {
-  initialized: boolean;
-
-  /** Selected tool */
-  selectedTool: EToolType;
-  selectedSubTool: ESubToolItem;
-  AIAnnotation: boolean;
-
-  /** drawed */
-  objectList: IAnnotationObject[];
-  activeClassName: string;
-  activeObjectIndex: number;
-  creatingObject?: ICreatingObject;
-  segmentationClicks?: {
-    point: IPoint;
-    isPositive: boolean;
-  }[];
-  segmentationMask?: string;
-  brushSize: number;
-}
-
-export interface EditState {
-  latestLabel: string;
-  startRectResizeAnchor?: RectAnchor;
-  startElementMovePoint?: {
-    topLeftPoint: IPoint;
-    mousePoint: IPoint;
-    initPoint?: IPoint;
-  };
-  focusObjectIndex: number;
-  focusEleType: EElementType;
-  focusEleIndex: number;
-  focusPolygonInfo: {
-    index: number;
-    pointIndex: number;
-    lineIndex: number;
-  };
-}
-
-export const enum EditorMode {
-  View,
-  Edit,
-  Review,
-}
-export interface EditImageData extends DATA.BaseImage {
-  objects: DATA.BaseObject[];
-}
+import {
+  DEFAULT_DRAW_DATA,
+  DEFAULT_EDIT_STATE,
+  DrawData,
+  EditImageData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+} from './type';
 
 export interface EditProps {
   isSeperate: boolean;
@@ -203,38 +122,6 @@ export interface EditProps {
   onNext?: () => Promise<void>;
   setCategories?: Updater<DATA.Category[]>;
 }
-
-const DEFAULT_DRAW_DATA: DrawData = {
-  initialized: false,
-
-  /** Selected tool */
-  selectedTool: EBasicToolItem.Drag,
-  selectedSubTool: ESubToolItem.PenAdd,
-  AIAnnotation: false,
-
-  /** drawed */
-  objectList: [],
-  activeObjectIndex: -1,
-  activeClassName: '',
-  creatingObject: undefined,
-  segmentationClicks: undefined,
-  segmentationMask: undefined,
-  brushSize: 20,
-};
-
-const DEFAULT_EDIT_STATE: EditState = {
-  latestLabel: '',
-  startRectResizeAnchor: undefined,
-  startElementMovePoint: undefined,
-  focusObjectIndex: -1,
-  focusEleType: EElementType.Rect,
-  focusEleIndex: -1,
-  focusPolygonInfo: {
-    index: -1,
-    pointIndex: -1,
-    lineIndex: -1,
-  },
-};
 
 const Edit: React.FC<EditProps> = (props) => {
   const {
@@ -2055,7 +1942,11 @@ const Edit: React.FC<EditProps> = (props) => {
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {
-    setDrawData(cloneDeep(DEFAULT_DRAW_DATA));
+    setDrawData({
+      ...cloneDeep(DEFAULT_DRAW_DATA),
+      brushSize: drawData.brushSize,
+      selectedTool: drawData.selectedTool,
+    });
     setEditState(cloneDeep(DEFAULT_EDIT_STATE));
     clearHistory();
     if (visible) {

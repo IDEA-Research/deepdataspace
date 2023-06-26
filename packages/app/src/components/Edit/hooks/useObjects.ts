@@ -8,7 +8,7 @@ import {
   translatePointsToPointObjs,
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
-import { DrawData, EditState, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
 import { rleToImage } from '../tools/mask';
 
 interface IProps {

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { DraftFunction, Updater, useImmer } from 'use-immer';
-import { DrawData } from '..';
 import { cloneDeep } from 'lodash';
+import { DrawData } from '../type';
 
 export interface HistoryItem {
   drawData: DrawData;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Updater } from 'use-immer';
 import { getCategoryColors } from '@/utils/color';
 import { DATA } from '@/services/type';
-import { DrawData, EditState, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
 import { changeMaskImageColor } from '../tools/mask';
