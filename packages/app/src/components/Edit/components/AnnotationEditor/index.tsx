@@ -1,7 +1,7 @@
 import { CloseOutlined } from '@ant-design/icons';
 import { Button, Card, Select } from 'antd';
 import classNames from 'classnames';
-import { DrawData, IAnnotationObject } from '../..';
+import { IAnnotationObject } from '../..';
 import styles from './index.less';
 import { FloatWrapper } from '@/components/FloatWrapper';
 import { useEffect, useState } from 'react';
@@ -14,7 +14,7 @@ import { DATA } from '@/services/type';
 interface IProps {
   hideTitle: boolean;
   allowAddCategory: boolean;
-  drawData: DrawData;
+  latestLabel: string;
   categories: DATA.Category[];
   currEditObject: IAnnotationObject | undefined;
   onCreateCategory: (name: string) => void;
@@ -26,7 +26,7 @@ interface IProps {
 const AnnotationEditor: React.FC<IProps> = ({
   hideTitle,
   allowAddCategory,
-  drawData,
+  latestLabel,
   categories,
   currEditObject,
   onCreateCategory,
@@ -36,11 +36,11 @@ const AnnotationEditor: React.FC<IProps> = ({
 }) => {
   const { localeText } = useLocale();
 
-  const defaultObjectLabel = currEditObject?.label || drawData.latestLabel;
+  const defaultObjectLabel = currEditObject?.label || latestLabel;
   const [objLabel, setObjLabel] = useState(defaultObjectLabel);
 
   useEffect(() => {
-    setObjLabel(currEditObject?.label || drawData.latestLabel);
+    setObjLabel(currEditObject?.label || latestLabel);
   }, [currEditObject]);
 
   useKeyPress(

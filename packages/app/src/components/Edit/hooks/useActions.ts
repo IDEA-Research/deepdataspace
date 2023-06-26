@@ -31,6 +31,8 @@ interface IProps {
   onCancel?: () => void;
   onSave?: (imageId: string, annotations: DATA.BaseObject[]) => Promise<void>;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
+  hadChangeRecord: boolean;
+  latestLabel: string;
 }
 
 const useActions = ({
@@ -44,6 +46,8 @@ const useActions = ({
   onCancel,
   onSave,
   updateAllObject,
+  hadChangeRecord,
+  latestLabel,
 }: IProps) => {
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
@@ -194,7 +198,7 @@ const useActions = ({
           const creatingObj = {
             type: EObjectType.Polygon,
             hidden: false,
-            label: drawData.latestLabel,
+            label: latestLabel,
             currIndex: -1,
             polygon: {
               visible: true,
@@ -410,9 +414,9 @@ const useActions = ({
     setIsRequiring(false);
   };
 
-  const onCancelAnnotations = (drawData: DrawData) => {
+  const onCancelAnnotations = () => {
     if (list[current]) {
-      if (drawData.changed) {
+      if (hadChangeRecord) {
         Modal.confirm({
           content: localeText('editor.confirmLeave.content'),
           cancelText: localeText('editor.confirmLeave.cancel'),

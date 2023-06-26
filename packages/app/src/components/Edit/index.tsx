@@ -56,6 +56,7 @@ import {
   translatePointCoord,
   translateRectCoord,
   Direction,
+  translateObjectsToAnnotations,
 } from '@/utils/compute';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
@@ -80,8 +81,7 @@ import {
   ANNO_STROKE_ALPHA,
   ANNO_STROKE_COLOR,
 } from './constants/render';
-import useAnnotations from './hooks/useAnnotations';
-import useHistory from './hooks/useHistory';
+import useHistory, { HistoryItem } from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
 import { cloneDeep } from 'lodash';
 import { Modal } from 'antd';
@@ -128,30 +128,21 @@ export interface ICreatingObject extends IAnnotationObject {
   basicMaskImage?: any;
 }
 
+/**
+ * Need to be saved in history
+ */
 export interface DrawData {
+  initialized: boolean;
+
+  /** Selected tool */
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
   AIAnnotation: boolean;
-  initialized: boolean;
-  changed: boolean;
+
+  /** drawed */
   objectList: IAnnotationObject[];
-  startRectResizeAnchor?: RectAnchor;
-  startElementMovePoint?: {
-    topLeftPoint: IPoint;
-    mousePoint: IPoint;
-    initPoint?: IPoint;
-  };
   activeClassName: string;
   activeObjectIndex: number;
-  focusObjectIndex: number;
-  focusEleType: EElementType;
-  focusEleIndex: number;
-  latestLabel: string;
-  focusPolygonInfo: {
-    index: number;
-    pointIndex: number;
-    lineIndex: number;
-  };
   creatingObject?: ICreatingObject;
   segmentationClicks?: {
     point: IPoint;
@@ -159,6 +150,24 @@ export interface DrawData {
   }[];
   segmentationMask?: string;
   brushSize: number;
+}
+
+export interface EditState {
+  latestLabel: string;
+  startRectResizeAnchor?: RectAnchor;
+  startElementMovePoint?: {
+    topLeftPoint: IPoint;
+    mousePoint: IPoint;
+    initPoint?: IPoint;
+  };
+  focusObjectIndex: number;
+  focusEleType: EElementType;
+  focusEleIndex: number;
+  focusPolygonInfo: {
+    index: number;
+    pointIndex: number;
+    lineIndex: number;
+  };
 }
 
 export const enum EditorMode {
@@ -169,7 +178,8 @@ export const enum EditorMode {
 export interface EditImageData extends DATA.BaseImage {
   objects: DATA.BaseObject[];
 }
-export interface PreviewProps {
+
+export interface EditProps {
   isSeperate: boolean;
   visible: boolean;
   mode: EditorMode;
@@ -194,7 +204,39 @@ export interface PreviewProps {
   setCategories?: Updater<DATA.Category[]>;
 }
 
-const Edit: React.FC<PreviewProps> = (props) => {
+const DEFAULT_DRAW_DATA: DrawData = {
+  initialized: false,
+
+  /** Selected tool */
+  selectedTool: EBasicToolItem.Drag,
+  selectedSubTool: ESubToolItem.PenAdd,
+  AIAnnotation: false,
+
+  /** drawed */
+  objectList: [],
+  activeObjectIndex: -1,
+  activeClassName: '',
+  creatingObject: undefined,
+  segmentationClicks: undefined,
+  segmentationMask: undefined,
+  brushSize: 20,
+};
+
+const DEFAULT_EDIT_STATE: EditState = {
+  latestLabel: '',
+  startRectResizeAnchor: undefined,
+  startElementMovePoint: undefined,
+  focusObjectIndex: -1,
+  focusEleType: EElementType.Rect,
+  focusEleIndex: -1,
+  focusPolygonInfo: {
+    index: -1,
+    pointIndex: -1,
+    lineIndex: -1,
+  },
+};
+
+const Edit: React.FC<EditProps> = (props) => {
   const {
     isSeperate,
     visible,
@@ -221,27 +263,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   const [annotations, setAnnotations] = useImmer<DATA.BaseObject[]>([]);
 
-  const [drawData, setDrawData] = useImmer<DrawData>({
-    initialized: false,
-    changed: false,
-    objectList: [],
-    selectedTool: EBasicToolItem.Drag,
-    selectedSubTool: ESubToolItem.PenAdd,
-    AIAnnotation: false,
-    focusObjectIndex: -1,
-    activeObjectIndex: -1,
-    focusEleType: EElementType.Rect,
-    focusEleIndex: -1,
-    latestLabel: '',
-    focusPolygonInfo: {
-      index: -1,
-      pointIndex: -1,
-      lineIndex: -1,
-    },
-    creatingObject: undefined,
-    activeClassName: '',
-    brushSize: 20,
-  });
+  const [editState, setEditState] = useImmer<EditState>(
+    cloneDeep(DEFAULT_EDIT_STATE),
+  );
+
+  const [drawData, setDrawData] = useImmer<DrawData>(
+    cloneDeep(DEFAULT_DRAW_DATA),
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -296,22 +324,21 @@ const Edit: React.FC<PreviewProps> = (props) => {
   const [preClientSize, clearPreClientSize] =
     usePreviousState<ISize>(clientSize);
 
-  const { undo, redo, updateHistory, clearHistory } = useHistory(annotations);
+  const autoSave = (item: HistoryItem) => {
+    const annotations = translateObjectsToAnnotations(
+      item.drawData.objectList,
+      naturalSize,
+      item.clientSize,
+    );
+    onAutoSave?.(annotations);
+  };
 
-  const {
-    addAnnotation,
-    removeAnnotation,
-    updateAnnotation,
-    updateAllAnnotation,
-  } = useAnnotations({
-    annotations,
-    setAnnotations,
-    clientSize,
-    naturalSize,
-    mode,
-    updateHistory,
-    onAutoSave,
-  });
+  const { undo, redo, clearHistory, hadChangeRecord, setDrawDataWithHistory } =
+    useHistory({
+      clientSize,
+      setDrawData,
+      onAutoSave: autoSave,
+    });
 
   const {
     addObject,
@@ -325,12 +352,9 @@ const Edit: React.FC<PreviewProps> = (props) => {
     clientSize,
     naturalSize,
     drawData,
-    setDrawData,
+    setDrawDataWithHistory,
+    setEditState,
     mode,
-    addAnnotation,
-    removeAnnotation,
-    updateAnnotation,
-    updateAllAnnotation,
   });
 
   const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
@@ -345,6 +369,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
       onCancel,
       onSave,
       updateAllObject,
+      hadChangeRecord,
+      latestLabel: '',
     },
   );
 
@@ -366,34 +392,10 @@ const Edit: React.FC<PreviewProps> = (props) => {
     setCategories,
     drawData,
     setDrawData,
+    editState,
+    setEditState,
     updateObject,
   });
-
-  const onRedo = () => {
-    const record = redo();
-    if (record) {
-      setAnnotations(record);
-      initObjectList(record, labelColors);
-      setDrawData((s) => {
-        if (!s.objectList[s.activeObjectIndex]) {
-          s.activeObjectIndex = -1;
-        }
-      });
-    }
-  };
-
-  const onUndo = () => {
-    const record = undo();
-    if (record) {
-      setAnnotations(record);
-      initObjectList(record, labelColors);
-      setDrawData((s) => {
-        if (!s.objectList[s.activeObjectIndex]) {
-          s.activeObjectIndex = -1;
-        }
-      });
-    }
-  };
 
   /** =================================================================================================================
   /** States related to hovering and selection
@@ -401,10 +403,10 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   const hoverAnyObject = useMemo(() => {
     return (
-      drawData.focusObjectIndex > -1 &&
-      drawData.objectList[drawData.focusObjectIndex]
+      editState.focusObjectIndex > -1 &&
+      drawData.objectList[editState.focusObjectIndex]
     );
-  }, [drawData.objectList, drawData.focusObjectIndex]);
+  }, [drawData.objectList, editState.focusObjectIndex]);
 
   const selectedAnyObject = useMemo(() => {
     return (
@@ -415,17 +417,17 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   const hoverSelectedObject = useMemo(() => {
     return (
-      drawData.focusObjectIndex > -1 &&
-      drawData.focusObjectIndex === drawData.activeObjectIndex
+      editState.focusObjectIndex > -1 &&
+      editState.focusObjectIndex === drawData.activeObjectIndex
     );
-  }, [drawData.activeObjectIndex, drawData.focusObjectIndex]);
+  }, [drawData.activeObjectIndex, editState.focusObjectIndex]);
 
   const updateFocusObjectWhenHover = () => {
     const focusObjectIndex = judgeFocusOnObject(
       contentMouse,
       drawData.objectList,
     );
-    setDrawData((s) => {
+    setEditState((s) => {
       s.focusObjectIndex = focusObjectIndex;
     });
   };
@@ -435,13 +437,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
       contentMouse,
       object,
     );
-    setDrawData((s) => {
+    setEditState((s) => {
       s.focusEleIndex = focusEleIndex;
       s.focusEleType = focusEleType;
     });
   };
 
-  const setCurrSelectedObject = (index = drawData.focusObjectIndex) => {
+  const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
     setDrawData((s) => {
       s.activeObjectIndex = index;
     });
@@ -449,20 +451,20 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   const renderPopoverMenu = () => {
     if (
-      drawData.focusObjectIndex > -1 &&
-      drawData.objectList[drawData.focusObjectIndex] &&
-      !drawData.objectList[drawData.focusObjectIndex].hidden &&
-      drawData.focusEleIndex > -1 &&
-      drawData.focusEleType === EElementType.Circle
+      editState.focusObjectIndex > -1 &&
+      drawData.objectList[editState.focusObjectIndex] &&
+      !drawData.objectList[editState.focusObjectIndex].hidden &&
+      editState.focusEleIndex > -1 &&
+      editState.focusEleType === EElementType.Circle
     ) {
       const target =
-        drawData.objectList[drawData.focusObjectIndex].keypoints?.points?.[
-          drawData.focusEleIndex
+        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
+          editState.focusEleIndex
         ];
       if (target) {
         return (
           <PopoverMenu
-            index={drawData.focusEleIndex}
+            index={editState.focusEleIndex}
             targetElement={target!}
             imagePos={imagePos.current}
           />
@@ -696,7 +698,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       if (obj.hidden) return;
 
       const isActive = drawData.activeObjectIndex === index;
-      const isFocus = drawData.focusObjectIndex === index;
+      const isFocus = editState.focusObjectIndex === index;
 
       let fillAlpha = ANNO_FILL_ALPHA.DEFAULT;
       let strokeAlpha = ANNO_STROKE_ALPHA.DEFAULT;
@@ -842,11 +844,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
         // draw hightlight circle
         if (
           isFocus &&
-          drawData.focusEleType === EElementType.Circle &&
-          keypoints.points[drawData.focusEleIndex]
+          editState.focusEleType === EElementType.Circle &&
+          keypoints.points[editState.focusEleIndex]
         ) {
           const { x, y, visible, color } =
-            keypoints.points[drawData.focusEleIndex];
+            keypoints.points[editState.focusEleIndex];
           if (visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible) {
             drawCircleWithFill(
               canvasRef.current!,
@@ -864,8 +866,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
       if (polygon && polygon.visible) {
         const isFocusOnPolygon =
           isFocus &&
-          drawData.focusEleType === EElementType.Polygon &&
-          drawData.focusEleIndex === 0;
+          editState.focusEleType === EElementType.Polygon &&
+          editState.focusEleIndex === 0;
         const labelColor = labelColors[label] || '#fff';
         const innerPolygonIdx = getInnerPolygonIndexFromGroup(polygon.group);
 
@@ -916,7 +918,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         }
 
         // drawHighlight point when foucs
-        const { index, pointIndex, lineIndex } = drawData.focusPolygonInfo;
+        const { index, pointIndex, lineIndex } = editState.focusPolygonInfo;
         if (isActive && index > -1 && pointIndex > -1) {
           const focusPoint = polygon.group[index][pointIndex];
           if (focusPoint) {
@@ -956,7 +958,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
         ctx.globalAlpha = 0.35;
         if (theDrawData.creatingObject) {
           ctx.globalAlpha = 0.2;
-        } else if (theDrawData.focusObjectIndex === index) {
+        } else if (editState.focusObjectIndex === index) {
           ctx.globalAlpha = 0.8;
         }
         drawImage(canvasRef.current!, maskImage, {
@@ -1023,7 +1025,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
   );
 
   const updateMouseWhenHoverObject = () => {
-    if (drawData.focusObjectIndex > -1) {
+    if (editState.focusObjectIndex > -1) {
       updateMouseCursor('pointer');
     } else {
       updateMouseCursor('grab');
@@ -1090,7 +1092,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       s.activeObjectIndex = -1;
       const basic = {
         hidden: false,
-        label: drawData.latestLabel || categories[0].name,
+        label: editState.latestLabel || categories[0].name,
       };
       switch (s.selectedTool) {
         case EBasicToolItem.Polygon: {
@@ -1406,7 +1408,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
       case EBasicToolItem.Mask: {
         if (drawData.creatingObject) {
-          setDrawData((s) => {
+          setDrawDataWithHistory((s) => {
             if (
               s.creatingObject &&
               s.creatingObject.tempMaskSteps &&
@@ -1448,12 +1450,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
         drawData.objectList[focusObjIndex],
       );
       setDrawData((s) => {
-        s.focusEleType = focusEleType;
-        s.focusEleIndex = focusEleIndex;
         s.activeObjectIndex = focusObjIndex;
+      });
+      setEditState((s) => {
         switch (focusEleType) {
           case EElementType.Rect: {
-            const { rect } = s.objectList[focusObjIndex];
+            const { rect } = drawData.objectList[focusObjIndex];
             if (rect) {
               const anchorUnderMouse = getAnchorUnderMouseByRect(rect, {
                 x: contentMouse.elementX,
@@ -1483,7 +1485,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
           }
           case EElementType.Circle: {
             // move circle
-            const { keypoints } = s.objectList[focusObjIndex];
+            const { keypoints } = drawData.objectList[focusObjIndex];
             if (keypoints) {
               const point = keypoints.points[focusEleIndex];
               s.startElementMovePoint = {
@@ -1500,8 +1502,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
             break;
           }
           case EElementType.Polygon: {
-            const { polygon } = s.objectList[focusObjIndex];
-            const { lineIndex, index } = drawData.focusPolygonInfo;
+            const { polygon } = drawData.objectList[focusObjIndex];
+            const { lineIndex, index } = s.focusPolygonInfo;
             if (polygon) {
               // move
               s.startElementMovePoint = {
@@ -1542,22 +1544,22 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   const updateEditingWhenMouseMove = () => {
     let exit = true;
-    const { focusEleIndex, focusEleType } = drawData;
+    const { focusEleIndex, focusEleType, startRectResizeAnchor } = editState;
     if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
       // resize rectangle
-      if (drawData.startRectResizeAnchor) {
-        updateMouseCursor('resize', drawData.startRectResizeAnchor.type);
+      if (startRectResizeAnchor) {
+        updateMouseCursor('resize', startRectResizeAnchor.type);
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
-            s.startRectResizeAnchor &&
+            editState.startRectResizeAnchor &&
             activeObject &&
             activeObject.rect
           ) {
             const newRect = resizeRect(
               activeObject.rect,
-              s.startRectResizeAnchor,
+              editState.startRectResizeAnchor,
               contentMouse,
             );
             activeObject.rect = { ...activeObject.rect, ...newRect };
@@ -1566,19 +1568,19 @@ const Edit: React.FC<PreviewProps> = (props) => {
         return exit;
       }
       // move rectangle
-      if (drawData.startElementMovePoint) {
+      if (editState.startElementMovePoint) {
         updateMouseCursor('move');
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
-            s.startElementMovePoint &&
+            editState.startElementMovePoint &&
             activeObject &&
             activeObject.rect
           ) {
             const newRect = moveRect(
               activeObject.rect,
-              s.startElementMovePoint,
+              editState.startElementMovePoint,
               contentMouse,
             );
             activeObject.rect = { ...activeObject.rect, ...newRect };
@@ -1588,17 +1590,18 @@ const Edit: React.FC<PreviewProps> = (props) => {
       }
     } else if (focusEleType === EElementType.Circle) {
       // move point
-      if (drawData.startElementMovePoint) {
+      if (editState.startElementMovePoint) {
         updateMouseCursor('move');
         setDrawData((s) => {
           const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
-            s.focusEleIndex > -1 &&
-            s.startElementMovePoint &&
-            activeObject?.keypoints?.points?.[s.focusEleIndex]
+            editState.focusEleIndex > -1 &&
+            editState.startElementMovePoint &&
+            activeObject?.keypoints?.points?.[editState.focusEleIndex]
           ) {
-            const point = activeObject?.keypoints?.points?.[s.focusEleIndex];
+            const point =
+              activeObject?.keypoints?.points?.[editState.focusEleIndex];
             const { x: newX, y: newY } = movePoint(contentMouse);
             point.x = newX;
             point.y = newY;
@@ -1607,8 +1610,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
         return exit;
       }
     } else if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
-      const { index, pointIndex } = drawData.focusPolygonInfo;
-      if (drawData.startElementMovePoint && index > -1) {
+      const { index, pointIndex } = editState.focusPolygonInfo;
+      if (editState.startElementMovePoint && index > -1) {
         updateMouseCursor('move');
         if (pointIndex > -1) {
           // move single point
@@ -1616,8 +1619,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
             const activeObject = s.objectList[s.activeObjectIndex];
             if (
               s.activeObjectIndex > -1 &&
-              s.focusEleIndex > -1 &&
-              s.startElementMovePoint &&
+              editState.focusEleIndex > -1 &&
+              editState.startElementMovePoint &&
               activeObject?.polygon?.group[index]
             ) {
               const polygon = activeObject?.polygon?.group[index];
@@ -1631,23 +1634,27 @@ const Edit: React.FC<PreviewProps> = (props) => {
             const activeObject = s.objectList[s.activeObjectIndex];
             if (
               s.activeObjectIndex > -1 &&
-              s.focusEleIndex > -1 &&
-              s.startElementMovePoint &&
+              editState.focusEleIndex > -1 &&
+              editState.startElementMovePoint &&
               activeObject?.polygon?.group[index]
             ) {
               const polygon = activeObject?.polygon?.group[index];
               const newPolygon = movePolygon(
                 polygon,
-                s.startElementMovePoint,
+                editState.startElementMovePoint,
                 contentMouse,
               );
-              s.startElementMovePoint.mousePoint = {
-                x: contentMouse.elementX,
-                y: contentMouse.elementY,
-              };
               activeObject.polygon.group[index] = newPolygon;
+              setEditState((s) => {
+                if (s.startElementMovePoint)
+                  s.startElementMovePoint.mousePoint = {
+                    x: contentMouse.elementX,
+                    y: contentMouse.elementY,
+                  };
+              });
             }
           });
+
           return exit;
         }
       }
@@ -1662,46 +1669,46 @@ const Edit: React.FC<PreviewProps> = (props) => {
     };
 
     const isResizingOrMoving =
-      drawData.startRectResizeAnchor || drawData.startElementMovePoint;
+      editState.startRectResizeAnchor || editState.startElementMovePoint;
 
     const isMouseStand =
-      drawData.startElementMovePoint &&
-      drawData.startElementMovePoint.initPoint?.x === mouse.x &&
-      drawData.startElementMovePoint.initPoint?.y === mouse.y;
+      editState.startElementMovePoint &&
+      editState.startElementMovePoint.initPoint?.x === mouse.x &&
+      editState.startElementMovePoint.initPoint?.y === mouse.y;
 
     const isRemovePolygonPoints =
       !drawData.creatingObject &&
       isMouseStand &&
-      drawData.focusPolygonInfo.index > -1 &&
-      drawData.focusPolygonInfo.pointIndex > -1;
+      editState.focusPolygonInfo.index > -1 &&
+      editState.focusPolygonInfo.pointIndex > -1;
 
     if (
       drawData.AIAnnotation &&
       drawData.selectedTool === EBasicToolItem.Skeleton
     ) {
       if (
-        drawData.startElementMovePoint &&
-        (drawData.startElementMovePoint.mousePoint?.x !== mouse.x ||
-          drawData.startElementMovePoint.mousePoint?.y !== mouse.y)
+        editState.startElementMovePoint &&
+        (editState.startElementMovePoint.mousePoint?.x !== mouse.x ||
+          editState.startElementMovePoint.mousePoint?.y !== mouse.y)
       ) {
         onAiAnnotation(drawData, aiLabels);
       }
     }
 
     if (isRemovePolygonPoints) {
-      const object = drawData.objectList[drawData.focusObjectIndex];
+      const object = drawData.objectList[editState.focusObjectIndex];
       const copyObject = cloneDeep(object);
-      const { index, pointIndex } = drawData.focusPolygonInfo;
+      const { index, pointIndex } = editState.focusPolygonInfo;
       const polygon = copyObject.polygon?.group[index];
       if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
         polygon.splice(pointIndex, 1);
       }
-      updateObject(copyObject, drawData.focusObjectIndex);
+      updateObject(copyObject, editState.focusObjectIndex);
     } else if (isResizingOrMoving) {
       updateAllObject(drawData.objectList);
     }
 
-    setDrawData((s) => {
+    setEditState((s) => {
       s.startRectResizeAnchor = undefined;
       s.startElementMovePoint = undefined;
     });
@@ -1855,13 +1862,13 @@ const Edit: React.FC<PreviewProps> = (props) => {
             object.polygon,
             contentMouse,
           );
-          setDrawData((s) => {
+          setEditState((s) => {
             s.focusPolygonInfo = hoverDetail;
           });
         }
 
         /** Update mouse based on current hover coordinates and element type */
-        updateMouseWhenHoverElement(drawData.focusEleType);
+        updateMouseWhenHoverElement(editState.focusEleType);
       } else {
         /** Different instances for hovered and selected */
         if (isDragToolActive || isAIPoseEstimation) {
@@ -1912,7 +1919,109 @@ const Edit: React.FC<PreviewProps> = (props) => {
   /** Update canvas while data changing */
   useEffect(() => {
     updateRender();
-  }, [drawData]);
+  }, [drawData, editState]);
+
+  /**
+   * Scale draw data
+   * @param preSize
+   * @param curSize
+   */
+  const scaleDrawData = (
+    theDrawData: DrawData,
+    preSize: ISize,
+    curSize: ISize,
+  ) => {
+    const updateDrawData = { ...theDrawData };
+    updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
+      const newObj = { ...obj };
+
+      if (newObj.rect) {
+        const newRect = translateRectZoom(newObj.rect, preSize, curSize);
+        newObj.rect = { ...newObj.rect, ...newRect };
+      }
+      if (newObj.keypoints) {
+        const { points, lines } = newObj.keypoints;
+        const newPoints = points.map((point) => {
+          const newPoint = translatePointZoom(point, preSize, curSize);
+          return { ...point, ...newPoint };
+        });
+        newObj.keypoints = { points: newPoints, lines };
+      }
+      if (newObj.polygon) {
+        const newGroups = newObj.polygon.group.map((polygon) => {
+          return polygon.map((point) => {
+            return translatePointZoom(point, preSize, curSize);
+          });
+        });
+        newObj.polygon = { ...newObj.polygon, group: newGroups };
+      }
+      return newObj;
+    });
+
+    if (updateDrawData.creatingObject && preSize) {
+      if (updateDrawData.creatingObject.polygon) {
+        const newGroups = updateDrawData.creatingObject.polygon.group.map(
+          (polygon) => {
+            return polygon.map((point) => {
+              return translatePointZoom(point, preSize, curSize);
+            });
+          },
+        );
+        updateDrawData.creatingObject = {
+          ...updateDrawData.creatingObject,
+          polygon: { visible: true, group: newGroups },
+        };
+      }
+      if (updateDrawData.creatingObject.maskStep) {
+        const newPoints = updateDrawData.creatingObject.maskStep.points.map(
+          (point) => {
+            return translatePointZoom(point, preSize, curSize);
+          },
+        );
+        updateDrawData.creatingObject = {
+          ...updateDrawData.creatingObject,
+          maskStep: {
+            ...updateDrawData.creatingObject.maskStep,
+            points: newPoints,
+          },
+        };
+      }
+      if (updateDrawData.creatingObject.tempMaskSteps) {
+        const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
+          (step) => {
+            return {
+              ...step,
+              points: step.points.map((point) =>
+                translatePointZoom(point, preSize, curSize),
+              ),
+            };
+          },
+        );
+        updateDrawData.creatingObject = {
+          ...updateDrawData.creatingObject,
+          tempMaskSteps: newSteps,
+        };
+      }
+    }
+
+    if (updateDrawData.segmentationClicks) {
+      updateDrawData.segmentationClicks = updateDrawData.segmentationClicks.map(
+        (click) => {
+          if (click.point) {
+            const newPoint = translatePointZoom(click.point, preSize, curSize);
+            return {
+              ...click,
+              point: newPoint,
+            };
+          }
+          return click;
+        },
+      );
+    }
+
+    setDrawData(updateDrawData);
+    updateRender(updateDrawData);
+  };
 
   /**
    * Rebuilds the draw data for the annotation tool.
@@ -1927,111 +2036,10 @@ const Edit: React.FC<PreviewProps> = (props) => {
       setDrawData((s) => {
         s.initialized = true;
       });
-    } else {
-      // Non-initialization
-      const updateDrawData = { ...drawData };
-      updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
-        const newObj = { ...obj };
-        if (!preClientSize) return newObj;
-
-        if (newObj.rect) {
-          const newRect = translateRectZoom(
-            newObj.rect,
-            preClientSize,
-            clientSize,
-          );
-          newObj.rect = { ...newObj.rect, ...newRect };
-        }
-        if (newObj.keypoints) {
-          const { points, lines } = newObj.keypoints;
-          const newPoints = points.map((point) => {
-            const newPoint = translatePointZoom(
-              point,
-              preClientSize,
-              clientSize,
-            );
-            return { ...point, ...newPoint };
-          });
-          newObj.keypoints = { points: newPoints, lines };
-        }
-        if (newObj.polygon) {
-          const newGroups = newObj.polygon.group.map((polygon) => {
-            return polygon.map((point) => {
-              return translatePointZoom(point, preClientSize, clientSize);
-            });
-          });
-          newObj.polygon = { ...newObj.polygon, group: newGroups };
-        }
-        return newObj;
-      });
-
-      if (updateDrawData.creatingObject && preClientSize) {
-        if (updateDrawData.creatingObject.polygon) {
-          const newGroups = updateDrawData.creatingObject.polygon.group.map(
-            (polygon) => {
-              return polygon.map((point) => {
-                return translatePointZoom(point, preClientSize, clientSize);
-              });
-            },
-          );
-          updateDrawData.creatingObject = {
-            ...updateDrawData.creatingObject,
-            polygon: { visible: true, group: newGroups },
-          };
-        }
-        if (updateDrawData.creatingObject.maskStep) {
-          const newPoints = updateDrawData.creatingObject.maskStep.points.map(
-            (point) => {
-              return translatePointZoom(point, preClientSize, clientSize);
-            },
-          );
-          updateDrawData.creatingObject = {
-            ...updateDrawData.creatingObject,
-            maskStep: {
-              ...updateDrawData.creatingObject.maskStep,
-              points: newPoints,
-            },
-          };
-        }
-        if (updateDrawData.creatingObject.tempMaskSteps) {
-          const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
-            (step) => {
-              return {
-                ...step,
-                points: step.points.map((point) =>
-                  translatePointZoom(point, preClientSize, clientSize),
-                ),
-              };
-            },
-          );
-          updateDrawData.creatingObject = {
-            ...updateDrawData.creatingObject,
-            tempMaskSteps: newSteps,
-          };
-        }
-      }
-
-      if (updateDrawData.segmentationClicks && preClientSize) {
-        updateDrawData.segmentationClicks =
-          updateDrawData.segmentationClicks.map((click) => {
-            if (click.point) {
-              const newPoint = translatePointZoom(
-                click.point,
-                preClientSize,
-                clientSize,
-              );
-              return {
-                ...click,
-                point: newPoint,
-              };
-            }
-            return click;
-          });
-      }
-
+    } else if (preClientSize) {
+      // scale change
+      scaleDrawData(drawData, preClientSize, clientSize);
       clearPreClientSize();
-      setDrawData(updateDrawData);
-      updateRender(updateDrawData);
     }
   };
 
@@ -2047,26 +2055,8 @@ const Edit: React.FC<PreviewProps> = (props) => {
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {
-    setDrawData((s) => {
-      s.initialized = false;
-      s.changed = false;
-      s.objectList = [];
-      s.activeObjectIndex = -1;
-      s.focusObjectIndex = -1;
-      s.focusEleIndex = -1;
-      s.focusEleType = EElementType.Rect;
-      s.focusPolygonInfo = {
-        index: -1,
-        pointIndex: -1,
-        lineIndex: -1,
-      };
-      s.creatingObject = undefined;
-      s.segmentationClicks = undefined;
-      s.segmentationMask = undefined;
-      s.selectedTool = EBasicToolItem.Drag;
-      s.activeClassName = '';
-      s.latestLabel = '';
-    });
+    setDrawData(cloneDeep(DEFAULT_DRAW_DATA));
+    setEditState(cloneDeep(DEFAULT_EDIT_STATE));
     clearHistory();
     if (visible) {
       const annotations = list[current]?.objects || [];
@@ -2085,10 +2075,23 @@ const Edit: React.FC<PreviewProps> = (props) => {
   useEffect(() => {
     if (!drawData.initialized) {
       clearHistory();
-      updateHistory(annotations);
       rebuildDrawData(true);
     }
   }, [annotations]);
+
+  const onRedo = () => {
+    const record = redo();
+    if (record) {
+      scaleDrawData(record.drawData, record.clientSize, clientSize);
+    }
+  };
+
+  const onUndo = () => {
+    const record = undo();
+    if (record) {
+      scaleDrawData(record.drawData, record.clientSize, clientSize);
+    }
+  };
 
   const onReject = () => {
     if (mode === EditorMode.Review && onReviewResult) {
@@ -2371,7 +2374,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                   {
                     title: localeText('editor.exit'),
                     icon: <ArrowLeftOutlined />,
-                    onClick: () => onCancelAnnotations(drawData),
+                    onClick: () => onCancelAnnotations(),
                   },
                 ]
           }
@@ -2433,7 +2436,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 <AnnotationEditor
                   hideTitle={currEditObject?.type === EObjectType.Mask}
                   allowAddCategory={isSeperate}
-                  drawData={drawData}
+                  latestLabel={editState.latestLabel}
                   categories={categories}
                   currEditObject={currEditObject}
                   onCreateCategory={onCreateCategory}
@@ -2556,14 +2559,14 @@ const Edit: React.FC<PreviewProps> = (props) => {
             className={styles.rightSlider}
             objects={drawData.objectList}
             labelColors={labelColors}
-            focusObjectIndex={drawData.focusObjectIndex}
             activeObjectIndex={drawData.activeObjectIndex}
-            focusEleIndex={drawData.focusEleIndex}
-            focusEleType={drawData.focusEleType}
-            isMovingElement={!!drawData.startElementMovePoint}
+            focusObjectIndex={editState.focusObjectIndex}
+            focusEleIndex={editState.focusEleIndex}
+            focusEleType={editState.focusEleType}
+            isMovingElement={!!editState.startElementMovePoint}
             activeClassName={drawData.activeClassName}
             onFocusObject={(index) =>
-              setDrawData((s) => {
+              setEditState((s) => {
                 s.focusObjectIndex = index;
               })
             }
@@ -2578,17 +2581,17 @@ const Edit: React.FC<PreviewProps> = (props) => {
               }
             }}
             onFocusElement={(index) =>
-              setDrawData((s) => {
+              setEditState((s) => {
                 s.focusEleIndex = index;
               })
             }
             onChangeFocusEleType={(type) => {
-              setDrawData((s) => {
+              setEditState((s) => {
                 s.focusEleType = type;
               });
             }}
             onCancelMovingStatus={() => {
-              setDrawData((s) => {
+              setEditState((s) => {
                 s.startElementMovePoint = undefined;
               });
             }}

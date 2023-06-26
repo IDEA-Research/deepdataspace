@@ -8,7 +8,7 @@ import {
   translatePointsToPointObjs,
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
-import { DrawData, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '..';
 import { rleToImage } from '../tools/mask';
 
 interface IProps {
@@ -17,25 +17,19 @@ interface IProps {
   annotations: DATA.BaseObject[];
   setAnnotations: Updater<DATA.BaseObject[]>;
   drawData: DrawData;
-  setDrawData: Updater<DrawData>;
+  setDrawDataWithHistory: Updater<DrawData>;
+  setEditState: Updater<EditState>;
   clientSize: ISize;
   naturalSize: ISize;
-  addAnnotation: (object: IAnnotationObject) => void;
-  removeAnnotation: (index: number) => void;
-  updateAnnotation: (object: IAnnotationObject, index: number) => void;
-  updateAllAnnotation: (objects: IAnnotationObject[]) => void;
 }
 
 const useObjects = ({
   mode,
   drawData,
-  setDrawData,
+  setDrawDataWithHistory,
+  setEditState,
   clientSize,
   naturalSize,
-  addAnnotation,
-  removeAnnotation,
-  updateAnnotation,
-  updateAllAnnotation,
 }: IProps) => {
   const translateAnnotationToObject = (
     annotation: DATA.BaseObject,
@@ -113,56 +107,48 @@ const useObjects = ({
     annotations: DATA.BaseObject[],
     labelColors: Record<string, string>,
   ) => {
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList = annotations.map((annotation) => {
         return translateAnnotationToObject(annotation, labelColors);
       });
-      // TODO: mask mock
-      // s.objectList = [translateAnnotationToObject(mockMaskAnnotation)];
     });
   };
 
   const addObject = (object: IAnnotationObject, notActive?: boolean) => {
     if (mode !== EditorMode.Edit) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList.push(object);
       s.creatingObject = undefined;
       s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
-      s.changed = true;
     });
-    addAnnotation(object);
   };
 
   const removeObject = (index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       if (s.objectList[index]) {
         s.objectList.splice(index, 1);
         s.activeObjectIndex = -1;
-        s.focusObjectIndex = -1;
-        s.focusEleIndex = -1;
-        s.focusEleType = EElementType.Rect;
-        s.changed = true;
       }
     });
-    removeAnnotation(index);
+    setEditState((s) => {
+      s.focusObjectIndex = -1;
+      s.focusEleIndex = -1;
+      s.focusEleType = EElementType.Rect;
+    });
   };
 
   const updateObject = (object: IAnnotationObject, index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList[index] = object;
-      s.changed = true;
     });
-    updateAnnotation(object, index);
   };
 
   const updateAllObject = (objectList: IAnnotationObject[]) => {
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList = objectList;
-      s.changed = true;
     });
-    updateAllAnnotation(objectList);
   };
 
   return {

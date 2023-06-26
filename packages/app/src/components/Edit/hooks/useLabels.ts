@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Updater } from 'use-immer';
 import { getCategoryColors } from '@/utils/color';
 import { DATA } from '@/services/type';
-import { DrawData, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '..';
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
 import { changeMaskImageColor } from '../tools/mask';
@@ -14,6 +14,8 @@ interface IProps {
   setCategories?: Updater<DATA.Category[]>;
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
+  editState: EditState;
+  setEditState: Updater<EditState>;
   updateObject: (object: IAnnotationObject, index: number) => void;
 }
 
@@ -23,6 +25,8 @@ export default function useLabels({
   setCategories,
   drawData,
   setDrawData,
+  editState,
+  setEditState,
   updateObject,
 }: IProps) {
   const [aiLabels, setAiLabels] = useState<string[]>([]);
@@ -57,7 +61,7 @@ export default function useLabels({
   const curObjects = drawData.objectList;
 
   const onChangeObjectLabel = async (index: number, label: string) => {
-    setDrawData((s) => {
+    setEditState((s) => {
       s.latestLabel = label;
     });
     const newObject = { ...drawData.objectList[index] };
@@ -93,7 +97,7 @@ export default function useLabels({
     switch (eleType) {
       case EElementType.Rect: {
         setDrawData((s) => {
-          const rect = s.objectList[s.focusObjectIndex]?.rect;
+          const rect = s.objectList[editState.focusObjectIndex]?.rect;
           if (rect) {
             rect.visible = visible;
           }
@@ -102,7 +106,7 @@ export default function useLabels({
       }
       case EElementType.Polygon: {
         setDrawData((s) => {
-          const polygon = s.objectList[s.focusObjectIndex]?.polygon;
+          const polygon = s.objectList[editState.focusObjectIndex]?.polygon;
           if (polygon) {
             polygon.visible = visible;
           }
@@ -119,12 +123,14 @@ export default function useLabels({
    * @param {KEYPOINTS_VISIBLE_TYPE} visible - The visibility value for the keypoint.
    */
   const onChangePointVisible = (visible: KEYPOINTS_VISIBLE_TYPE) => {
-    const newObject = cloneDeep(drawData.objectList[drawData.focusObjectIndex]);
-    const point = newObject.keypoints?.points?.[drawData.focusEleIndex];
+    const newObject = cloneDeep(
+      drawData.objectList[editState.focusObjectIndex],
+    );
+    const point = newObject.keypoints?.points?.[editState.focusEleIndex];
     if (point) {
       point.visible = visible;
     }
-    updateObject(newObject, drawData.focusObjectIndex);
+    updateObject(newObject, editState.focusObjectIndex);
   };
 
   const onChangeActiveClass = (name: string) => {

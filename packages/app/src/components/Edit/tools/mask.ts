@@ -283,7 +283,6 @@ export const objectToRle = async (
       points: step.points.map((point) =>
         translatePointZoom(point, clientSize, naturalSize),
       ),
-      radius: (step.radius / clientSize.width) * naturalSize.width,
     };
   });
 
