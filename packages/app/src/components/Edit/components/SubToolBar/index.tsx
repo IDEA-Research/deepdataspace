@@ -77,8 +77,8 @@ export const SubToolBar: React.FC<IProps> = ({
   };
 
   return (
-    <FloatWrapper>
-      <div className={styles.container}>
+    <div className={styles.container}>
+      <FloatWrapper>
         {MaskTools.map((item) => (
           <Popover
             placement="bottom"
@@ -94,21 +94,22 @@ export const SubToolBar: React.FC<IProps> = ({
             />
           </Popover>
         ))}
-        {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-          selectedSubTool,
-        ) && (
-          <div style={{ width: '100px' }}>
-            <Slider
-              defaultValue={20}
-              min={1}
-              max={200}
-              value={brushSize}
-              onChange={(value) => onChangeBrushSize(value)}
-            />
-          </div>
-        )}
-        {/* <div className={styles.divider}></div>
-        <Button
+      </FloatWrapper>
+      {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+        selectedSubTool,
+      ) && (
+        <div style={{ width: '100px' }}>
+          <Slider
+            defaultValue={20}
+            min={1}
+            max={200}
+            value={brushSize}
+            onChange={(value) => onChangeBrushSize(value)}
+          />
+        </div>
+      )}
+      {/* <div className={styles.divider}></div> */}
+      {/* <Button
           type="primary"
           className={classNames(styles.action)}
           onClick={(event) => {
@@ -118,7 +119,6 @@ export const SubToolBar: React.FC<IProps> = ({
         >
           {localeText('editor.annotsEditor.finish')}
         </Button> */}
-      </div>
-    </FloatWrapper>
+    </div>
   );
 };

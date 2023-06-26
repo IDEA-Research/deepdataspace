@@ -11,6 +11,7 @@ import {
   drawLine,
   drawBooleanBrush,
   drawPath,
+  drawQuadraticPath,
 } from '@/utils/draw';
 import { ESubToolItem, LABELS_STROKE_DASH } from '@/constants';
 import { ANNO_STROKE_ALPHA } from '../constants/render';
@@ -23,9 +24,20 @@ export const mockMaskAnnotation = {
 export const renderMaskSteps = (
   maskCanvas: HTMLCanvasElement,
   imagePos: IPoint,
+  clientSize: ISize,
+  naturalSize: ISize,
   strokeColor: string,
   tempMaskSteps?: ICreatingMaskStep[],
 ) => {
+  const ctx = maskCanvas.getContext('2d');
+  if (!ctx) return null;
+
+  // prevent the mask from exceeding the image boundaries.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(imagePos.x, imagePos.y, clientSize.width, clientSize.height);
+  ctx.clip();
+
   // draw temp mask according to step queue
   if (tempMaskSteps && tempMaskSteps?.length > 0) {
     tempMaskSteps.forEach((step) => {
@@ -58,11 +70,13 @@ export const renderMaskSteps = (
           step.positive
             ? hexToRgba(strokeColor, 0.8)
             : hexToRgba(strokeColor, 1),
-          step.radius,
+          (step.radius * clientSize.width) / naturalSize.width,
         );
       }
     });
   }
+
+  ctx.restore();
 };
 
 export const renderMask = (
@@ -72,6 +86,7 @@ export const renderMask = (
   strokeColor: string,
   mousePoint: IPoint,
   clientSize: ISize,
+  naturalSize: ISize,
 ) => {
   if (!maskCanvas) return;
 
@@ -92,7 +107,14 @@ export const renderMask = (
   }
 
   // draw temp mask according to step queue
-  renderMaskSteps(maskCanvas, imagePos, strokeColor, tempMaskSteps);
+  renderMaskSteps(
+    maskCanvas,
+    imagePos,
+    clientSize,
+    naturalSize,
+    strokeColor,
+    tempMaskSteps,
+  );
 
   // draw currently step when mouse move
   if (maskStep && maskStep.points.length > 0) {
@@ -142,11 +164,11 @@ export const renderMask = (
       maskStep.tool === ESubToolItem.BrushErase
     ) {
       if (canvasCoordPath.length > 1) {
-        drawPath(
+        drawQuadraticPath(
           maskCanvas!,
           canvasCoordPath,
           hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
-          maskStep.radius,
+          (maskStep.radius * clientSize.width) / naturalSize.width,
         );
       }
     }
@@ -277,7 +299,14 @@ export const objectToRle = async (
   }
 
   // render new mask object
-  renderMaskSteps(canvas, { x: 0, y: 0 }, '#fff', newSteps);
+  renderMaskSteps(
+    canvas,
+    { x: 0, y: 0 },
+    clientSize,
+    naturalSize,
+    '#fff',
+    newSteps,
+  );
 
   // getImageData
   const maskData = ctx.getImageData(

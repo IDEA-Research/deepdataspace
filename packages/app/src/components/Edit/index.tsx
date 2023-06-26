@@ -686,6 +686,7 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 y: containerMouse.elementY,
               },
               clientSize,
+              naturalSize,
             );
           break;
         }
@@ -1225,13 +1226,12 @@ const Edit: React.FC<PreviewProps> = (props) => {
   ) => {
     if (drawData.creatingObject) {
       if (drawData.selectedTool === EBasicToolItem.Mask) {
-        const mouse = {
-          x: contentMouse.elementX,
-          y: contentMouse.elementY,
-        };
         setDrawData((s) => {
           if (event.buttons === 1) {
-            s.creatingObject?.maskStep?.points.push(mouse);
+            s.creatingObject?.maskStep?.points.push({
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            });
           }
         });
       }
@@ -1989,16 +1989,11 @@ const Edit: React.FC<PreviewProps> = (props) => {
               return translatePointZoom(point, preClientSize, clientSize);
             },
           );
-          const newRadius =
-            (updateDrawData.creatingObject.maskStep.radius /
-              preClientSize.width) *
-            clientSize.width;
           updateDrawData.creatingObject = {
             ...updateDrawData.creatingObject,
             maskStep: {
               ...updateDrawData.creatingObject.maskStep,
               points: newPoints,
-              radius: newRadius,
             },
           };
         }
@@ -2010,7 +2005,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
                 points: step.points.map((point) =>
                   translatePointZoom(point, preClientSize, clientSize),
                 ),
-                radius: (step.radius / preClientSize.width) * clientSize.width,
               };
             },
           );
@@ -2037,11 +2031,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
             }
             return click;
           });
-      }
-
-      if (updateDrawData.brushSize && preClientSize) {
-        updateDrawData.brushSize =
-          (updateDrawData.brushSize / preClientSize.width) * clientSize.width;
       }
 
       clearPreClientSize();
@@ -2079,7 +2068,6 @@ const Edit: React.FC<PreviewProps> = (props) => {
       s.segmentationClicks = undefined;
       s.segmentationMask = undefined;
       s.selectedTool = EBasicToolItem.Drag;
-      s.brushSize = 20;
       s.activeClassName = '';
       s.latestLabel = '';
     });

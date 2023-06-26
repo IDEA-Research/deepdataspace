@@ -80,6 +80,31 @@ export function drawLine(
   ctx.restore();
 }
 
+export function drawPath(
+  canvas: HTMLCanvasElement,
+  points: IPoint[],
+  color = '#111111',
+  thickness = 1,
+  lineDash?: number[],
+): void {
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (lineDash) {
+    ctx.setLineDash(lineDash);
+  }
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1, len = points.length; i < len; i++) {
+    ctx.lineTo(points[i].x, points[i].y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 const midPointBtw = (p1: any, p2: any) => {
   return {
     x: p1.x + (p2.x - p1.x) / 2,
@@ -87,7 +112,7 @@ const midPointBtw = (p1: any, p2: any) => {
   };
 };
 
-export function drawPath(
+export function drawQuadraticPath(
   canvas: HTMLCanvasElement,
   points: IPoint[],
   color = '#111111',
