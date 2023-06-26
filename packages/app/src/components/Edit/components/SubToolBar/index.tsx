@@ -9,6 +9,9 @@ import { ReactComponent as PenAddIcon } from '@/assets/svg/pen-add.svg';
 import { ReactComponent as PenEraseIcon } from '@/assets/svg/pen-erase.svg';
 import { ReactComponent as BrushAddIcon } from '@/assets/svg/brush-add.svg';
 import { ReactComponent as BrushEraseIcon } from '@/assets/svg/brush-erase.svg';
+import { ReactComponent as DashBoxIcon } from '@/assets/svg/dash-box.svg';
+import { ReactComponent as ClickIcon } from '@/assets/svg/click.svg';
+import { ReactComponent as StarStickIcon } from '@/assets/svg/star-stick.svg';
 import { getIconFromShortcut } from '../ShortcutsInfo';
 
 type TToolItem<T> = {
@@ -31,35 +34,55 @@ interface IProps {
 
 export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
+  isAIAnnotationActive,
   onChangeSubTool,
   onChangeBrushSize,
   brushSize,
   // onFinish,
 }) => {
-  const MaskTools: TToolItem<ESubToolItem>[] = [
+  const BasicMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.PenAdd,
       name: 'Pen Add',
       icon: <Icon component={PenAddIcon} />,
-      // shortcut: EDITOR_SHORTCUTS[EShortcuts.Undo],
     },
     {
       key: ESubToolItem.PenErase,
       name: 'Pen Erase',
       icon: <Icon component={PenEraseIcon} />,
-      // shortcut: EDITOR_SHORTCUTS[EShortcuts.Undo],
     },
     {
       key: ESubToolItem.BrushAdd,
       name: 'Brush Add',
       icon: <Icon component={BrushAddIcon} />,
-      // shortcut: EDITOR_SHORTCUTS[EShortcuts.Undo],
     },
     {
       key: ESubToolItem.BrushErase,
       name: 'Brush Erase',
       icon: <Icon component={BrushEraseIcon} />,
-      // shortcut: EDITOR_SHORTCUTS[EShortcuts.Undo],
+    },
+  ];
+
+  const SmartMaskTools: TToolItem<ESubToolItem>[] = [
+    {
+      key: ESubToolItem.AutoSegmentByBox,
+      name: 'Segment By Box',
+      icon: <Icon component={DashBoxIcon} />,
+    },
+    {
+      key: ESubToolItem.AutoSegmentByClick,
+      name: 'Segment By Click',
+      icon: <Icon component={ClickIcon} />,
+    },
+    {
+      key: ESubToolItem.AutoSegmentAnything,
+      name: 'Segment Anything',
+      icon: <Icon component={StarStickIcon} />,
+    },
+    {
+      key: ESubToolItem.AutoEdgeStitching,
+      name: 'Edge Stitching Brush',
+      icon: <Icon component={PenAddIcon} />,
     },
   ];
 
@@ -77,9 +100,9 @@ export const SubToolBar: React.FC<IProps> = ({
   };
 
   return (
-    <div className={styles.container}>
-      <FloatWrapper>
-        {MaskTools.map((item) => (
+    <FloatWrapper>
+      <div className={styles.container}>
+        {BasicMaskTools.map((item) => (
           <Popover
             placement="bottom"
             content={popoverContent(item)}
@@ -94,22 +117,43 @@ export const SubToolBar: React.FC<IProps> = ({
             />
           </Popover>
         ))}
-      </FloatWrapper>
-      {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-        selectedSubTool,
-      ) && (
-        <div style={{ width: '100px' }}>
-          <Slider
-            defaultValue={20}
-            min={1}
-            max={200}
-            value={brushSize}
-            onChange={(value) => onChangeBrushSize(value)}
-          />
-        </div>
-      )}
-      {/* <div className={styles.divider}></div> */}
-      {/* <Button
+        {isAIAnnotationActive && (
+          <>
+            <div className={styles.divider}></div>
+            {SmartMaskTools.map((item) => (
+              <Popover
+                placement="bottom"
+                content={popoverContent(item)}
+                key={item.key}
+              >
+                <Button
+                  className={classNames(styles.btn, {
+                    [styles.btnActive]: selectedSubTool === item.key,
+                  })}
+                  icon={item.icon}
+                  onClick={() => onChangeSubTool(item.key)}
+                />
+              </Popover>
+            ))}
+          </>
+        )}
+        {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+          selectedSubTool,
+        ) && (
+          <>
+            <div className={styles.divider}></div>
+            <div className={styles.slider}>
+              <Slider
+                defaultValue={20}
+                min={1}
+                max={200}
+                value={brushSize}
+                onChange={(value) => onChangeBrushSize(value)}
+              />
+            </div>
+          </>
+        )}
+        {/* <Button
           type="primary"
           className={classNames(styles.action)}
           onClick={(event) => {
@@ -119,6 +163,7 @@ export const SubToolBar: React.FC<IProps> = ({
         >
           {localeText('editor.annotsEditor.finish')}
         </Button> */}
-    </div>
+      </div>
+    </FloatWrapper>
   );
 };

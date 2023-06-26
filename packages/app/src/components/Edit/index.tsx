@@ -107,11 +107,7 @@ export interface IAnnotationObject {
 }
 
 export interface ICreatingMaskStep {
-  tool:
-    | ESubToolItem.BrushAdd
-    | ESubToolItem.BrushErase
-    | ESubToolItem.PenAdd
-    | ESubToolItem.PenErase;
+  tool: ESubToolItem;
   /** Add / Erase an area for Mask */
   positive: boolean;
   /** The points stroked by Pen Tool or Brush Tool */

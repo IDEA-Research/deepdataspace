@@ -67,9 +67,8 @@ export const renderMaskSteps = (
           maskCanvas!,
           canvasCoordPoints,
           step.positive,
-          step.positive
-            ? hexToRgba(strokeColor, 0.8)
-            : hexToRgba(strokeColor, 1),
+          strokeColor,
+          ANNO_STROKE_ALPHA.CREATING_MASK,
           (step.radius * clientSize.width) / naturalSize.width,
         );
       }
@@ -167,7 +166,7 @@ export const renderMask = (
         drawQuadraticPath(
           maskCanvas!,
           canvasCoordPath,
-          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
+          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_MASK),
           (maskStep.radius * clientSize.width) / naturalSize.width,
         );
       }

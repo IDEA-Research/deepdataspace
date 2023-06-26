@@ -1,3 +1,5 @@
+import { hexToRgba } from './color';
+
 function deg2rad(angleDeg: number) {
   return (angleDeg * Math.PI) / 180;
 }
@@ -372,6 +374,7 @@ export function drawBooleanBrush(
   points: IPoint[],
   addBrush = true,
   color = '#111111',
+  alpha = 1,
   thickness = 20,
   lineDash?: number[],
 ): void {
@@ -401,6 +404,13 @@ export function drawBooleanBrush(
 
   if (addBrush) {
     if (thickness > 0) {
+      // remove overlap area firstly to avoid color blending
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      // draw new stroke path
+      ctx.strokeStyle = hexToRgba(color, alpha);
+      ctx.globalCompositeOperation = 'source-over';
       ctx.stroke();
     }
   } else {

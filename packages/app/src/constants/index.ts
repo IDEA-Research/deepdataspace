@@ -215,6 +215,10 @@ export enum ESubToolItem {
   PenErase = 'PenErase',
   BrushAdd = 'BrushAdd',
   BrushErase = 'BrushErase',
+  AutoSegmentByBox = 'AutoSegmentByBox',
+  AutoSegmentByClick = 'AutoSegmentByClick',
+  AutoSegmentAnything = 'AutoSegmentAnything',
+  AutoEdgeStitching = 'AutoEdgeStitching',
 }
 
 export enum EActionToolItem {
