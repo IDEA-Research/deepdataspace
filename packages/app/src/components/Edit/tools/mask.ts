@@ -300,7 +300,7 @@ export const objectToRle = async (
   renderMaskSteps(
     canvas,
     { x: 0, y: 0 },
-    clientSize,
+    naturalSize, // target clientsize
     naturalSize,
     '#fff',
     newSteps,

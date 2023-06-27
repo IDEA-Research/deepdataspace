@@ -160,7 +160,7 @@ export const SubToolBar: React.FC<IProps> = ({
               <Slider
                 defaultValue={20}
                 min={1}
-                max={200}
+                max={100}
                 value={brushSize}
                 onChange={(value) => onChangeBrushSize(value)}
               />

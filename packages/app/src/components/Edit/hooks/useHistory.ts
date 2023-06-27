@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { DraftFunction, Updater, useImmer } from 'use-immer';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isEqual } from 'lodash';
 import { DrawData } from '../type';
 
 export interface HistoryItem {
@@ -29,7 +29,7 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
       return historyQueue[currentIndex - 1];
     }
     return null;
-  }, [currentIndex]);
+  }, [currentIndex, historyQueue]);
 
   /**
    * Redo the last undone action
@@ -41,7 +41,7 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
       return historyQueue[currentIndex + 1];
     }
     return null;
-  }, [currentIndex, historyQueue.length]);
+  }, [currentIndex, historyQueue]);
 
   /**
    * Update the history queue with the new objects
@@ -49,13 +49,15 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
   const updateHistory = useCallback(
     (item: HistoryItem) => {
       setHistoryQueue((queue) => {
-        const newQueue = queue.slice(0, currentIndex + 1);
-        newQueue.push(item);
-        if (newQueue.length > maxCacheSize) {
-          newQueue.shift();
+        if (queue[currentIndex] && isEqual(item, queue[currentIndex])) {
+          return queue;
         }
-        setCurrIndex(newQueue.length - 1);
-        return newQueue;
+        queue.splice(currentIndex + 1);
+        queue.push(item);
+        if (queue.length > maxCacheSize) {
+          queue.shift();
+        }
+        setCurrIndex(queue.length - 1);
       });
       onAutoSave?.(item);
     },
@@ -72,7 +74,6 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
     if (typeof updater === 'function') {
       setDrawData((s) => {
         updater(s);
-        console.log('update >>>> 1', s);
         updateHistory(
           cloneDeep({
             drawData: s,
@@ -88,7 +89,6 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
           clientSize,
         }),
       );
-      console.log('update >>> 2', updater);
     }
   };
 

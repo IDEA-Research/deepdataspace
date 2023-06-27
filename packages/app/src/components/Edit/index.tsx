@@ -220,12 +220,18 @@ const Edit: React.FC<EditProps> = (props) => {
     onAutoSave?.(annotations);
   };
 
-  const { undo, redo, clearHistory, hadChangeRecord, setDrawDataWithHistory } =
-    useHistory({
-      clientSize,
-      setDrawData,
-      onAutoSave: autoSave,
-    });
+  const {
+    undo,
+    redo,
+    clearHistory,
+    hadChangeRecord,
+    updateHistory,
+    setDrawDataWithHistory,
+  } = useHistory({
+    clientSize,
+    setDrawData,
+    onAutoSave: autoSave,
+  });
 
   const {
     addObject,
@@ -972,17 +978,19 @@ const Edit: React.FC<EditProps> = (props) => {
     if (!isInCanvas(contentMouse)) return;
 
     setDrawData((s) => {
-      const point = {
-        x: contentMouse.elementX,
-        y: contentMouse.elementY,
-      };
       s.activeObjectIndex = -1;
-      const basic = {
-        hidden: false,
-        label: editState.latestLabel || categories[0].name,
-      };
-      switch (s.selectedTool) {
-        case EBasicToolItem.Polygon: {
+    });
+    const point = {
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    };
+    const basic = {
+      hidden: false,
+      label: editState.latestLabel || categories[0].name,
+    };
+    switch (drawData.selectedTool) {
+      case EBasicToolItem.Polygon: {
+        setDrawData((s) => {
           if (s.AIAnnotation) {
             // by drawing rectangle under AI mode
             s.creatingObject = {
@@ -1001,26 +1009,38 @@ const Edit: React.FC<EditProps> = (props) => {
               currIndex: 0,
               ...basic,
             };
+            updateHistory(
+              cloneDeep({
+                drawData: s,
+                clientSize,
+              }),
+            );
           }
-          break;
-        }
-        case EBasicToolItem.Rectangle: {
+        });
+        break;
+      }
+      case EBasicToolItem.Rectangle: {
+        setDrawData((s) => {
           s.creatingObject = {
             type: EObjectType.Rectangle,
             startPoint: point,
             ...basic,
           };
-          break;
-        }
-        case EBasicToolItem.Skeleton: {
+        });
+        break;
+      }
+      case EBasicToolItem.Skeleton: {
+        setDrawData((s) => {
           s.creatingObject = {
             type: EObjectType.Skeleton,
             startPoint: point,
             ...basic,
           };
-          break;
-        }
-        case EBasicToolItem.Mask: {
+        });
+        break;
+      }
+      case EBasicToolItem.Mask: {
+        setDrawData((s) => {
           s.creatingObject = {
             ...basic,
             type: EObjectType.Mask,
@@ -1035,9 +1055,9 @@ const Edit: React.FC<EditProps> = (props) => {
             },
             tempMaskSteps: [],
           };
-        }
+        });
       }
-    });
+    }
   };
 
   const updateCreatingWhenMouseDown = () => {
@@ -1062,14 +1082,24 @@ const Edit: React.FC<EditProps> = (props) => {
                 // finish creating polygon when click on startpoint
                 if (isPointOnPoint(startPoint, contentMouse)) {
                   s.creatingObject.currIndex = -1;
-                } else {
-                  if (s.creatingObject.polygon) {
-                    polygon.group[currIndex].push(mouse);
-                  }
+                } else if (s.creatingObject.polygon) {
+                  polygon.group[currIndex].push(mouse);
+                  updateHistory(
+                    cloneDeep({
+                      drawData: s,
+                      clientSize,
+                    }),
+                  );
                 }
               } else {
                 polygon.group.push([mouse]);
                 s.creatingObject.currIndex = polygon.group.length - 1;
+                updateHistory(
+                  cloneDeep({
+                    drawData: s,
+                    clientSize,
+                  }),
+                );
               }
             }
           }
@@ -1082,6 +1112,19 @@ const Edit: React.FC<EditProps> = (props) => {
             if (s.creatingObject.maskStep) {
               // add points for currently path
               s.creatingObject.maskStep.points.push(mouse);
+              // judege to close path
+              if (
+                [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+                  s.selectedSubTool,
+                ) &&
+                isPointOnPoint(
+                  s.creatingObject.maskStep.points[0],
+                  contentMouse,
+                )
+              ) {
+                s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
+                s.creatingObject.maskStep = undefined;
+              }
             } else {
               // init new step for creating points
               s.creatingObject.maskStep = {
@@ -1092,6 +1135,19 @@ const Edit: React.FC<EditProps> = (props) => {
                 points: [mouse],
                 radius: s.brushSize,
               };
+            }
+            if (
+              ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+                s.selectedSubTool,
+              )
+            ) {
+              // Brush tool need not push history when mousedown
+              updateHistory(
+                cloneDeep({
+                  drawData: s,
+                  clientSize,
+                }),
+              );
             }
           }
         });
@@ -1300,7 +1356,7 @@ const Edit: React.FC<EditProps> = (props) => {
               s.creatingObject &&
               s.creatingObject.tempMaskSteps &&
               s.creatingObject.maskStep &&
-              s.creatingObject.maskStep.points.length > 1
+              s.creatingObject.maskStep.points.length
             ) {
               if (
                 [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
@@ -1309,6 +1365,7 @@ const Edit: React.FC<EditProps> = (props) => {
                 ([ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
                   s.selectedSubTool,
                 ) &&
+                  s.creatingObject.maskStep.points.length > 1 &&
                   isPointOnPoint(
                     s.creatingObject.maskStep.points[0],
                     contentMouse,
