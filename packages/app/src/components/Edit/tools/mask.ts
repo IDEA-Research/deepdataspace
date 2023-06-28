@@ -95,7 +95,7 @@ export const renderMask = (
 
   // draw mask image
   if (maskImage) {
-    ctx.globalAlpha = 0.8;
+    ctx.globalAlpha = ANNO_STROKE_ALPHA.CREATING_MASK;
     drawImage(maskCanvas, maskImage, {
       x: imagePos.x,
       y: imagePos.y,

@@ -97,6 +97,7 @@ export interface EditState {
     pointIndex: number;
     lineIndex: number;
   };
+  focusMaskCanvasList?: Array<HTMLCanvasElement>;
 }
 
 export const enum EditorMode {
@@ -140,4 +141,5 @@ export const DEFAULT_EDIT_STATE: EditState = {
     pointIndex: -1,
     lineIndex: -1,
   },
+  focusMaskCanvasList: undefined,
 };

@@ -19,6 +19,10 @@ interface IProps {
   drawData: DrawData;
   setDrawDataWithHistory: Updater<DrawData>;
   setEditState: Updater<EditState>;
+  rebuildFocusCanvasList: (
+    objectList: IAnnotationObject[],
+    clientSize: ISize,
+  ) => void;
   clientSize: ISize;
   naturalSize: ISize;
 }
@@ -28,6 +32,7 @@ const useObjects = ({
   drawData,
   setDrawDataWithHistory,
   setEditState,
+  rebuildFocusCanvasList,
   clientSize,
   naturalSize,
 }: IProps) => {
@@ -111,6 +116,7 @@ const useObjects = ({
       s.objectList = annotations.map((annotation) => {
         return translateAnnotationToObject(annotation, labelColors);
       });
+      rebuildFocusCanvasList(s.objectList, clientSize);
     });
   };
 
@@ -120,6 +126,7 @@ const useObjects = ({
       s.objectList.push(object);
       s.creatingObject = undefined;
       s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
+      rebuildFocusCanvasList(s.objectList, clientSize);
     });
   };
 
@@ -129,6 +136,7 @@ const useObjects = ({
       if (s.objectList[index]) {
         s.objectList.splice(index, 1);
         s.activeObjectIndex = -1;
+        rebuildFocusCanvasList(s.objectList, clientSize);
       }
     });
     setEditState((s) => {
@@ -142,12 +150,14 @@ const useObjects = ({
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setDrawDataWithHistory((s) => {
       s.objectList[index] = object;
+      rebuildFocusCanvasList(s.objectList, clientSize);
     });
   };
 
   const updateAllObject = (objectList: IAnnotationObject[]) => {
     setDrawDataWithHistory((s) => {
       s.objectList = objectList;
+      rebuildFocusCanvasList(s.objectList, clientSize);
     });
   };
 
