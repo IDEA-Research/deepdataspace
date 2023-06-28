@@ -19,7 +19,7 @@ export interface IAnnotationObject {
     lines: number[];
   };
   maskRle?: number[];
-  maskImage?: any;
+  maskCanvasElement?: any;
   conf?: number;
 }
 
@@ -41,8 +41,6 @@ export interface ICreatingObject extends IAnnotationObject {
   maskStep?: ICreatingMaskStep;
   /** Steps for creating mask object */
   tempMaskSteps?: ICreatingMaskStep[];
-  /** editing mask image */
-  basicMaskImage?: any;
 }
 
 export type PromptItem = {
@@ -97,7 +95,6 @@ export interface EditState {
     pointIndex: number;
     lineIndex: number;
   };
-  focusMaskCanvasList?: Array<HTMLCanvasElement>;
 }
 
 export const enum EditorMode {

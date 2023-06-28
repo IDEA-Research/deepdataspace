@@ -25,7 +25,7 @@ export function resizeSmoothCanvas(
 
 export function drawImage(
   canvas: HTMLCanvasElement,
-  image: HTMLImageElement,
+  image: HTMLImageElement | HTMLCanvasElement,
   imageRect: IRect,
 ) {
   if (!!image && !!canvas) {

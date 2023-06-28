@@ -5,7 +5,7 @@ import { DATA } from '@/services/type';
 import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
-import { changeMaskImageColor } from '../tools/mask';
+import { changeMaskCanvasColor } from '../tools/mask';
 
 interface IProps {
   visible: boolean;
@@ -60,17 +60,17 @@ export default function useLabels({
 
   const curObjects = drawData.objectList;
 
-  const onChangeObjectLabel = async (index: number, label: string) => {
+  const onChangeObjectLabel = (index: number, label: string) => {
     setEditState((s) => {
       s.latestLabel = label;
     });
     const newObject = { ...drawData.objectList[index] };
     newObject.label = label;
     // mask color change
-    if (newObject.type === EObjectType.Mask && newObject.maskImage) {
+    if (newObject.type === EObjectType.Mask && newObject.maskCanvasElement) {
       const color = labelColors[label] || '#ffffff';
-      newObject.maskImage = await changeMaskImageColor(
-        newObject.maskImage,
+      newObject.maskCanvasElement = changeMaskCanvasColor(
+        newObject.maskCanvasElement,
         color,
       );
     }

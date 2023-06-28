@@ -89,14 +89,14 @@ export const renderMask = (
 ) => {
   if (!maskCanvas) return;
 
-  const { maskStep, tempMaskSteps, maskImage } = creatingObject;
+  const { maskStep, tempMaskSteps, maskCanvasElement } = creatingObject;
   const ctx = maskCanvas.getContext('2d');
   if (!ctx) return null;
 
   // draw mask image
-  if (maskImage) {
+  if (maskCanvasElement) {
     ctx.globalAlpha = ANNO_STROKE_ALPHA.CREATING_MASK;
-    drawImage(maskCanvas, maskImage, {
+    drawImage(maskCanvas, maskCanvasElement, {
       x: imagePos.x,
       y: imagePos.y,
       width: clientSize.width,
@@ -175,7 +175,7 @@ export const renderMask = (
   }
 };
 
-export const rleToImage = (rle: number[], size: ISize, color: string) => {
+export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
   const { width, height } = size;
 
   const canvas = document.createElement('canvas');
@@ -203,72 +203,49 @@ export const rleToImage = (rle: number[], size: ISize, color: string) => {
   }
 
   ctx.putImageData(newdata, 0, 0);
-  const newImage = new Image();
-  newImage.src = canvas.toDataURL();
-  canvas.remove();
+  // const newImage = new Image();
+  // newImage.src = canvas.toDataURL();
+  // canvas.remove();
 
-  return newImage;
+  return canvas;
 };
 
-export const changeMaskImageColor = (
-  maskImage: HTMLImageElement,
+export const changeMaskCanvasColor = (
+  maskCanvas: HTMLCanvasElement,
   color: string,
 ) => {
-  return new Promise<HTMLImageElement | null>((resolve) => {
-    // 1. Convert to image
-    const imageCanvas = document.createElement('canvas');
-    const imageCtx = imageCanvas.getContext('2d');
+  const imageCtx = maskCanvas.getContext('2d');
+  if (!imageCtx) {
+    return null;
+  }
+  const nImageData = imageCtx.getImageData(
+    0,
+    0,
+    maskCanvas.width,
+    maskCanvas.height,
+  );
 
-    imageCanvas.width = maskImage.naturalWidth;
-    imageCanvas.height = maskImage.naturalHeight;
-    drawImage(imageCanvas, maskImage, {
-      x: 0,
-      y: 0,
-      width: maskImage.naturalWidth,
-      height: maskImage.naturalHeight,
-    });
-
-    if (!imageCtx) {
-      resolve(null);
-      return;
+  // Change color by pixel
+  const rgb = hexToRgbArray(color);
+  for (let i = nImageData.data.length / 4; i--; ) {
+    if (nImageData.data[i * 4 + 3] > 0) {
+      nImageData.data[i * 4] = rgb[0];
+      nImageData.data[i * 4 + 1] = rgb[1];
+      nImageData.data[i * 4 + 2] = rgb[2];
+      nImageData.data[i * 4 + 3] = 255;
     }
-    const nImageData = imageCtx.getImageData(
-      0,
-      0,
-      maskImage.naturalWidth,
-      maskImage.naturalHeight,
-    );
+  }
+  clearCanvas(maskCanvas);
+  imageCtx.putImageData(nImageData, 0, 0);
 
-    // Change color
-    const rgb = hexToRgbArray(color);
-    for (let i = nImageData.data.length / 4; i--; ) {
-      if (nImageData.data[i * 4 + 3] > 0) {
-        nImageData.data[i * 4] = rgb[0];
-        nImageData.data[i * 4 + 1] = rgb[1];
-        nImageData.data[i * 4 + 2] = rgb[2];
-        nImageData.data[i * 4 + 3] = 255;
-      }
-    }
-    clearCanvas(imageCanvas);
-    imageCtx.putImageData(nImageData, 0, 0);
-
-    // Change to image
-    const newImage = new Image();
-    newImage.src = imageCanvas.toDataURL();
-    imageCanvas.remove();
-
-    newImage.onload = () => {
-      resolve(newImage);
-      return;
-    };
-  });
+  return maskCanvas;
 };
 
 export const objectToRle = async (
   clientSize: ISize,
   naturalSize: ISize,
   maskSteps?: ICreatingMaskStep[],
-  maskImage?: HTMLImageElement,
+  maskCanvasElement?: HTMLCanvasElement,
 ) => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -288,8 +265,8 @@ export const objectToRle = async (
   });
 
   // render edit maskImage
-  if (maskImage) {
-    drawImage(canvas, maskImage, {
+  if (maskCanvasElement) {
+    drawImage(canvas, maskCanvasElement, {
       x: 0,
       y: 0,
       width: naturalSize.width,

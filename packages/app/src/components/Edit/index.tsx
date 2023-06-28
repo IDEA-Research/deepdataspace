@@ -89,7 +89,7 @@ import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
-import { objectToRle, renderMask, rleToImage } from './tools/mask';
+import { objectToRle, renderMask, rleToCanvas } from './tools/mask';
 import {
   DEFAULT_DRAW_DATA,
   DEFAULT_EDIT_STATE,
@@ -225,34 +225,6 @@ const Edit: React.FC<EditProps> = (props) => {
     onAutoSave: autoSave,
   });
 
-  const rebuildFocusCanvasList = (
-    objectList: IAnnotationObject[],
-    clientSize: ISize,
-  ) => {
-    const pixels = new Array(objectList.length);
-    objectList.forEach((obj, index) => {
-      if (obj.type === EObjectType.Mask && obj.maskImage) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = clientSize.width;
-        tempCanvas.height = clientSize.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (!tempCtx) return;
-        // Draw mask image
-        tempCtx.drawImage(
-          obj.maskImage,
-          0,
-          0,
-          clientSize.width,
-          clientSize.height,
-        );
-        pixels[index] = tempCanvas;
-      }
-    });
-    setEditState((s) => {
-      s.focusMaskCanvasList = pixels;
-    });
-  };
-
   const {
     addObject,
     removeObject,
@@ -267,7 +239,6 @@ const Edit: React.FC<EditProps> = (props) => {
     drawData,
     setDrawDataWithHistory,
     setEditState,
-    rebuildFocusCanvasList,
     mode,
   });
 
@@ -338,9 +309,9 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const updateFocusObjectWhenHover = () => {
     const focusObjectIndex = judgeFocusOnObject(
+      clientSize,
       contentMouse,
       drawData.objectList,
-      editState.focusMaskCanvasList,
     );
     setEditState((s) => {
       s.focusObjectIndex = focusObjectIndex;
@@ -373,7 +344,7 @@ const Edit: React.FC<EditProps> = (props) => {
           type: EObjectType.Mask,
           maskStep: undefined,
           tempMaskSteps: [],
-          maskImage: drawData.objectList[index].maskImage,
+          maskCanvasElement: drawData.objectList[index].maskCanvasElement,
         };
         if (mode === EditorMode.Edit) {
           s.selectedTool = EBasicToolItem.Mask;
@@ -670,7 +641,7 @@ const Edit: React.FC<EditProps> = (props) => {
         y: -imagePos.current.y,
       });
 
-      const { rect, keypoints, polygon, maskImage, label, type } =
+      const { rect, keypoints, polygon, maskCanvasElement, label, type } =
         canvasCoordObject;
 
       switch (type) {
@@ -888,7 +859,7 @@ const Edit: React.FC<EditProps> = (props) => {
       }
 
       // draw mask
-      if (maskImage && theDrawData.activeObjectIndex !== index) {
+      if (maskCanvasElement && theDrawData.activeObjectIndex !== index) {
         const ctx = canvasRef.current!.getContext(
           '2d',
         ) as CanvasRenderingContext2D;
@@ -898,7 +869,7 @@ const Edit: React.FC<EditProps> = (props) => {
         } else if (drawData.selectedTool === EBasicToolItem.Drag && isFocus) {
           ctx.globalAlpha = ANNO_STROKE_ALPHA.CREATING_MASK;
         }
-        drawImage(canvasRef.current!, maskImage, {
+        drawImage(canvasRef.current!, maskCanvasElement, {
           x: imagePos.current.x,
           y: imagePos.current.y,
           width: clientSize.width,
@@ -1600,9 +1571,9 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const startEditingWhenMouseDown = () => {
     const focusObjIndex = judgeFocusOnObject(
+      clientSize,
       contentMouse,
       drawData.objectList,
-      editState.focusMaskCanvasList,
     );
     if (drawData.objectList[focusObjIndex]) {
       const { focusEleIndex, focusEleType } = judgeFocusOnElement(
@@ -1882,7 +1853,7 @@ const Edit: React.FC<EditProps> = (props) => {
     } else if (
       drawData.creatingObject &&
       drawData.creatingObject.type === EObjectType.Mask &&
-      (drawData.creatingObject.maskImage ||
+      (drawData.creatingObject.maskCanvasElement ||
         drawData.creatingObject.tempMaskSteps?.length)
     ) {
       // New mask
@@ -1907,7 +1878,7 @@ const Edit: React.FC<EditProps> = (props) => {
         clientSize,
         naturalSize,
         drawData.creatingObject?.tempMaskSteps,
-        drawData.creatingObject?.maskImage,
+        drawData.creatingObject?.maskCanvasElement,
       );
       if (maskRle && maskRle.length > 0) {
         const color = labelColors[label] || '#fff';
@@ -1916,7 +1887,7 @@ const Edit: React.FC<EditProps> = (props) => {
           label,
           hidden: false,
           maskRle,
-          maskImage: rleToImage(maskRle, naturalSize, color),
+          maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
           conf: 1,
         };
         if (drawData.activeObjectIndex < 0) {
@@ -2162,8 +2133,6 @@ const Edit: React.FC<EditProps> = (props) => {
     }
     setDrawData(updateDrawData);
     updateRender(updateDrawData);
-    // update focus canvas list
-    rebuildFocusCanvasList(updateDrawData.objectList, clientSize);
   };
 
   /**
@@ -2235,7 +2204,7 @@ const Edit: React.FC<EditProps> = (props) => {
     // Active mask will auto change selectedTool
     if (
       drawData.selectedTool === EBasicToolItem.Mask &&
-      drawData.creatingObject?.maskImage
+      drawData.creatingObject?.maskCanvasElement
     ) {
       return;
     }

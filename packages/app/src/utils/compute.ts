@@ -495,9 +495,9 @@ export const judgeFocusOnElement = (
 };
 
 export const judgeFocusOnObject = (
+  clientSize: ISize,
   mouse: CursorState,
   objects: IAnnotationObject[],
-  focusMaskCanvasList?: Array<HTMLCanvasElement>,
 ): number => {
   let focusObjIndex = -1;
 
@@ -597,24 +597,20 @@ export const judgeFocusOnObject = (
         break;
       }
       case EObjectType.Mask: {
-        if (
-          object.maskImage &&
-          focusMaskCanvasList &&
-          focusMaskCanvasList[index]
-        ) {
-          const tempCtx = focusMaskCanvasList[index].getContext('2d');
+        if (object.maskCanvasElement) {
+          const tempCtx = object.maskCanvasElement.getContext('2d');
           if (!tempCtx) break;
 
           // get target pixel data
           const pixelData = tempCtx.getImageData(
-            mousePoint.x,
-            mousePoint.y,
+            (mousePoint.x * object.maskCanvasElement.width) / clientSize.width,
+            (mousePoint.y * object.maskCanvasElement.height) /
+              clientSize.height,
             1,
             1,
           ).data;
           if (pixelData[3] > 0) {
             focusObjIndex = index;
-            console.log('focus on', index);
           }
         }
         break;
