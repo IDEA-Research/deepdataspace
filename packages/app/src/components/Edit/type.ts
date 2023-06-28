@@ -45,6 +45,14 @@ export interface ICreatingObject extends IAnnotationObject {
   basicMaskImage?: any;
 }
 
+export type PromptItem = {
+  type: ESubToolItem;
+  isPositive: boolean;
+  rect?: IRect;
+  point?: IPoint;
+  stroke?: IPoint[];
+};
+
 /**
  * Need to be saved in history
  */
@@ -67,6 +75,10 @@ export interface DrawData {
   }[];
   segmentationMask?: string;
   brushSize: number;
+
+  /** prompt actions */
+  prompt?: PromptItem[];
+  activeRectWhileLoading?: IRect;
 }
 
 export interface EditState {
@@ -113,6 +125,7 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   segmentationClicks: undefined,
   segmentationMask: undefined,
   brushSize: 20,
+  prompt: undefined,
 };
 
 export const DEFAULT_EDIT_STATE: EditState = {

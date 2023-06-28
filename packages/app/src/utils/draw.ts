@@ -193,13 +193,16 @@ export function drawRectWithFill(
 export function shadeEverythingButRect(
   canvas: HTMLCanvasElement,
   rect: IRect,
-  color = 'rgba(0, 0, 0, 0.7)',
+  color = '#000',
+  alpha = 0.5,
 ): void {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   ctx.save();
   ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = 'destination-out';
+  ctx.globalAlpha = 1;
   ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
   ctx.restore();
 }

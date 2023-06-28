@@ -217,6 +217,7 @@ export enum ESubToolItem {
   BrushErase = 'BrushErase',
   AutoSegmentByBox = 'AutoSegmentByBox',
   AutoSegmentByClick = 'AutoSegmentByClick',
+  AutoSegmentByStroke = 'AutoSegmentByStroke',
   AutoSegmentAnything = 'AutoSegmentAnything',
   AutoEdgeStitching = 'AutoEdgeStitching',
 }

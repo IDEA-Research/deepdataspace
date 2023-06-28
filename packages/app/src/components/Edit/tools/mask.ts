@@ -160,7 +160,8 @@ export const renderMask = (
 
     if (
       maskStep.tool === ESubToolItem.BrushAdd ||
-      maskStep.tool === ESubToolItem.BrushErase
+      maskStep.tool === ESubToolItem.BrushErase ||
+      maskStep.tool === ESubToolItem.AutoSegmentByStroke
     ) {
       if (canvasCoordPath.length > 1) {
         drawQuadraticPath(

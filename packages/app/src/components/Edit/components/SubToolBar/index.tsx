@@ -11,7 +11,8 @@ import { ReactComponent as BrushAddIcon } from '@/assets/svg/brush-add.svg';
 import { ReactComponent as BrushEraseIcon } from '@/assets/svg/brush-erase.svg';
 import { ReactComponent as DashBoxIcon } from '@/assets/svg/dash-box.svg';
 import { ReactComponent as ClickIcon } from '@/assets/svg/click.svg';
-import { ReactComponent as StarStickIcon } from '@/assets/svg/star-stick.svg';
+import { ReactComponent as MagicBrushIcon } from '@/assets/svg/star-stick.svg';
+import { ReactComponent as MagicIcon } from '@/assets/svg/auto-awesome.svg';
 import { getIconFromShortcut } from '../ShortcutsInfo';
 
 type TToolItem<T> = {
@@ -29,7 +30,6 @@ interface IProps {
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
   onChangeBrushSize: (size: number) => void;
-  // onFinish: () => void;
 }
 
 export const SubToolBar: React.FC<IProps> = ({
@@ -38,7 +38,6 @@ export const SubToolBar: React.FC<IProps> = ({
   onChangeSubTool,
   onChangeBrushSize,
   brushSize,
-  // onFinish,
 }) => {
   const BasicMaskTools: TToolItem<ESubToolItem>[] = [
     {
@@ -66,23 +65,28 @@ export const SubToolBar: React.FC<IProps> = ({
   const SmartMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.AutoSegmentByBox,
-      name: 'Segment By Box',
+      name: 'Interactive Segmentation - Box Tool',
       icon: <Icon component={DashBoxIcon} />,
     },
     {
       key: ESubToolItem.AutoSegmentByClick,
-      name: 'Segment By Click',
+      name: 'Interactive Segmentation - Point Tool',
+      icon: <Icon component={ClickIcon} />,
+    },
+    {
+      key: ESubToolItem.AutoSegmentByStroke,
+      name: 'Interactive Segmentation - Brush Tool',
       icon: <Icon component={ClickIcon} />,
     },
     {
       key: ESubToolItem.AutoSegmentAnything,
       name: 'Segment Anything',
-      icon: <Icon component={StarStickIcon} />,
+      icon: <Icon component={MagicIcon} />,
     },
     {
       key: ESubToolItem.AutoEdgeStitching,
       name: 'Edge Stitching Brush',
-      icon: <Icon component={PenAddIcon} />,
+      icon: <Icon component={MagicBrushIcon} />,
     },
   ];
 

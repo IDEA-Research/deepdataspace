@@ -194,7 +194,8 @@ export namespace DATA {
 
 export enum EnumModelType {
   Detection = 'ai_detection',
-  Segmentation = 'ai_segmentation',
+  SegmentByPolygon = 'ai_segmentation',
+  SegmentByMask = 'ai_segmentation_mask',
   Pose = 'ai_pose',
 }
 
@@ -204,7 +205,7 @@ export interface FetchAIDetectionReq {
   text: string;
 }
 
-export interface FetchAISegmentationReq {
+export interface FetchAIPolygonSegmentReq {
   image: string;
   mask: string;
   polygons: number[][];
@@ -213,6 +214,18 @@ export interface FetchAISegmentationReq {
     position: number[];
   }[];
   rect?: number[];
+}
+
+export interface FetchAIMaskSegmentReq {
+  image: string;
+  maskId: string;
+  prompt: {
+    type: string; // 'rect' | 'point' | 'stroke';
+    isPositive: boolean;
+    point?: number[]; // [x, y]
+    rect?: number[]; // [xmin, ymin, xmax, ymax];
+    stroke?: number[]; // [x1, y1, x2, y2];
+  }[];
 }
 
 export interface FetchAIPoseEstimationReq {
@@ -238,9 +251,14 @@ export interface FetchAIDetectionRsp {
   }>;
 }
 
-export interface FetchAISegmentationRsp {
+export interface FetchAIPolygonSegmentRsp {
   polygon: number[][];
   mask: string;
+}
+
+export interface FetchAIMaskSegmentRsp {
+  maskRle: number[]; // rle
+  maskId: string;
 }
 
 export interface FetchAIPoseEstimationRsp {
@@ -262,8 +280,10 @@ export enum EnumTaskStatus {
 export type ModelParam<T extends EnumModelType> =
   T extends EnumModelType.Detection
     ? FetchAIDetectionReq
-    : T extends EnumModelType.Segmentation
-    ? FetchAISegmentationReq
+    : T extends EnumModelType.SegmentByPolygon
+    ? FetchAIPolygonSegmentReq
+    : T extends EnumModelType.SegmentByMask
+    ? FetchAIMaskSegmentReq
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationReq
     : never;
@@ -271,8 +291,10 @@ export type ModelParam<T extends EnumModelType> =
 export type ModelResult<T extends EnumModelType> =
   T extends EnumModelType.Detection
     ? FetchAIDetectionRsp
-    : T extends EnumModelType.Segmentation
-    ? FetchAISegmentationRsp
+    : T extends EnumModelType.SegmentByPolygon
+    ? FetchAIPolygonSegmentRsp
+    : T extends EnumModelType.SegmentByMask
+    ? FetchAIMaskSegmentRsp
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationRsp
     : never;

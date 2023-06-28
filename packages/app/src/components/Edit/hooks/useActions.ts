@@ -5,11 +5,17 @@ import {
   translateBoundingBoxToRect,
   translateObjectsToAnnotations,
   translatePointsToPointObjs,
+  translateRectToAbsBbox,
 } from '@/utils/compute';
 import { message, Modal } from 'antd';
 import { Updater } from 'use-immer';
-import { DATA, EnumModelType } from '@/services/type';
-import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
+import { DATA, EnumModelType, FetchAIMaskSegmentReq } from '@/services/type';
+import {
+  BODY_TEMPLATE,
+  EBasicToolItem,
+  EObjectType,
+  ESubToolItem,
+} from '@/constants';
 import {
   getCanvasPoint,
   getImageBase64,
@@ -18,7 +24,12 @@ import {
 } from '@/utils/annotation';
 import { useLocale } from '@/locales/helper';
 import { useModel } from '@umijs/max';
-import { DrawData, EditImageData, IAnnotationObject } from '../type';
+import {
+  DrawData,
+  EditImageData,
+  IAnnotationObject,
+  PromptItem,
+} from '../type';
 
 interface IProps {
   list: EditImageData[];
@@ -52,13 +63,6 @@ const useActions = ({
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
 
-  /**
-   * Smart Detection
-   * @param drawData
-   * @param source
-   * @param aiLabels
-   * @param hide
-   */
   const requestAiDetection = async (
     drawData: DrawData,
     source: string,
@@ -110,7 +114,7 @@ const useActions = ({
     }
   };
 
-  const requestAiSegmentation = async (
+  const requestAiSegmentByPolygon = async (
     drawData: DrawData,
     source: string,
     bbox?: IBoundingBox,
@@ -171,11 +175,10 @@ const useActions = ({
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.Segmentation>(
-        EnumModelType.Segmentation,
+      const result = await fetchModelResults<EnumModelType.SegmentByPolygon>(
+        EnumModelType.SegmentByPolygon,
         reqParams,
       );
-
       if (result) {
         const { polygon, mask } = result;
 
@@ -222,11 +225,116 @@ const useActions = ({
     }
   };
 
-  /**
-   * AI Pose Estimation
-   * @param source
-   * @param aiLabels
-   */
+  const convertPromptFormat = (
+    prompt: PromptItem[],
+  ): {
+    type: string;
+    isPositive: boolean;
+    point?: number[];
+    rect?: number[];
+    stroke?: number[];
+  }[] => {
+    const newPromptArr = prompt.map((item) => {
+      const { type, isPositive, point, rect, stroke } = item;
+
+      const typeAlias =
+        type === ESubToolItem.AutoSegmentByBox
+          ? 'rect'
+          : type === ESubToolItem.AutoSegmentByClick
+          ? 'point'
+          : type === ESubToolItem.AutoSegmentByStroke
+          ? 'stroke'
+          : 'rect';
+
+      const newItem = { type: typeAlias, isPositive };
+
+      if (rect) {
+        const { xmax, xmin, ymax, ymin } = translateRectToAbsBbox(rect);
+        const topleftPoint = getNaturalPoint(
+          [xmin, ymin],
+          naturalSize,
+          clientSize,
+        );
+        const bottomRightPoint = getNaturalPoint(
+          [xmax, ymax],
+          naturalSize,
+          clientSize,
+        );
+        Object.assign(newItem, {
+          rect: [
+            topleftPoint.x,
+            topleftPoint.y,
+            bottomRightPoint.x,
+            bottomRightPoint.y,
+          ],
+        });
+      }
+
+      if (point) {
+        const naturalPoint = getNaturalPoint(
+          [point.x, point.y],
+          naturalSize,
+          clientSize,
+        );
+        Object.assign(newItem, {
+          point: [naturalPoint.x, naturalPoint.y],
+        });
+      }
+
+      if (stroke) {
+        const points = stroke.reduce((acc: number[], point: IPoint) => {
+          const { x, y } = point;
+          const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
+          return acc.concat([naturalPoint.x, naturalPoint.y]);
+        }, []);
+        Object.assign(newItem, {
+          stroke: points,
+        });
+      }
+
+      return newItem;
+    });
+
+    return newPromptArr;
+  };
+
+  const requestAiSegmentByMask = async (drawData: DrawData, source: string) => {
+    if (!drawData.prompt) return;
+    const reqParams: FetchAIMaskSegmentReq = {
+      image: source,
+      maskId: drawData.segmentationMask || '',
+      prompt: convertPromptFormat(drawData.prompt),
+    };
+
+    try {
+      // setLoading(true);
+      const result = await fetchModelResults<EnumModelType.SegmentByMask>(
+        EnumModelType.SegmentByMask,
+        reqParams,
+      );
+      if (result) {
+        const { maskId, maskRle } = result;
+        const creatingObj = {
+          type: EObjectType.Mask,
+          hidden: false,
+          label: latestLabel,
+          currIndex: -1,
+          maskRle,
+        };
+        setDrawData((s) => {
+          s.creatingObject = creatingObj;
+          s.segmentationMask = maskId;
+        });
+        message.success(localeText('smartAnnotation.msg.success'));
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      // setLoading(false);
+    }
+  };
+
   const requestAiPoseEstimation = async (
     drawData: DrawData,
     source: string,
@@ -361,32 +469,32 @@ const useActions = ({
       switch (drawData.selectedTool) {
         case EBasicToolItem.Rectangle: {
           await requestAiDetection(drawData, imgSrc, aiLabels);
-          setIsRequiring(false);
-          hide();
           break;
         }
         case EBasicToolItem.Skeleton: {
           await requestAiPoseEstimation(drawData, imgSrc, aiLabels);
-          setIsRequiring(false);
-          hide();
           break;
         }
         case EBasicToolItem.Polygon: {
-          await requestAiSegmentation(drawData, imgSrc, bbox);
-          setIsRequiring(false);
-          hide();
+          await requestAiSegmentByPolygon(drawData, imgSrc, bbox);
+          break;
+        }
+        case EBasicToolItem.Mask: {
+          await requestAiSegmentByMask(drawData, imgSrc);
           break;
         }
         default:
-          setIsRequiring(false);
-          hide();
           message.warning('Plan to Support!');
           break;
       }
     } catch (error) {
-      setIsRequiring(false);
-      hide();
       message.error(localeText('smartAnnotation.msg.error'));
+    } finally {
+      setIsRequiring(false);
+      setDrawData((s) => {
+        s.activeRectWhileLoading = undefined;
+      });
+      hide();
     }
   };
 

@@ -25,6 +25,7 @@ import {
   drawPolygonWithFill,
   drawRect,
   resizeSmoothCanvas,
+  shadeEverythingButRect,
 } from '@/utils/draw';
 import {
   getAnchorFixRectPoint,
@@ -55,6 +56,7 @@ import {
   translateRectCoord,
   Direction,
   translateObjectsToAnnotations,
+  getLimitCoordsFromPoints,
 } from '@/utils/compute';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
@@ -96,6 +98,7 @@ import {
   EditState,
   EditorMode,
   IAnnotationObject,
+  PromptItem,
 } from './type';
 
 export interface EditProps {
@@ -181,7 +184,14 @@ const Edit: React.FC<EditProps> = (props) => {
         }
       });
     }
-  }, [drawData.selectedTool]);
+    if (drawData.selectedTool === EBasicToolItem.Mask) {
+      setDrawData((s) => {
+        s.selectedSubTool = s.AIAnnotation
+          ? ESubToolItem.AutoSegmentByBox
+          : ESubToolItem.PenAdd;
+      });
+    }
+  }, [drawData.selectedTool, drawData.AIAnnotation]);
 
   const [allowMove, setAllowMove] = useImmer(false);
 
@@ -352,7 +362,7 @@ const Edit: React.FC<EditProps> = (props) => {
     ) {
       const target =
         drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
-          editState.focusEleIndex
+        editState.focusEleIndex
         ];
       if (target) {
         return (
@@ -881,6 +891,18 @@ const Edit: React.FC<EditProps> = (props) => {
         );
       });
     }
+
+    // draw active area while loading ai annotations
+    if (isRequiring && theDrawData.activeRectWhileLoading) {
+      const canvasCoordRect = translateRectCoord(
+        theDrawData.activeRectWhileLoading,
+        {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        },
+      );
+      shadeEverythingButRect(maskCanvasRef.current!, canvasCoordRect);
+    }
   };
 
   /** =================================================================================================================
@@ -1041,23 +1063,56 @@ const Edit: React.FC<EditProps> = (props) => {
       }
       case EBasicToolItem.Mask: {
         setDrawData((s) => {
-          s.creatingObject = {
-            ...basic,
-            type: EObjectType.Mask,
-            startPoint: point,
-            maskStep: {
-              tool: s.selectedSubTool,
-              positive:
-                s.selectedSubTool === ESubToolItem.PenAdd ||
-                s.selectedSubTool === ESubToolItem.BrushAdd,
-              points: [point],
-              radius: s.brushSize,
-            },
-            tempMaskSteps: [],
-          };
+          switch (s.selectedSubTool) {
+            case ESubToolItem.PenAdd:
+            case ESubToolItem.PenErase:
+            case ESubToolItem.BrushAdd:
+            case ESubToolItem.BrushErase:
+              s.creatingObject = {
+                ...basic,
+                type: EObjectType.Mask,
+                startPoint: point,
+                maskStep: {
+                  tool: s.selectedSubTool,
+                  positive:
+                    s.selectedSubTool === ESubToolItem.PenAdd ||
+                    s.selectedSubTool === ESubToolItem.BrushAdd,
+                  points: [point],
+                  radius: s.brushSize,
+                },
+                tempMaskSteps: [],
+              };
+              break;
+            case ESubToolItem.AutoSegmentByBox:
+            case ESubToolItem.AutoSegmentByClick:
+              s.creatingObject = {
+                type: EObjectType.Rectangle,
+                startPoint: point,
+                ...basic,
+              };
+              break;
+            case ESubToolItem.AutoSegmentByStroke:
+              s.creatingObject = {
+                ...basic,
+                type: EObjectType.Mask,
+                startPoint: point,
+                maskStep: {
+                  tool: s.selectedSubTool,
+                  positive: true,
+                  points: [point],
+                  radius: 5,
+                },
+                tempMaskSteps: [],
+              };
+              break
+            default:
+              break;
+          }
         });
+        break;
       }
     }
+
   };
 
   const updateCreatingWhenMouseDown = () => {
@@ -1107,6 +1162,15 @@ const Edit: React.FC<EditProps> = (props) => {
         break;
       }
       case EBasicToolItem.Mask: {
+        if (
+          ![
+            ESubToolItem.BrushAdd,
+            ESubToolItem.BrushErase,
+            ESubToolItem.PenAdd,
+            ESubToolItem.PenErase,
+          ].includes(drawData.selectedSubTool)
+        )
+          break;
         setDrawData((s) => {
           if (s.creatingObject) {
             if (s.creatingObject.maskStep) {
@@ -1166,7 +1230,17 @@ const Edit: React.FC<EditProps> = (props) => {
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
     if (drawData.creatingObject) {
-      if (drawData.selectedTool === EBasicToolItem.Mask) {
+      const allowRecordMousePath =
+        drawData.selectedTool === EBasicToolItem.Mask &&
+        [
+          ESubToolItem.BrushAdd,
+          ESubToolItem.BrushErase,
+          ESubToolItem.PenAdd,
+          ESubToolItem.PenErase,
+          ESubToolItem.AutoSegmentByStroke,
+        ].includes(drawData.selectedSubTool);
+
+      if (allowRecordMousePath) {
         setDrawData((s) => {
           if (event.buttons === 1) {
             s.creatingObject?.maskStep?.points.push({
@@ -1350,32 +1424,136 @@ const Edit: React.FC<EditProps> = (props) => {
         break;
       }
       case EBasicToolItem.Mask: {
-        if (drawData.creatingObject) {
-          setDrawDataWithHistory((s) => {
-            if (
-              s.creatingObject &&
-              s.creatingObject.tempMaskSteps &&
-              s.creatingObject.maskStep &&
-              s.creatingObject.maskStep.points.length
-            ) {
+        if (!drawData.creatingObject) break;
+        switch (drawData.selectedSubTool) {
+          case ESubToolItem.BrushAdd:
+          case ESubToolItem.BrushErase:
+          case ESubToolItem.PenAdd:
+          case ESubToolItem.PenErase: {
+            setDrawDataWithHistory((s) => {
               if (
-                [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-                  s.selectedSubTool,
-                ) ||
-                ([ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
-                  s.selectedSubTool,
-                ) &&
-                  s.creatingObject.maskStep.points.length > 1 &&
-                  isPointOnPoint(
-                    s.creatingObject.maskStep.points[0],
-                    contentMouse,
-                  ))
+                s.creatingObject &&
+                s.creatingObject.tempMaskSteps &&
+                s.creatingObject.maskStep &&
+                s.creatingObject.maskStep.points.length > 1
               ) {
-                s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
-                s.creatingObject.maskStep = undefined;
+                if (
+                  [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+                    s.selectedSubTool,
+                  ) ||
+                  ([ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+                    s.selectedSubTool,
+                  ) &&
+                    isPointOnPoint(
+                      s.creatingObject.maskStep.points[0],
+                      contentMouse,
+                    ))
+                ) {
+                  s.creatingObject.tempMaskSteps?.push(
+                    s.creatingObject.maskStep,
+                  );
+                  s.creatingObject.maskStep = undefined;
+                }
               }
+            });
+            break;
+          }
+          case ESubToolItem.AutoSegmentByBox: {
+            if (
+              mouse.x === drawData.creatingObject.startPoint?.x &&
+              mouse.y === drawData.creatingObject.startPoint?.y
+            ) {
+              break;
             }
-          });
+            const rect = getRectFromPoints(
+              drawData.creatingObject.startPoint as IPoint,
+              mouse,
+              {
+                width: contentMouse.elementW,
+                height: contentMouse.elementH,
+              },
+            );
+            const promptItem: PromptItem = {
+              type: ESubToolItem.AutoSegmentByBox,
+              isPositive: true,
+              rect,
+            };
+            // const points = getReferencePointsFromRect(rect);
+            // const clicks = points.map((point, index) => {
+            //   return {
+            //     // Only the center point is positive
+            //     isPositive: index === points.length - 1 ? true : false,
+            //     point,
+            //   };
+            // });
+            const prompt = drawData.prompt
+              ? [...drawData.prompt, promptItem]
+              : [promptItem];
+            setDrawDataWithHistory((s) => {
+              // s.segmentationClicks = [...clicks];
+              s.prompt = prompt;
+              s.creatingObject = undefined;
+              s.activeRectWhileLoading = rect;
+            });
+            onAiAnnotation({ ...drawData, prompt }, []);
+            break;
+          }
+          case ESubToolItem.AutoSegmentByClick: {
+            if (!isInCanvas(contentMouse)) break;
+            const promptItem: PromptItem = {
+              type: ESubToolItem.AutoSegmentByClick,
+              isPositive: true,
+              point: mouse,
+            };
+            const prompt = drawData.prompt
+              ? [...drawData.prompt, promptItem]
+              : [promptItem];
+            const click = {
+              isPositive: event.button === 0 ? true : false,
+              point: mouse,
+            };
+            const clicks = drawData.segmentationClicks
+              ? [...drawData.segmentationClicks, click]
+              : [click];
+            setDrawDataWithHistory((s) => {
+              s.segmentationClicks = [...clicks];
+              s.prompt = prompt;
+              s.creatingObject = undefined;
+            });
+            onAiAnnotation(
+              { ...drawData, segmentationClicks: clicks, prompt },
+              [],
+            );
+            break;
+          }
+          case ESubToolItem.AutoSegmentByStroke: {
+            if (!drawData.creatingObject.maskStep) break;
+            const points = drawData.creatingObject.maskStep.points;
+            const { minX, minY, maxX, maxY } = getLimitCoordsFromPoints(points);
+            const rect = getRectFromPoints(
+              { x: minX, y: minY },
+              { x: maxX, y: maxY },
+              {
+                width: contentMouse.elementW,
+                height: contentMouse.elementH,
+              },
+            );
+            const promptItem: PromptItem = {
+              type: ESubToolItem.AutoSegmentByStroke,
+              isPositive: true,
+              stroke: points,
+            };
+            const prompt = drawData.prompt
+              ? [...drawData.prompt, promptItem]
+              : [promptItem];
+            setDrawDataWithHistory((s) => {
+              s.prompt = prompt;
+              s.creatingObject = undefined;
+              s.activeRectWhileLoading = rect;
+            });
+            onAiAnnotation({ ...drawData, prompt }, []);
+            break;
+          }
         }
         break;
       }
@@ -2249,11 +2427,12 @@ const Edit: React.FC<EditProps> = (props) => {
               s.creatingObject.maskStep = undefined;
             } else {
               s.creatingObject = undefined;
-              if (s.AIAnnotation) {
-                s.segmentationClicks = undefined;
-                s.segmentationMask = undefined;
-              }
               s.activeObjectIndex = -1;
+            }
+            if (s.AIAnnotation) {
+              s.segmentationClicks = undefined;
+              s.segmentationMask = undefined;
+              s.activeRectWhileLoading = undefined;
             }
           });
         } else {
@@ -2319,12 +2498,12 @@ const Edit: React.FC<EditProps> = (props) => {
             isSeperate
               ? []
               : [
-                  {
-                    title: localeText('editor.exit'),
-                    icon: <ArrowLeftOutlined />,
-                    onClick: () => onCancelAnnotations(),
-                  },
-                ]
+                {
+                  title: localeText('editor.exit'),
+                  icon: <ArrowLeftOutlined />,
+                  onClick: () => onCancelAnnotations(),
+                },
+              ]
           }
           rightTools={supportActions}
         >

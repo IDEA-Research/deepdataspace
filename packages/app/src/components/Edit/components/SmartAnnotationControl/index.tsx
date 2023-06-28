@@ -99,7 +99,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
 
   const isVisible = useMemo(() => {
     return (
-      drawData.AIAnnotation && drawData.selectedTool !== EBasicToolItem.Drag
+      drawData.AIAnnotation &&
+      ![EBasicToolItem.Drag, EBasicToolItem.Mask].includes(
+        drawData.selectedTool,
+      )
     );
   }, [drawData.selectedTool, drawData.AIAnnotation]);
 
