@@ -612,7 +612,7 @@ const Edit: React.FC<EditProps> = (props) => {
           fillAlpha = ANNO_FILL_ALPHA.ACTIVE;
           strokeAlpha = ANNO_STROKE_ALPHA.ACTIVE;
         } else {
-          if (isDragToolActive && hoverAnyObject && isFocus) {
+          if (hoverAnyObject && isFocus) {
             fillAlpha = ANNO_FILL_ALPHA.FOCUS;
             strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
           } else {
@@ -625,11 +625,7 @@ const Edit: React.FC<EditProps> = (props) => {
           fillAlpha = ANNO_FILL_ALPHA.OTHER;
           strokeAlpha = ANNO_STROKE_ALPHA.OTHER;
         } else {
-          if (
-            hoverAnyObject &&
-            drawData.selectedTool === EBasicToolItem.Drag &&
-            isFocus
-          ) {
+          if (hoverAnyObject && isFocus) {
             fillAlpha = ANNO_FILL_ALPHA.FOCUS;
             strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
           }
@@ -866,7 +862,7 @@ const Edit: React.FC<EditProps> = (props) => {
         ctx.globalAlpha = ANNO_STROKE_ALPHA.NORMAL_MASK;
         if (theDrawData.creatingObject) {
           ctx.globalAlpha = ANNO_STROKE_ALPHA.OTHER;
-        } else if (drawData.selectedTool === EBasicToolItem.Drag && isFocus) {
+        } else if (isFocus) {
           ctx.globalAlpha = ANNO_STROKE_ALPHA.CREATING_MASK;
         }
         drawImage(canvasRef.current!, maskCanvasElement, {
@@ -1964,7 +1960,9 @@ const Edit: React.FC<EditProps> = (props) => {
     }
 
     /** Update hovered instance */
-    updateFocusObjectWhenHover();
+    if (isDragToolActive) {
+      updateFocusObjectWhenHover();
+    }
 
     /** Determine if there is currently a selected instance */
     if (selectedAnyObject) {
@@ -2201,17 +2199,19 @@ const Edit: React.FC<EditProps> = (props) => {
   }, [annotations]);
 
   useEffect(() => {
-    // Active mask will auto change selectedTool
     if (
       drawData.selectedTool === EBasicToolItem.Mask &&
       drawData.creatingObject?.maskCanvasElement
     ) {
+      // Active mask will auto change selectedTool
       return;
     }
     setDrawData((s) => {
-      s.activeObjectIndex = -1;
       if (drawData.creatingObject) {
         s.creatingObject = undefined;
+      }
+      if (drawData.selectedTool !== EBasicToolItem.Drag) {
+        s.activeObjectIndex = -1;
       }
       if (drawData.selectedTool === EBasicToolItem.Mask) {
         s.selectedSubTool = s.AIAnnotation

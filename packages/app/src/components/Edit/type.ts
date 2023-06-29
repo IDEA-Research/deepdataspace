@@ -61,22 +61,22 @@ export interface DrawData {
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
   AIAnnotation: boolean;
+  brushSize: number;
 
   /** drawed */
   objectList: IAnnotationObject[];
   activeClassName: string;
   activeObjectIndex: number;
   creatingObject?: ICreatingObject;
+
+  /** prompt actions */
+  prompt?: PromptItem[];
+  activeRectWhileLoading?: IRect;
   segmentationClicks?: {
     point: IPoint;
     isPositive: boolean;
   }[];
   segmentationMask?: string;
-  brushSize: number;
-
-  /** prompt actions */
-  prompt?: PromptItem[];
-  activeRectWhileLoading?: IRect;
 }
 
 export interface EditState {
