@@ -81,8 +81,7 @@ export default function useCanvasContainer({
 
   const [movingImgAnchor, setMovingImgAnchor] = useImmer<IPoint | null>(null);
 
-  /** Initial position to fit container */
-  useEffect(() => {
+  const initScaleToFitScreen = () => {
     const containerWidth = containerMouse.elementW;
     const containerHeight = containerMouse.elementH;
 
@@ -100,6 +99,11 @@ export default function useCanvasContainer({
       setScale(scale);
       lastScalePosRef.current = undefined;
     }
+  };
+
+  /** Initial position to fit container */
+  useEffect(() => {
+    initScaleToFitScreen();
   }, [naturalSize, containerMouse.elementW, containerMouse.elementH]);
 
   const adaptImagePosWhileZoom = () => {
@@ -183,8 +187,7 @@ export default function useCanvasContainer({
   };
 
   const onReset = () => {
-    lastScalePosRef.current = undefined;
-    setScale(1);
+    initScaleToFitScreen();
   };
 
   // Reset data when hidden.
