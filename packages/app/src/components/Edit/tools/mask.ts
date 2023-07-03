@@ -1,4 +1,4 @@
-import { decode, encode } from '@thi.ng/rle-pack';
+// import { decode, encode } from '@thi.ng/rle-pack';
 import { mockRle } from './mockRle';
 import { hexToRgbArray, hexToRgba } from '@/utils/color';
 import { ICreatingMaskStep, ICreatingObject } from '../type';
@@ -19,6 +19,46 @@ import { ANNO_STROKE_ALPHA } from '../constants/render';
 export const mockMaskAnnotation = {
   categoryName: 'person',
   maskRle: mockRle,
+};
+
+/**
+ * only [0,1] array with rle decode
+ * example:
+ * [2,3,8,1,....] to [0,0,1,1,1,0,0,0,1,0,....]
+ */
+const decodeRle = (arr: number[], length: number) => {
+  const result = new Array(length).fill(0);
+  for (let i = 0; i < arr.length; i += 2) {
+    result.splice(arr[i], arr[i + 1], ...new Array(arr[i + 1]).fill(1));
+  }
+  return result;
+};
+
+/**
+ * only [0,1] array with rle encode
+ * example:
+ * [0,0,1,1,1,0,0,0,1,0,....] to [2,3,8,1,....]
+ */
+const encodeRle = (arr: number[]) => {
+  const result = [];
+  let curLen = 0;
+  arr.forEach((value, index) => {
+    if (curLen !== 0) {
+      if (value === 1) {
+        curLen++;
+      } else {
+        result.push(curLen);
+        curLen = 0;
+      }
+    } else if (value === 1) {
+      result.push(index);
+      curLen = 1;
+    }
+  });
+  if (curLen !== 0) {
+    result.push(curLen);
+  }
+  return result;
 };
 
 export const renderMaskSteps = (
@@ -175,41 +215,6 @@ export const renderMask = (
   }
 };
 
-export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
-  const { width, height } = size;
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  canvas.width = width;
-  canvas.height = height;
-
-  if (!ctx) return null;
-
-  const newdata = ctx.createImageData(width, height);
-  const decoded = decode(rle as unknown as Uint8Array);
-
-  newdata.data.set(decoded, 0);
-
-  const rgb = hexToRgbArray(color);
-
-  for (let i = newdata.data.length / 4; i--; ) {
-    if (newdata.data[i * 4 + 3] > 0) {
-      newdata.data[i * 4] = rgb[0];
-      newdata.data[i * 4 + 1] = rgb[1];
-      newdata.data[i * 4 + 2] = rgb[2];
-      newdata.data[i * 4 + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(newdata, 0, 0);
-  // const newImage = new Image();
-  // newImage.src = canvas.toDataURL();
-  // canvas.remove();
-
-  return canvas;
-};
-
 export const changeMaskCanvasColor = (
   maskCanvas: HTMLCanvasElement,
   color: string,
@@ -294,11 +299,14 @@ export const objectToRle = async (
 
   // Grayscale pixels respecting the opacity
   let maskPixelCount = 0;
+  // custom encode rle
+  const arr = new Array(maskData.data.length / 4).fill(0);
   for (let i = maskData.data.length / 4; i--; ) {
     let maskAplha = 0;
     if (maskData.data[i * 4 + 3] > 0) {
       maskPixelCount++;
       maskAplha = 1;
+      arr[i] = 1;
     }
     maskData.data[i * 4] =
       maskData.data[i * 4 + 1] =
@@ -307,7 +315,52 @@ export const objectToRle = async (
         maskAplha;
   }
 
-  const arr = encode(maskData.data, maskData.data.length);
-  // console.log('>>>> output', maskData, Array.from(arr));
-  return maskPixelCount > 0 ? Array.from(arr) : [];
+  // @thi.ng/rle-pack encode
+  // const arr = encode(maskData.data, maskData.data.length);
+  // return maskPixelCount > 0 ? Array.from(arr) : [];
+
+  console.log('>>>> output', encodeRle(arr));
+  return maskPixelCount > 0 ? encodeRle(arr) : [];
+};
+
+export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
+  const { width, height } = size;
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = width;
+  canvas.height = height;
+
+  if (!ctx) return null;
+
+  const newdata = ctx.createImageData(width, height);
+  const rgb = hexToRgbArray(color);
+
+  // @thi.ng/rle-pack decode
+  // const decoded = decode(rle as unknown as Uint8Array);
+  // newdata.data.set(decoded, 0);
+  // for (let i = newdata.data.length / 4; i--; ) {
+  //   if (newdata.data[i * 4 + 3] > 0) {
+  //     newdata.data[i * 4] = rgb[0];
+  //     newdata.data[i * 4 + 1] = rgb[1];
+  //     newdata.data[i * 4 + 2] = rgb[2];
+  //     newdata.data[i * 4 + 3] = 255;
+  //   }
+  // }
+
+  // custom rle decode
+  const maskArr = decodeRle(rle, Math.ceil(width) * Math.ceil(height));
+  for (let i = newdata.data.length / 4; i--; ) {
+    if (maskArr[i] > 0) {
+      newdata.data[i * 4] = rgb[0];
+      newdata.data[i * 4 + 1] = rgb[1];
+      newdata.data[i * 4 + 2] = rgb[2];
+      newdata.data[i * 4 + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(newdata, 0, 0);
+
+  return canvas;
 };
