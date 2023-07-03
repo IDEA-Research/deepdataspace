@@ -151,7 +151,16 @@ export default {
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
   'editor.toolbar.aiAnno': 'Intelligent Annotate',
   'editor.toolbar.drag': 'Drag / Select Tool',
-  'editor.toolbar.mask': 'Mask Tool',
+  'editor.toolbar.mask': 'Mask',
+  'editor.subtoolbar.mask.penAdd': 'Pen Add',
+  'editor.subtoolbar.mask.penErase': 'Pen Erase',
+  'editor.subtoolbar.mask.brushAdd': 'Brush Add',
+  'editor.subtoolbar.mask.brushErase': 'Brush Erase',
+  'editor.subtoolbar.mask.box': 'Interactive Segmentation - Box Tool',
+  'editor.subtoolbar.mask.click': 'Interactive Segmentation - Click Tool',
+  'editor.subtoolbar.mask.stroke': 'Interactive Segmentation - Brush Tool',
+  'editor.subtoolbar.mask.sam': 'Segment Anything',
+  'editor.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
@@ -164,8 +173,9 @@ export default {
   'editor.toolbar.skeleton.desc':
     'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
   'editor.toolbar.aiAnno.desc':
-    'Activate this mode under any of Rectangle / Polygon / Skeleton tools for auto-generating corresponding annotations.',
-  'editor.toolbar.mask.desc': 'Mask ',
+    'Activate this mode under any of Rectangle / Polygon / Skeleton / Mask tools for auto-generating corresponding annotations.',
+  'editor.toolbar.mask.desc':
+    'Use Pen or Brush tool to draw a pixel-level segmentation.',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
   'editor.annotsEditor.title': 'Annotation Editor',

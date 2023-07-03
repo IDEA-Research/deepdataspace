@@ -13,7 +13,9 @@ import { ReactComponent as DashBoxIcon } from '@/assets/svg/dash-box.svg';
 import { ReactComponent as ClickIcon } from '@/assets/svg/click.svg';
 import { ReactComponent as MagicBrushIcon } from '@/assets/svg/star-stick.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/auto-awesome.svg';
+import { ReactComponent as StrokeIcon } from '@/assets/svg/signature.svg';
 import { getIconFromShortcut } from '../ShortcutsInfo';
+import { useLocale } from '@/locales/helper';
 
 type TToolItem<T> = {
   key: T;
@@ -39,25 +41,27 @@ export const SubToolBar: React.FC<IProps> = ({
   onChangeBrushSize,
   brushSize,
 }) => {
+  const { localeText } = useLocale();
+
   const BasicMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.PenAdd,
-      name: 'Pen Add',
+      name: localeText('editor.subtoolbar.mask.penAdd'),
       icon: <Icon component={PenAddIcon} />,
     },
     {
       key: ESubToolItem.PenErase,
-      name: 'Pen Erase',
+      name: localeText('editor.subtoolbar.mask.penErase'),
       icon: <Icon component={PenEraseIcon} />,
     },
     {
       key: ESubToolItem.BrushAdd,
-      name: 'Brush Add',
+      name: localeText('editor.subtoolbar.mask.brushAdd'),
       icon: <Icon component={BrushAddIcon} />,
     },
     {
       key: ESubToolItem.BrushErase,
-      name: 'Brush Erase',
+      name: localeText('editor.subtoolbar.mask.brushErase'),
       icon: <Icon component={BrushEraseIcon} />,
     },
   ];
@@ -65,27 +69,27 @@ export const SubToolBar: React.FC<IProps> = ({
   const SmartMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.AutoSegmentByBox,
-      name: 'Interactive Segmentation - Box Tool',
+      name: localeText('editor.subtoolbar.mask.box'),
       icon: <Icon component={DashBoxIcon} />,
     },
     {
       key: ESubToolItem.AutoSegmentByClick,
-      name: 'Interactive Segmentation - Point Tool',
+      name: localeText('editor.subtoolbar.mask.click'),
       icon: <Icon component={ClickIcon} />,
     },
     {
       key: ESubToolItem.AutoSegmentByStroke,
-      name: 'Interactive Segmentation - Brush Tool',
-      icon: <Icon component={ClickIcon} />,
+      name: localeText('editor.subtoolbar.mask.stroke'),
+      icon: <Icon component={StrokeIcon} />,
     },
     {
       key: ESubToolItem.AutoSegmentAnything,
-      name: 'Segment Anything',
+      name: localeText('editor.subtoolbar.mask.sam'),
       icon: <Icon component={MagicIcon} />,
     },
     {
       key: ESubToolItem.AutoEdgeStitching,
-      name: 'Edge Stitching Brush',
+      name: localeText('editor.subtoolbar.mask.edgeStitch'),
       icon: <Icon component={MagicBrushIcon} />,
     },
   ];
