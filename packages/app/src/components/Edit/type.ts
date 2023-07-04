@@ -138,5 +138,4 @@ export const DEFAULT_EDIT_STATE: EditState = {
     pointIndex: -1,
     lineIndex: -1,
   },
-  focusMaskCanvasList: undefined,
 };

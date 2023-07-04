@@ -494,135 +494,143 @@ export const judgeFocusOnElement = (
   return { focusEleType, focusEleIndex };
 };
 
+export const judgeFocusOnSingleObject = (
+  clientSize: ISize,
+  mousePoint: IPoint,
+  object: IAnnotationObject,
+): boolean => {
+  if (object.hidden) {
+    return false;
+  }
+
+  switch (object.type) {
+    case EObjectType.Rectangle: {
+      if (
+        object.rect &&
+        isPointInside(
+          expandRect(object.rect, { x: 8, y: 8 }),
+          mousePoint,
+          EElementType.Rect,
+        )
+      ) {
+        return true;
+      }
+      break;
+    }
+    case EObjectType.Polygon: {
+      if (object.polygon) {
+        const { group } = object.polygon!;
+        const isInside = group.some((polygon) =>
+          isPointInside(polygon, mousePoint, EElementType.Polygon),
+        );
+        if (isInside) return true;
+      }
+      break;
+    }
+    case EObjectType.Skeleton: {
+      if (object.keypoints?.points) {
+        const validPoints = object.keypoints?.points.filter(
+          (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
+        );
+        const limitRect = getLimitRectFromPoints(validPoints);
+        const isInside = isPointInside(
+          limitRect,
+          mousePoint,
+          EElementType.Rect,
+        );
+        if (isInside) return true;
+      }
+      if (object.rect) {
+        if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
+          return true;
+        }
+      }
+      break;
+    }
+    case EObjectType.Custom: {
+      if (object.keypoints?.points) {
+        const validPoints = object.keypoints?.points.filter(
+          (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
+        );
+        const limitRect = getLimitRectFromPoints(validPoints);
+        const isInside = isPointInside(
+          limitRect,
+          mousePoint,
+          EElementType.Rect,
+        );
+        if (isInside) {
+          return true;
+        }
+      }
+      if (object.polygon) {
+        const { group } = object.polygon;
+        const isInside = group.some((polygon) =>
+          isPointInside(polygon, mousePoint, EElementType.Polygon),
+        );
+        if (isInside) {
+          return true;
+        }
+      }
+      if (object.rect) {
+        if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
+          return true;
+        }
+      }
+      break;
+    }
+    case EObjectType.Mask: {
+      if (object.maskCanvasElement) {
+        const tempCtx = object.maskCanvasElement.getContext('2d');
+        if (!tempCtx) break;
+
+        // get target pixel data
+        const pixelData = tempCtx.getImageData(
+          (mousePoint.x * object.maskCanvasElement.width) / clientSize.width,
+          (mousePoint.y * object.maskCanvasElement.height) / clientSize.height,
+          1,
+          1,
+        ).data;
+        if (pixelData[3] > 0) {
+          return true;
+        }
+      }
+      break;
+    }
+  }
+  return false;
+};
+
 export const judgeFocusOnObject = (
   clientSize: ISize,
   mouse: CursorState,
+  activeObjectIndex: number,
   objects: IAnnotationObject[],
 ): number => {
-  let focusObjIndex = -1;
-
   if (!isInCanvas(mouse)) {
-    return focusObjIndex;
+    return -1;
+  }
+
+  const mousePoint = {
+    x: mouse.elementX,
+    y: mouse.elementY,
+  };
+
+  // Judge focus on active object.
+  if (
+    objects[activeObjectIndex] &&
+    judgeFocusOnSingleObject(clientSize, mousePoint, objects[activeObjectIndex])
+  ) {
+    return activeObjectIndex;
   }
 
   // Find the topmost instance by searching the objectList in reverse order.
   for (let index = objects.length - 1; index >= 0; index--) {
-    const object = objects[index];
-    if (object.hidden) {
-      continue;
-    }
-
-    const mousePoint = {
-      x: mouse.elementX,
-      y: mouse.elementY,
-    };
-
-    switch (object.type) {
-      case EObjectType.Rectangle: {
-        if (
-          object.rect &&
-          isPointInside(
-            expandRect(object.rect, { x: 8, y: 8 }),
-            mousePoint,
-            EElementType.Rect,
-          )
-        ) {
-          focusObjIndex = index;
-        }
-        break;
-      }
-      case EObjectType.Polygon: {
-        if (object.polygon) {
-          const { group } = object.polygon!;
-          const isInside = group.some((polygon) =>
-            isPointInside(polygon, mousePoint, EElementType.Polygon),
-          );
-          if (isInside) focusObjIndex = index;
-        }
-        break;
-      }
-      case EObjectType.Skeleton: {
-        if (object.keypoints?.points) {
-          const validPoints = object.keypoints?.points.filter(
-            (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
-          );
-          const limitRect = getLimitRectFromPoints(validPoints);
-          const isInside = isPointInside(
-            limitRect,
-            mousePoint,
-            EElementType.Rect,
-          );
-          if (isInside) focusObjIndex = index;
-        }
-        if (object.rect) {
-          if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        break;
-      }
-      case EObjectType.Custom: {
-        if (object.keypoints?.points) {
-          const validPoints = object.keypoints?.points.filter(
-            (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
-          );
-          const limitRect = getLimitRectFromPoints(validPoints);
-          const isInside = isPointInside(
-            limitRect,
-            mousePoint,
-            EElementType.Rect,
-          );
-          if (isInside) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        if (object.polygon) {
-          const { group } = object.polygon;
-          const isInside = group.some((polygon) =>
-            isPointInside(polygon, mousePoint, EElementType.Polygon),
-          );
-          if (isInside) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        if (object.rect) {
-          if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        break;
-      }
-      case EObjectType.Mask: {
-        if (object.maskCanvasElement) {
-          const tempCtx = object.maskCanvasElement.getContext('2d');
-          if (!tempCtx) break;
-
-          // get target pixel data
-          const pixelData = tempCtx.getImageData(
-            (mousePoint.x * object.maskCanvasElement.width) / clientSize.width,
-            (mousePoint.y * object.maskCanvasElement.height) /
-              clientSize.height,
-            1,
-            1,
-          ).data;
-          if (pixelData[3] > 0) {
-            focusObjIndex = index;
-          }
-        }
-        break;
-      }
-    }
-
-    if (focusObjIndex > -1) {
-      return focusObjIndex;
+    if (judgeFocusOnSingleObject(clientSize, mousePoint, objects[index])) {
+      return index;
     }
   }
 
-  return focusObjIndex;
+  return -1;
 };
 
 export enum Direction {

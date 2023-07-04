@@ -14,6 +14,7 @@ import {
   LABELS_STROKE_DASH,
   BODY_TEMPLATE,
   ESubToolItem,
+  EBasicToolTypeMap,
 } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import { useKeyPress } from 'ahooks';
@@ -169,12 +170,6 @@ const Edit: React.FC<EditProps> = (props) => {
     return drawData.selectedTool === EBasicToolItem.Drag;
   }, [drawData.selectedTool]);
 
-  const isAIPoseEstimation = useMemo(() => {
-    return (
-      drawData.AIAnnotation && drawData.selectedTool === EBasicToolItem.Skeleton
-    );
-  }, [drawData.AIAnnotation, drawData.selectedTool]);
-
   const [allowMove, setAllowMove] = useImmer(false);
 
   const {
@@ -300,56 +295,28 @@ const Edit: React.FC<EditProps> = (props) => {
     );
   }, [drawData.objectList, drawData.activeObjectIndex]);
 
-  const hoverSelectedObject = useMemo(() => {
-    return (
-      editState.focusObjectIndex > -1 &&
-      editState.focusObjectIndex === drawData.activeObjectIndex &&
-      drawData.objectList[drawData.activeObjectIndex].type !== EObjectType.Mask
-    );
-  }, [drawData.activeObjectIndex, editState.focusObjectIndex]);
-
-  const updateFocusObjectWhenHover = () => {
-    const focusObjectIndex = judgeFocusOnObject(
-      clientSize,
-      contentMouse,
-      drawData.objectList,
-    );
-    setEditState((s) => {
-      s.focusObjectIndex = focusObjectIndex;
-    });
-  };
-
-  const updateFocusElementInfoWhenHover = (object: IAnnotationObject) => {
-    const { focusEleIndex, focusEleType } = judgeFocusOnElement(
-      contentMouse,
-      object,
-    );
-    setEditState((s) => {
-      s.focusEleIndex = focusEleIndex;
-      s.focusEleType = focusEleType;
-    });
-  };
-
   const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
     setDrawData((s) => {
       s.activeObjectIndex = index;
+      s.creatingObject = {
+        ...drawData.objectList[index],
+        currIndex: undefined,
+        startPoint: undefined,
+        tempMaskSteps: [],
+        maskStep: undefined,
+      };
 
-      // Select to actice Mask
       if (
+        s.selectedTool !== EBasicToolItem.Drag &&
         s.objectList[index] &&
-        s.objectList[index].type === EObjectType.Mask
+        EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
       ) {
-        s.creatingObject = {
-          hidden: false,
-          label: drawData.objectList[index].label,
-          type: EObjectType.Mask,
-          maskStep: undefined,
-          tempMaskSteps: [],
-          maskCanvasElement: drawData.objectList[index].maskCanvasElement,
-        };
-        if (mode === EditorMode.Edit) {
-          s.selectedTool = EBasicToolItem.Mask;
-        }
+        s.selectedTool = EBasicToolItem.Drag;
+      }
+
+      // TODO: support edit mask in drag tool
+      if (s.objectList[index].type === EObjectType.Mask) {
+        s.selectedTool = EBasicToolItem.Mask;
       }
     });
   };
@@ -379,43 +346,185 @@ const Edit: React.FC<EditProps> = (props) => {
     return <></>;
   };
 
-  const updateRender = (updateDrawData?: DrawData) => {
-    if (!visible || !canvasRef.current || !imgRef.current) return;
+  const getColorAlpha = (
+    isActive: boolean,
+    isFocus: boolean,
+    isEditing: boolean,
+  ) => {
+    let fillAlpha = ANNO_FILL_ALPHA.DEFAULT;
+    let strokeAlpha = ANNO_STROKE_ALPHA.DEFAULT;
 
-    resizeSmoothCanvas(canvasRef.current, {
+    if (selectedAnyObject) {
+      if (isActive) {
+        fillAlpha = ANNO_FILL_ALPHA.ACTIVE;
+        strokeAlpha = ANNO_STROKE_ALPHA.ACTIVE;
+      } else {
+        if (hoverAnyObject && isFocus) {
+          fillAlpha = ANNO_FILL_ALPHA.FOCUS;
+          strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
+        } else {
+          fillAlpha = ANNO_FILL_ALPHA.OTHER;
+          strokeAlpha = ANNO_STROKE_ALPHA.OTHER;
+        }
+      }
+    } else {
+      if (isEditing) {
+        fillAlpha = ANNO_FILL_ALPHA.OTHER;
+        strokeAlpha = ANNO_STROKE_ALPHA.OTHER;
+      } else {
+        if (hoverAnyObject && isFocus) {
+          fillAlpha = ANNO_FILL_ALPHA.FOCUS;
+          strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
+        }
+      }
+    }
+    return { fillAlpha, strokeAlpha };
+  };
+
+  const renderRect = (
+    canvas: HTMLCanvasElement,
+    rect: IElement<IRect>,
+    color: string,
+    strokeAlpha: number,
+    fillAlpha: number,
+    isActive: boolean,
+  ) => {
+    drawRect(
+      canvas,
+      rect,
+      hexToRgba(color, strokeAlpha),
+      2,
+      LABELS_STROKE_DASH[0],
+      hexToRgba(color, fillAlpha),
+    );
+    if (isActive) {
+      const handleCenters: IPoint[] = mapRectToAnchors(rect).map(
+        (rectAnchor) => rectAnchor.position,
+      );
+      handleCenters.forEach((center: IPoint) => {
+        const handleRect: IRect = getRectWithCenterAndSize(center, {
+          width: 10,
+          height: 10,
+        });
+        const handleRectBetweenPixels: IRect = setRectBetweenPixels(handleRect);
+        drawRect(
+          canvas,
+          handleRectBetweenPixels,
+          'rgba(0, 0, 0, 0.8)',
+          3,
+          LABELS_STROKE_DASH[0],
+          '#fff',
+        );
+      });
+    }
+  };
+
+  const renderKeypoints = (
+    canvas: HTMLCanvasElement,
+    keypoints: {
+      points: IElement<IPoint>[];
+      lines: number[];
+    },
+    color: string,
+    strokeAlpha: number,
+  ) => {
+    const { lines, points } = keypoints;
+
+    // draw line
+    for (let i = 0; i * 2 < lines.length; i++) {
+      const [index1, index2] = [lines[i * 2], lines[i * 2 + 1]];
+      if (
+        points[index1].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
+        points[index2].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible
+      ) {
+        drawLine(
+          canvas,
+          points[index1],
+          points[index2],
+          hexToRgba(color, strokeAlpha),
+          2,
+          LABELS_STROKE_DASH[0],
+        );
+      }
+    }
+
+    // draw circle
+    points.forEach((point) => {
+      const { x, y, visible, color } = point;
+      const fillColor = changeRgbaOpacity(
+        color || 'rgba(255, 255, 255, 1)',
+        strokeAlpha,
+      );
+      const strokeColor = `rgba(0, 0, 0, ${strokeAlpha})`;
+      if (visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible) {
+        drawCircleWithFill(canvas, { x, y }, 4, fillColor, 2, strokeColor);
+      }
+    });
+  };
+
+  const renderPolygon = (
+    canvas: HTMLCanvasElement,
+    polygon: IElement<IPolygonGroup>,
+    color: string,
+    strokeAlpha: number,
+    fillAlpha: number,
+  ) => {
+    if (polygon && polygon.visible) {
+      polygon?.group.forEach((polygon) => {
+        drawPolygonWithFill(
+          canvas,
+          polygon,
+          hexToRgba(color, fillAlpha),
+          hexToRgba(color, strokeAlpha),
+          2,
+          LABELS_STROKE_DASH[0],
+        );
+      });
+    }
+  };
+
+  const updateCreatingObjectRender = (updateDrawData?: DrawData) => {
+    if (!visible || !maskCanvasRef.current || !imgRef.current) return;
+
+    resizeSmoothCanvas(maskCanvasRef.current, {
       width: containerMouse.elementW,
       height: containerMouse.elementH,
     });
-    canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-    clearCanvas(canvasRef.current);
-
-    if (maskCanvasRef.current) {
-      resizeSmoothCanvas(maskCanvasRef.current, {
-        width: containerMouse.elementW,
-        height: containerMouse.elementH,
-      });
-      maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-      clearCanvas(maskCanvasRef.current);
-    }
-
-    drawImage(canvasRef.current, imgRef.current, {
-      x: imagePos.current.x,
-      y: imagePos.current.y,
-      width: clientSize.width,
-      height: clientSize.height,
-    });
+    maskCanvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+    clearCanvas(maskCanvasRef.current);
 
     const theDrawData = updateDrawData || drawData;
+    if (!theDrawData.creatingObject) return;
 
     // draw currently annotated objects
-    if (theDrawData.creatingObject) {
-      const strokeColor = ANNO_STROKE_COLOR.CREATING;
-      const fillColor = ANNO_FILL_COLOR.CREATING;
-      switch (theDrawData.creatingObject.type) {
-        case EObjectType.Rectangle: {
-          const { startPoint } = theDrawData.creatingObject;
+    const canvasCoordObject = translateAnnotCoord(theDrawData.creatingObject, {
+      x: -imagePos.current.x,
+      y: -imagePos.current.y,
+    });
+    const { rect, keypoints, label } = canvasCoordObject;
+
+    // styles
+    const color = labelColors[label] || '#fff';
+    const strokeColor = ANNO_STROKE_COLOR.CREATING;
+    const fillColor = ANNO_FILL_COLOR.CREATING;
+
+    // status
+    const isActive = theDrawData.activeObjectIndex > -1;
+    const isFocus =
+      editState.focusObjectIndex === theDrawData.activeObjectIndex;
+    const { fillAlpha, strokeAlpha } = getColorAlpha(
+      isActive,
+      isFocus,
+      !!theDrawData.creatingObject,
+    );
+
+    switch (theDrawData.creatingObject.type) {
+      case EObjectType.Rectangle: {
+        const { startPoint } = theDrawData.creatingObject;
+        if (startPoint) {
+          // creating
           const rect = getRectFromPoints(
-            startPoint!,
+            startPoint,
             {
               x: contentMouse.elementX,
               y: contentMouse.elementY,
@@ -430,34 +539,44 @@ const Edit: React.FC<EditProps> = (props) => {
             y: -imagePos.current.y,
           });
           drawRect(
-            canvasRef.current,
+            maskCanvasRef.current,
             canvasCoordRect,
             strokeColor,
             2,
             LABELS_STROKE_DASH[0],
             fillColor,
           );
-          break;
+        } else if (rect && rect.visible) {
+          // editing
+          renderRect(
+            maskCanvasRef.current!,
+            rect,
+            color,
+            strokeAlpha,
+            fillAlpha,
+            isActive,
+          );
         }
-        case EObjectType.Polygon: {
-          // draw unfinished points and lines
-          const { currIndex } = theDrawData.creatingObject;
-          const annotObject = translateAnnotCoord(theDrawData.creatingObject, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          const { polygon } = annotObject;
-          if (polygon) {
-            const innerPolygonIdx = getInnerPolygonIndexFromGroup(
-              polygon.group,
-            );
-
+        break;
+      }
+      case EObjectType.Polygon: {
+        // draw unfinished points and lines
+        const { currIndex } = theDrawData.creatingObject;
+        const annotObject = translateAnnotCoord(theDrawData.creatingObject, {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        });
+        const { polygon } = annotObject;
+        if (polygon && polygon.visible) {
+          const innerPolygonIdx = getInnerPolygonIndexFromGroup(polygon.group);
+          if (theDrawData.activeObjectIndex < 0) {
+            // draw creating polygon
             polygon.group.forEach((polygon, polygonIdx) => {
               if (currIndex === polygonIdx) {
                 polygon.forEach((point, pointIdx) => {
                   // draw points
                   drawCircleWithFill(
-                    canvasRef.current!,
+                    maskCanvasRef.current!,
                     point,
                     pointIdx === 0 ? 6 : 4,
                     strokeColor,
@@ -467,7 +586,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   // draw lines
                   if (polygon.length > 1 && pointIdx < polygon.length - 1) {
                     drawLine(
-                      canvasRef.current!,
+                      maskCanvasRef.current!,
                       polygon[pointIdx],
                       polygon[pointIdx + 1],
                       hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
@@ -476,7 +595,7 @@ const Edit: React.FC<EditProps> = (props) => {
                     );
                   } else if (pointIdx === polygon.length - 1) {
                     drawLine(
-                      canvasRef.current!,
+                      maskCanvasRef.current!,
                       polygon[pointIdx],
                       {
                         x: containerMouse.elementX,
@@ -491,7 +610,7 @@ const Edit: React.FC<EditProps> = (props) => {
               } else {
                 if (!innerPolygonIdx.includes(polygonIdx)) {
                   drawPolygonWithFill(
-                    canvasRef.current,
+                    maskCanvasRef.current,
                     polygon,
                     hexToRgba('#1f4dd8', 0.5),
                     '#1f4dd8',
@@ -503,7 +622,7 @@ const Edit: React.FC<EditProps> = (props) => {
             });
             innerPolygonIdx.forEach((index) => {
               drawPolygonWithFill(
-                canvasRef.current,
+                maskCanvasRef.current,
                 polygon.group[index],
                 'rgba(255, 255, 255, 0.8)',
                 '#1f4dd8',
@@ -511,11 +630,98 @@ const Edit: React.FC<EditProps> = (props) => {
                 LABELS_STROKE_DASH[0],
               );
             });
+          } else {
+            // draw editing polygon
+            const isFocusOnPolygon =
+              isFocus &&
+              editState.focusEleType === EElementType.Polygon &&
+              editState.focusEleIndex === 0;
+
+            polygon.group.forEach((polygon, index) => {
+              if (!innerPolygonIdx.includes(index)) {
+                const fillColor = isFocusOnPolygon
+                  ? hexToRgba(color, 0.2)
+                  : 'transparent';
+                drawPolygonWithFill(
+                  maskCanvasRef.current,
+                  polygon,
+                  fillColor,
+                  hexToRgba(color, strokeAlpha),
+                  2,
+                  LABELS_STROKE_DASH[0],
+                );
+              }
+            });
+
+            innerPolygonIdx.forEach((index) => {
+              const fillColor = isFocusOnPolygon
+                ? 'rgba(255, 255, 255, 0.8)'
+                : 'transparent';
+              drawPolygonWithFill(
+                maskCanvasRef.current,
+                polygon.group[index],
+                fillColor,
+                hexToRgba(color, strokeAlpha),
+                2,
+                LABELS_STROKE_DASH[0],
+              );
+            });
+
+            // draw points when actived
+            if (isActive) {
+              polygon.group.forEach((points) => {
+                points.forEach((point) => {
+                  drawCircleWithFill(
+                    maskCanvasRef.current!,
+                    point,
+                    4,
+                    color,
+                    2,
+                    '#fff',
+                  );
+                });
+              });
+            }
+
+            // drawHighlight point when foucs
+            const { index, pointIndex, lineIndex } = editState.focusPolygonInfo;
+            if (isActive && index > -1 && pointIndex > -1) {
+              const focusPoint = polygon.group[index][pointIndex];
+              if (focusPoint) {
+                drawCircleWithFill(
+                  maskCanvasRef.current!,
+                  focusPoint,
+                  4,
+                  '#fff',
+                  5,
+                  color,
+                );
+              }
+            } else if (isActive && index > -1 && lineIndex > -1) {
+              const lines = getLinesFromPolygon(polygon.group[index]);
+              if (lines[lineIndex]) {
+                const { start, end } = lines[lineIndex];
+                const midPoint = getMidPointFromTwoPoints(start, end);
+                if (midPoint) {
+                  drawCircleWithFill(
+                    maskCanvasRef.current!,
+                    midPoint,
+                    4,
+                    '#fff',
+                    5,
+                    color,
+                  );
+                }
+              }
+            }
           }
-          break;
         }
-        case EObjectType.Skeleton: {
-          const { startPoint } = theDrawData.creatingObject;
+        break;
+      }
+      case EObjectType.Skeleton: {
+        const { startPoint } = theDrawData.creatingObject;
+        if (startPoint) {
+          // creating
           const rect = getRectFromPoints(
             startPoint!,
             {
@@ -545,12 +751,12 @@ const Edit: React.FC<EditProps> = (props) => {
           );
 
           // draw rect
-          drawRect(canvasRef.current, canvasCoordRect, strokeColor, 2);
+          drawRect(maskCanvasRef.current, canvasCoordRect, strokeColor, 2);
 
           // draw circles
           updatedKeypoints.forEach((p) => {
             drawCircleWithFill(
-              canvasRef.current!,
+              maskCanvasRef.current!,
               { x: p.x, y: p.y },
               4,
               strokeColor,
@@ -563,7 +769,7 @@ const Edit: React.FC<EditProps> = (props) => {
           for (let i = 0; i * 2 < lines.length; i++) {
             const [index1, index2] = [lines[i * 2], lines[i * 2 + 1]];
             drawLine(
-              canvasRef.current!,
+              maskCanvasRef.current!,
               updatedKeypoints[index1],
               updatedKeypoints[index2],
               strokeColor,
@@ -571,288 +777,135 @@ const Edit: React.FC<EditProps> = (props) => {
               LABELS_STROKE_DASH[0],
             );
           }
-          break;
-        }
-        case EObjectType.Mask: {
-          const color =
-            theDrawData.activeObjectIndex >= 0
-              ? labelColors[theDrawData.creatingObject.label]
-              : strokeColor;
-          if (maskCanvasRef.current)
-            renderMask(
-              maskCanvasRef.current,
-              theDrawData.creatingObject,
-              imagePos.current,
+        } else if (keypoints) {
+          // editing
+          renderKeypoints(
+            maskCanvasRef.current!,
+            keypoints,
+            color,
+            strokeAlpha,
+          );
+
+          // draw hightlight circle
+          if (
+            isFocus &&
+            editState.focusEleType === EElementType.Circle &&
+            keypoints.points[editState.focusEleIndex]
+          ) {
+            const { x, y, visible, color } =
+              keypoints.points[editState.focusEleIndex];
+            if (visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible) {
+              drawCircleWithFill(
+                maskCanvasRef.current!,
+                { x, y },
+                4,
+                color,
+                5,
+                '#fff',
+              );
+            }
+          }
+          if (rect && rect.visible) {
+            // editing
+            renderRect(
+              maskCanvasRef.current!,
+              rect,
               color,
-              {
-                x: containerMouse.elementX,
-                y: containerMouse.elementY,
-              },
-              clientSize,
-              naturalSize,
+              strokeAlpha,
+              fillAlpha,
+              isActive,
             );
-          break;
+          }
         }
-        default:
-          break;
+
+        break;
       }
+      case EObjectType.Mask: {
+        renderMask(
+          maskCanvasRef.current,
+          theDrawData.creatingObject,
+          imagePos.current,
+          color,
+          {
+            x: containerMouse.elementX,
+            y: containerMouse.elementY,
+          },
+          clientSize,
+          naturalSize,
+        );
+        break;
+      }
+      default:
+        break;
     }
+  };
+
+  const updateRender = (updateDrawData?: DrawData) => {
+    if (!visible || !canvasRef.current || !imgRef.current) return;
+
+    resizeSmoothCanvas(canvasRef.current, {
+      width: containerMouse.elementW,
+      height: containerMouse.elementH,
+    });
+    canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+    clearCanvas(canvasRef.current);
+
+    drawImage(canvasRef.current, imgRef.current, {
+      x: imagePos.current.x,
+      y: imagePos.current.y,
+      width: clientSize.width,
+      height: clientSize.height,
+    });
+
+    const theDrawData = updateDrawData || drawData;
 
     // draw esisting objects
     theDrawData.objectList.forEach((obj, index) => {
-      if (obj.hidden) return;
+      if (obj.hidden || index === theDrawData.activeObjectIndex) return;
 
       const isActive = drawData.activeObjectIndex === index;
       const isFocus = editState.focusObjectIndex === index;
-
-      let fillAlpha = ANNO_FILL_ALPHA.DEFAULT;
-      let strokeAlpha = ANNO_STROKE_ALPHA.DEFAULT;
-
-      if (selectedAnyObject) {
-        if (isActive) {
-          fillAlpha = ANNO_FILL_ALPHA.ACTIVE;
-          strokeAlpha = ANNO_STROKE_ALPHA.ACTIVE;
-        } else {
-          if (hoverAnyObject && isFocus) {
-            fillAlpha = ANNO_FILL_ALPHA.FOCUS;
-            strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
-          } else {
-            fillAlpha = ANNO_FILL_ALPHA.OTHER;
-            strokeAlpha = ANNO_STROKE_ALPHA.OTHER;
-          }
-        }
-      } else {
-        if (theDrawData.creatingObject) {
-          fillAlpha = ANNO_FILL_ALPHA.OTHER;
-          strokeAlpha = ANNO_STROKE_ALPHA.OTHER;
-        } else {
-          if (hoverAnyObject && isFocus) {
-            fillAlpha = ANNO_FILL_ALPHA.FOCUS;
-            strokeAlpha = ANNO_STROKE_ALPHA.FOCUS;
-          }
-        }
-      }
+      const { fillAlpha, strokeAlpha } = getColorAlpha(
+        isActive,
+        isFocus,
+        !!theDrawData.creatingObject,
+      );
 
       const canvasCoordObject = translateAnnotCoord(obj, {
         x: -imagePos.current.x,
         y: -imagePos.current.y,
       });
 
-      const { rect, keypoints, polygon, maskCanvasElement, label, type } =
+      const { rect, keypoints, polygon, maskCanvasElement, label } =
         canvasCoordObject;
-
-      switch (type) {
-        case EObjectType.Custom:
-        case EObjectType.Skeleton:
-        case EObjectType.Rectangle: {
-          if (rect && rect.visible) {
-            const color = labelColors[label] || '#fff';
-            drawRect(
-              canvasRef.current,
-              rect,
-              hexToRgba(color, strokeAlpha),
-              2,
-              LABELS_STROKE_DASH[0],
-              hexToRgba(color, fillAlpha),
-            );
-          }
-          break;
-        }
-        case EObjectType.Polygon: {
-          const color = labelColors[label] || '#fff';
-          if (polygon && polygon.visible) {
-            polygon?.group.forEach((polygon) => {
-              drawPolygonWithFill(
-                canvasRef.current,
-                polygon,
-                hexToRgba(color, fillAlpha),
-                hexToRgba(color, strokeAlpha),
-                2,
-                LABELS_STROKE_DASH[0],
-              );
-            });
-          }
-          break;
-        }
-        default:
-          break;
-      }
+      const color = labelColors[label] || '#fff';
 
       // draw rect
       if (rect && rect.visible) {
-        if (isActive) {
-          const handleCenters: IPoint[] = mapRectToAnchors(rect).map(
-            (rectAnchor) => rectAnchor.position,
-          );
-          handleCenters.forEach((center: IPoint) => {
-            const handleRect: IRect = getRectWithCenterAndSize(center, {
-              width: 10,
-              height: 10,
-            });
-            const handleRectBetweenPixels: IRect =
-              setRectBetweenPixels(handleRect);
-            drawRect(
-              canvasRef.current,
-              handleRectBetweenPixels,
-              'rgba(0, 0, 0, 0.8)',
-              3,
-              LABELS_STROKE_DASH[0],
-              '#fff',
-            );
-          });
-        }
+        renderRect(
+          canvasRef.current!,
+          rect,
+          color,
+          strokeAlpha,
+          fillAlpha,
+          isActive,
+        );
       }
 
       // draw keypoints
       if (keypoints) {
-        const color = labelColors[label] || '#fff';
-        const { lines, points } = keypoints;
-
-        // draw line
-        for (let i = 0; i * 2 < lines.length; i++) {
-          const [index1, index2] = [lines[i * 2], lines[i * 2 + 1]];
-          if (
-            points[index1].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
-            points[index2].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible
-          ) {
-            drawLine(
-              canvasRef.current!,
-              points[index1],
-              points[index2],
-              hexToRgba(color, strokeAlpha),
-              2,
-              LABELS_STROKE_DASH[0],
-            );
-          }
-        }
-
-        // draw circle
-        points.forEach((point) => {
-          const { x, y, visible, color } = point;
-          const fillColor = changeRgbaOpacity(
-            color || 'rgba(255, 255, 255, 1)',
-            strokeAlpha,
-          );
-          const strokeColor = `rgba(0, 0, 0, ${strokeAlpha})`;
-          if (visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible) {
-            drawCircleWithFill(
-              canvasRef.current!,
-              { x, y },
-              4,
-              fillColor,
-              2,
-              strokeColor,
-            );
-          }
-        });
-
-        // draw hightlight circle
-        if (
-          isFocus &&
-          editState.focusEleType === EElementType.Circle &&
-          keypoints.points[editState.focusEleIndex]
-        ) {
-          const { x, y, visible, color } =
-            keypoints.points[editState.focusEleIndex];
-          if (visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible) {
-            drawCircleWithFill(
-              canvasRef.current!,
-              { x, y },
-              4,
-              color,
-              5,
-              '#fff',
-            );
-          }
-        }
+        renderKeypoints(canvasRef.current!, keypoints, color, strokeAlpha);
       }
 
       // draw polygon
       if (polygon && polygon.visible) {
-        const isFocusOnPolygon =
-          isFocus &&
-          editState.focusEleType === EElementType.Polygon &&
-          editState.focusEleIndex === 0;
-        const labelColor = labelColors[label] || '#fff';
-        const innerPolygonIdx = getInnerPolygonIndexFromGroup(polygon.group);
-
-        polygon.group.forEach((polygon, index) => {
-          if (!innerPolygonIdx.includes(index)) {
-            const fillColor = isFocusOnPolygon
-              ? hexToRgba(labelColor, 0.2)
-              : 'transparent';
-            drawPolygonWithFill(
-              canvasRef.current,
-              polygon,
-              fillColor,
-              hexToRgba(labelColor, strokeAlpha),
-              2,
-              LABELS_STROKE_DASH[0],
-            );
-          }
-        });
-
-        innerPolygonIdx.forEach((index) => {
-          const fillColor = isFocusOnPolygon
-            ? 'rgba(255, 255, 255, 0.8)'
-            : 'transparent';
-          drawPolygonWithFill(
-            canvasRef.current,
-            polygon.group[index],
-            fillColor,
-            hexToRgba(labelColor, strokeAlpha),
-            2,
-            LABELS_STROKE_DASH[0],
-          );
-        });
-
-        // draw points when actived
-        if (isActive) {
-          polygon.group.forEach((points) => {
-            points.forEach((point) => {
-              drawCircleWithFill(
-                canvasRef.current!,
-                point,
-                4,
-                labelColor,
-                2,
-                '#fff',
-              );
-            });
-          });
-        }
-
-        // drawHighlight point when foucs
-        const { index, pointIndex, lineIndex } = editState.focusPolygonInfo;
-        if (isActive && index > -1 && pointIndex > -1) {
-          const focusPoint = polygon.group[index][pointIndex];
-          if (focusPoint) {
-            drawCircleWithFill(
-              canvasRef.current!,
-              focusPoint,
-              4,
-              '#fff',
-              5,
-              labelColor,
-            );
-          }
-        } else if (isActive && index > -1 && lineIndex > -1) {
-          const lines = getLinesFromPolygon(polygon.group[index]);
-          if (lines[lineIndex]) {
-            const { start, end } = lines[lineIndex];
-            const midPoint = getMidPointFromTwoPoints(start, end);
-            if (midPoint) {
-              drawCircleWithFill(
-                canvasRef.current!,
-                midPoint,
-                4,
-                '#fff',
-                5,
-                labelColor,
-              );
-            }
-          }
-        }
+        renderPolygon(
+          canvasRef.current!,
+          polygon,
+          color,
+          strokeAlpha,
+          fillAlpha,
+        );
       }
 
       // draw mask
@@ -906,6 +959,9 @@ const Edit: React.FC<EditProps> = (props) => {
       );
       shadeEverythingButRect(maskCanvasRef.current!, canvasCoordRect);
     }
+
+    // draw creating object
+    updateCreatingObjectRender(updateDrawData);
   };
 
   /** =================================================================================================================
@@ -942,45 +998,45 @@ const Edit: React.FC<EditProps> = (props) => {
     [maskCanvasRef.current],
   );
 
-  const updateMouseWhenHoverObject = () => {
+  const updateMouseWhenMouseMove = () => {
     if (editState.focusObjectIndex > -1) {
-      updateMouseCursor('pointer');
+      switch (editState.focusEleType) {
+        case EElementType.Rect: {
+          if (drawData.activeObjectIndex > -1) {
+            const { rect } = drawData.objectList[drawData.activeObjectIndex];
+            if (rect) {
+              const anchorUnderMouse = getAnchorUnderMouseByRect(rect!, {
+                x: contentMouse.elementX,
+                y: contentMouse.elementY,
+              });
+              // focus on the resize point
+              if (anchorUnderMouse) {
+                updateMouseCursor('resize', anchorUnderMouse.type);
+              } else {
+                updateMouseCursor('move');
+              }
+            }
+          }
+          break;
+        }
+        case EElementType.Polygon: {
+          updateMouseCursor('pointer');
+          break;
+        }
+        case EElementType.Circle: {
+          updateMouseCursor('pointer');
+          break;
+        }
+        default: {
+          updateMouseCursor('pointer');
+          break;
+        }
+      }
+    } else if (!isDragToolActive) {
+      updateMouseCursor('crosshair');
     } else {
       updateMouseCursor('grab');
     }
-  };
-
-  const updateMouseWhenHoverElement = (focusEleType: EElementType) => {
-    switch (focusEleType) {
-      case EElementType.Rect: {
-        const { rect } = drawData.objectList[drawData.activeObjectIndex];
-        if (rect) {
-          const anchorUnderMouse = getAnchorUnderMouseByRect(rect!, {
-            x: contentMouse.elementX,
-            y: contentMouse.elementY,
-          });
-          // focus on the resize point
-          if (anchorUnderMouse) {
-            updateMouseCursor('resize', anchorUnderMouse.type);
-          } else {
-            updateMouseCursor('move');
-          }
-        }
-        break;
-      }
-      case EElementType.Polygon: {
-        updateMouseCursor('pointer');
-        break;
-      }
-      case EElementType.Circle: {
-        updateMouseCursor('pointer');
-        break;
-      }
-    }
-  };
-
-  const updateMouseWhenCreating = () => {
-    updateMouseCursor('crosshair');
   };
 
   useEffect(() => {
@@ -1014,6 +1070,16 @@ const Edit: React.FC<EditProps> = (props) => {
       label: editState.latestLabel || categories[0].name,
     };
     switch (drawData.selectedTool) {
+      case EBasicToolItem.Rectangle: {
+        setDrawData((s) => {
+          s.creatingObject = {
+            type: EObjectType.Rectangle,
+            startPoint: point,
+            ...basic,
+          };
+        });
+        break;
+      }
       case EBasicToolItem.Polygon: {
         setDrawData((s) => {
           if (s.AIAnnotation) {
@@ -1041,16 +1107,6 @@ const Edit: React.FC<EditProps> = (props) => {
               }),
             );
           }
-        });
-        break;
-      }
-      case EBasicToolItem.Rectangle: {
-        setDrawData((s) => {
-          s.creatingObject = {
-            type: EObjectType.Rectangle,
-            startPoint: point,
-            ...basic,
-          };
         });
         break;
       }
@@ -1117,117 +1173,6 @@ const Edit: React.FC<EditProps> = (props) => {
     }
   };
 
-  const updateCreatingWhenMouseDown = () => {
-    if (!isInCanvas(contentMouse)) return;
-
-    /** Edit instance being created */
-    const mouse = {
-      x: contentMouse.elementX,
-      y: contentMouse.elementY,
-    };
-    switch (drawData.selectedTool) {
-      case EBasicToolItem.Polygon: {
-        setDrawData((s) => {
-          if (s.creatingObject) {
-            if (drawData.AIAnnotation) {
-            } else {
-              const currIndex = s.creatingObject.currIndex as number;
-              const polygon = s.creatingObject
-                .polygon as IElement<IPolygonGroup>;
-              if (currIndex > -1) {
-                const startPoint = polygon.group[currIndex][0];
-                // finish creating polygon when click on startpoint
-                if (isPointOnPoint(startPoint, contentMouse)) {
-                  s.creatingObject.currIndex = -1;
-                } else if (s.creatingObject.polygon) {
-                  polygon.group[currIndex].push(mouse);
-                  updateHistory(
-                    cloneDeep({
-                      drawData: s,
-                      clientSize,
-                    }),
-                  );
-                }
-              } else {
-                polygon.group.push([mouse]);
-                s.creatingObject.currIndex = polygon.group.length - 1;
-                updateHistory(
-                  cloneDeep({
-                    drawData: s,
-                    clientSize,
-                  }),
-                );
-              }
-            }
-          }
-        });
-        break;
-      }
-      case EBasicToolItem.Mask: {
-        if (
-          ![
-            ESubToolItem.BrushAdd,
-            ESubToolItem.BrushErase,
-            ESubToolItem.PenAdd,
-            ESubToolItem.PenErase,
-          ].includes(drawData.selectedSubTool)
-        )
-          break;
-        setDrawData((s) => {
-          if (s.creatingObject) {
-            if (s.creatingObject.maskStep) {
-              // add points for currently path
-              s.creatingObject.maskStep.points.push(mouse);
-              // judege to close path
-              if (
-                [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
-                  s.selectedSubTool,
-                ) &&
-                isPointOnPoint(
-                  s.creatingObject.maskStep.points[0],
-                  contentMouse,
-                )
-              ) {
-                s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
-                s.creatingObject.maskStep = undefined;
-              }
-            } else {
-              // init new step for creating points
-              s.creatingObject.maskStep = {
-                tool: s.selectedSubTool,
-                positive:
-                  s.selectedSubTool === ESubToolItem.PenAdd ||
-                  s.selectedSubTool === ESubToolItem.BrushAdd,
-                points: [mouse],
-                radius: s.brushSize,
-              };
-            }
-            if (
-              ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-                s.selectedSubTool,
-              )
-            ) {
-              // Brush tool need not push history when mousedown
-              updateHistory(
-                cloneDeep({
-                  drawData: s,
-                  clientSize,
-                }),
-              );
-            }
-          }
-        });
-        break;
-      }
-      case EBasicToolItem.Rectangle: {
-        break;
-      }
-      case EBasicToolItem.Skeleton: {
-        break;
-      }
-    }
-  };
-
   const updateCreatingWhenMouseMove = (
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
@@ -1251,9 +1196,11 @@ const Edit: React.FC<EditProps> = (props) => {
             });
           }
         });
+        updateRender();
+        return true;
       }
-      updateRender();
     }
+    return false;
   };
 
   const finishCreatingWhenMouseUp = (
@@ -1566,109 +1513,8 @@ const Edit: React.FC<EditProps> = (props) => {
   // Logics For Editing Exsiting Annotations
   // =================================================================================================================
 
-  const startEditingWhenMouseDown = () => {
-    const focusObjIndex = judgeFocusOnObject(
-      clientSize,
-      contentMouse,
-      drawData.objectList,
-    );
-    if (drawData.objectList[focusObjIndex]) {
-      const { focusEleIndex, focusEleType } = judgeFocusOnElement(
-        contentMouse,
-        drawData.objectList[focusObjIndex],
-      );
-      setEditState((s) => {
-        switch (focusEleType) {
-          case EElementType.Rect: {
-            const { rect } = drawData.objectList[focusObjIndex];
-            if (rect) {
-              const anchorUnderMouse = getAnchorUnderMouseByRect(rect, {
-                x: contentMouse.elementX,
-                y: contentMouse.elementY,
-              });
-              if (anchorUnderMouse) {
-                // resize
-                s.startRectResizeAnchor = {
-                  type: anchorUnderMouse.type,
-                  position: getAnchorFixRectPoint(rect, anchorUnderMouse.type),
-                };
-              } else {
-                // move
-                s.startElementMovePoint = {
-                  topLeftPoint: {
-                    x: rect.x,
-                    y: rect.y,
-                  },
-                  mousePoint: {
-                    x: contentMouse.elementX,
-                    y: contentMouse.elementY,
-                  },
-                };
-              }
-            }
-            break;
-          }
-          case EElementType.Circle: {
-            // move circle
-            const { keypoints } = drawData.objectList[focusObjIndex];
-            if (keypoints) {
-              const point = keypoints.points[focusEleIndex];
-              s.startElementMovePoint = {
-                topLeftPoint: {
-                  x: point.x,
-                  y: point.y,
-                },
-                mousePoint: {
-                  x: contentMouse.elementX,
-                  y: contentMouse.elementY,
-                },
-              };
-            }
-            break;
-          }
-          case EElementType.Polygon: {
-            const { polygon } = drawData.objectList[focusObjIndex];
-            const { lineIndex, index } = s.focusPolygonInfo;
-            if (polygon) {
-              // move
-              s.startElementMovePoint = {
-                topLeftPoint: {
-                  x: 0,
-                  y: 0,
-                },
-                mousePoint: {
-                  x: contentMouse.elementX,
-                  y: contentMouse.elementY,
-                },
-                initPoint: {
-                  x: contentMouse.elementX,
-                  y: contentMouse.elementY,
-                },
-              };
-
-              // add point
-              if (lineIndex > -1) {
-                const line = getLinesFromPolygon(polygon.group[index])[
-                  lineIndex
-                ];
-                if (line) {
-                  const midPoint = getMidPointFromTwoPoints(
-                    line.start,
-                    line.end,
-                  );
-                  polygon.group[index].splice(lineIndex + 1, 0, midPoint);
-                }
-              }
-            }
-            break;
-          }
-        }
-      });
-    }
-  };
-
   const updateEditingWhenMouseMove = () => {
-    let exit = true;
+    if (drawData.activeObjectIndex < 0) return false;
     const { focusEleIndex, focusEleType, startRectResizeAnchor } = editState;
     if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
       // resize rectangle
@@ -1689,8 +1535,9 @@ const Edit: React.FC<EditProps> = (props) => {
             );
             activeObject.rect = { ...activeObject.rect, ...newRect };
           }
+          s.creatingObject = { ...activeObject };
         });
-        return exit;
+        return true;
       }
       // move rectangle
       if (editState.startElementMovePoint) {
@@ -1710,8 +1557,9 @@ const Edit: React.FC<EditProps> = (props) => {
             );
             activeObject.rect = { ...activeObject.rect, ...newRect };
           }
+          s.creatingObject = { ...activeObject };
         });
-        return exit;
+        return true;
       }
     } else if (focusEleType === EElementType.Circle) {
       // move point
@@ -1731,8 +1579,9 @@ const Edit: React.FC<EditProps> = (props) => {
             point.x = newX;
             point.y = newY;
           }
+          s.creatingObject = { ...activeObject };
         });
-        return exit;
+        return true;
       }
     } else if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
       const { index, pointIndex } = editState.focusPolygonInfo;
@@ -1751,8 +1600,9 @@ const Edit: React.FC<EditProps> = (props) => {
               const polygon = activeObject?.polygon?.group[index];
               polygon[pointIndex] = movePoint(contentMouse);
             }
+            s.creatingObject = { ...activeObject };
           });
-          return exit;
+          return true;
         } else {
           // move polygon
           setDrawData((s) => {
@@ -1770,6 +1620,14 @@ const Edit: React.FC<EditProps> = (props) => {
                 contentMouse,
               );
               activeObject.polygon.group[index] = newPolygon;
+              // console.log(
+              //   '>>> move polygon',
+              //   editState.startElementMovePoint.mousePoint,
+              //   'to', {
+              //     x: contentMouse.elementX,
+              //     y: contentMouse.elementY,
+              //   }
+              // );
               setEditState((s) => {
                 if (s.startElementMovePoint)
                   s.startElementMovePoint.mousePoint = {
@@ -1778,13 +1636,14 @@ const Edit: React.FC<EditProps> = (props) => {
                   };
               });
             }
+            s.creatingObject = { ...activeObject };
           });
 
-          return exit;
+          return true;
         }
       }
     }
-    return !exit;
+    return false;
   };
 
   const finishEditingWhenMouseUp = () => {
@@ -1887,12 +1746,12 @@ const Edit: React.FC<EditProps> = (props) => {
           maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
           conf: 1,
         };
-        if (drawData.activeObjectIndex < 0) {
-          // add mask object
-          addObject(newObject, true);
-        } else {
+        if (drawData.activeObjectIndex > -1) {
           // edit mask object
           updateObject(newObject, drawData.activeObjectIndex);
+        } else {
+          // add mask object
+          addObject(newObject, true);
         }
         setDrawData((s) => {
           s.creatingObject = undefined;
@@ -1925,89 +1784,324 @@ const Edit: React.FC<EditProps> = (props) => {
   // Register Mouse Event
   // =================================================================================================================
 
+  const judgeToEditObjectWhenMouseDown = () => {
+    if (
+      !visible ||
+      allowMove ||
+      isRequiring ||
+      !drawData.creatingObject ||
+      !isInCanvas(contentMouse)
+    ) {
+      return false;
+    }
+
+    /** Edit instance being created */
+    const mouse = {
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    };
+    switch (drawData.creatingObject.type) {
+      case EObjectType.Mask: {
+        if (
+          ![
+            ESubToolItem.BrushAdd,
+            ESubToolItem.BrushErase,
+            ESubToolItem.PenAdd,
+            ESubToolItem.PenErase,
+          ].includes(drawData.selectedSubTool)
+        )
+          break;
+        // Mask creating/editing
+        setDrawData((s) => {
+          if (!s.creatingObject) return s;
+          if (s.creatingObject.maskStep) {
+            // add points for currently path
+            s.creatingObject.maskStep.points.push(mouse);
+            // judege to close path
+            if (
+              [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+                s.selectedSubTool,
+              ) &&
+              isPointOnPoint(s.creatingObject.maskStep.points[0], contentMouse)
+            ) {
+              s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
+              s.creatingObject.maskStep = undefined;
+            }
+          } else {
+            // init new step for creating points
+            s.creatingObject.maskStep = {
+              tool: s.selectedSubTool,
+              positive:
+                s.selectedSubTool === ESubToolItem.PenAdd ||
+                s.selectedSubTool === ESubToolItem.BrushAdd,
+              points: [mouse],
+              radius: s.brushSize,
+            };
+          }
+          if (
+            ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+              s.selectedSubTool,
+            )
+          ) {
+            // Brush tool need not push history when mousedown
+            updateHistory(
+              cloneDeep({
+                drawData: s,
+                clientSize,
+              }),
+            );
+          }
+        });
+        return true;
+      }
+      case EObjectType.Polygon: {
+        // Polygon - creating
+        if (drawData.activeObjectIndex < 0) {
+          setDrawData((s) => {
+            if (!s.creatingObject) return s;
+            if (drawData.AIAnnotation) {
+            } else {
+              const currIndex = s.creatingObject.currIndex as number;
+              const polygon = s.creatingObject
+                .polygon as IElement<IPolygonGroup>;
+              if (currIndex > -1) {
+                const startPoint = polygon.group[currIndex][0];
+                // finish creating polygon when click on startpoint
+                if (isPointOnPoint(startPoint, contentMouse)) {
+                  s.creatingObject.currIndex = -1;
+                } else if (s.creatingObject.polygon) {
+                  polygon.group[currIndex].push(mouse);
+                  updateHistory(
+                    cloneDeep({
+                      drawData: s,
+                      clientSize,
+                    }),
+                  );
+                }
+              } else {
+                polygon.group.push([mouse]);
+                s.creatingObject.currIndex = polygon.group.length - 1;
+                updateHistory(
+                  cloneDeep({
+                    drawData: s,
+                    clientSize,
+                  }),
+                );
+              }
+            }
+          });
+          return true;
+        }
+      }
+      case EObjectType.Rectangle:
+      case EObjectType.Skeleton: {
+        // Polygon | Rectangle | Skeleton - editing
+        if (drawData.activeObjectIndex > -1) {
+          // Editing
+          const focusObjIndex = judgeFocusOnObject(
+            clientSize,
+            contentMouse,
+            drawData.activeObjectIndex,
+            drawData.objectList,
+          );
+
+          if (focusObjIndex === drawData.activeObjectIndex) {
+            const { focusEleIndex, focusEleType } = judgeFocusOnElement(
+              contentMouse,
+              drawData.objectList[focusObjIndex],
+            );
+            setEditState((s) => {
+              switch (focusEleType) {
+                case EElementType.Rect: {
+                  const { rect } = drawData.objectList[focusObjIndex];
+                  if (rect) {
+                    const anchorUnderMouse = getAnchorUnderMouseByRect(rect, {
+                      x: contentMouse.elementX,
+                      y: contentMouse.elementY,
+                    });
+                    if (anchorUnderMouse) {
+                      // resize
+                      s.startRectResizeAnchor = {
+                        type: anchorUnderMouse.type,
+                        position: getAnchorFixRectPoint(
+                          rect,
+                          anchorUnderMouse.type,
+                        ),
+                      };
+                    } else {
+                      // move
+                      s.startElementMovePoint = {
+                        topLeftPoint: {
+                          x: rect.x,
+                          y: rect.y,
+                        },
+                        mousePoint: {
+                          x: contentMouse.elementX,
+                          y: contentMouse.elementY,
+                        },
+                      };
+                    }
+                  }
+                  break;
+                }
+                case EElementType.Circle: {
+                  // move circle
+                  const { keypoints } = drawData.objectList[focusObjIndex];
+                  if (keypoints) {
+                    const point = keypoints.points[focusEleIndex];
+                    s.startElementMovePoint = {
+                      topLeftPoint: {
+                        x: point.x,
+                        y: point.y,
+                      },
+                      mousePoint: {
+                        x: contentMouse.elementX,
+                        y: contentMouse.elementY,
+                      },
+                    };
+                  }
+                  break;
+                }
+                case EElementType.Polygon: {
+                  const { polygon } = drawData.creatingObject!;
+                  const { lineIndex, index } = s.focusPolygonInfo;
+                  if (polygon) {
+                    // move
+                    s.startElementMovePoint = {
+                      topLeftPoint: {
+                        x: 0,
+                        y: 0,
+                      },
+                      mousePoint: {
+                        x: contentMouse.elementX,
+                        y: contentMouse.elementY,
+                      },
+                      initPoint: {
+                        x: contentMouse.elementX,
+                        y: contentMouse.elementY,
+                      },
+                    };
+
+                    // add point
+                    if (lineIndex > -1) {
+                      const line = getLinesFromPolygon(polygon.group[index])[
+                        lineIndex
+                      ];
+                      if (line) {
+                        const midPoint = getMidPointFromTwoPoints(
+                          line.start,
+                          line.end,
+                        );
+                        setDrawData((s) => {
+                          const activeObject =
+                            s.objectList[s.activeObjectIndex];
+                          if (activeObject.polygon) {
+                            activeObject.polygon.group[index].splice(
+                              lineIndex + 1,
+                              0,
+                              midPoint,
+                            );
+                          }
+                          s.creatingObject = { ...activeObject };
+                        });
+                      }
+                    }
+                  }
+                  break;
+                }
+              }
+            });
+            return true;
+          }
+        }
+        break;
+      }
+    }
+    return false;
+  };
+
   const onMouseDown: MouseEventHandler<HTMLDivElement> = () => {
     if (!visible || allowMove || isRequiring) return;
 
-    if (
-      selectedAnyObject &&
-      hoverAnyObject &&
-      hoverSelectedObject &&
-      mode === EditorMode.Edit
-    ) {
-      startEditingWhenMouseDown();
-    } else {
-      if (isDragToolActive || isAIPoseEstimation) {
+    // Branch1: Edit/Create object
+    if (judgeToEditObjectWhenMouseDown()) return;
+
+    // Drag tool
+    if (isDragToolActive) {
+      // Branch2: Active object
+      if (hoverAnyObject) {
         setCurrSelectedObject();
-        if (!hoverAnyObject) {
-          setAllowMove(true);
-        }
-      } else {
-        if (drawData.creatingObject) {
-          updateCreatingWhenMouseDown();
-        } else {
-          startCreateWhenMouseDown();
-        }
+        return;
       }
+      // Branch3: Drag object
+      setAllowMove(true);
+      return;
     }
+    // Other tools
+    // Branch4: New object
+    startCreateWhenMouseDown();
   };
 
   const onMouseMove: MouseEventHandler<HTMLDivElement> = (event) => {
     if (!visible || !canvasRef.current || isRequiring || allowMove) return;
 
-    /** Edit currently hovered element */
-    if (mode === EditorMode.Edit && drawData.activeObjectIndex > -1) {
-      const exit = updateEditingWhenMouseMove();
-      if (exit) return;
-    }
+    if (mode !== EditorMode.Edit) return;
 
-    /** Update hovered instance */
-    if (isDragToolActive) {
-      updateFocusObjectWhenHover();
-    }
+    /** Edit object */
+    if (updateEditingWhenMouseMove()) return;
 
-    /** Determine if there is currently a selected instance */
-    if (selectedAnyObject) {
-      /** Determine if hovering over the selected instance */
-      if (hoverAnyObject && hoverSelectedObject) {
-        /** Update hover info */
-        const object = drawData.objectList[drawData.activeObjectIndex];
-        updateFocusElementInfoWhenHover(object);
+    /** Create Object */
+    if (updateCreatingWhenMouseMove(event)) return;
 
-        /** When the instance contains a polygon, it is necessary to determine whether hovering over a point or a line */
-        if (object.polygon) {
-          const hoverDetail = getFocusPartInPolygonGroup(
-            object.polygon,
-            contentMouse,
-          );
-          setEditState((s) => {
-            s.focusPolygonInfo = hoverDetail;
-          });
-        }
-
-        /** Update mouse based on current hover coordinates and element type */
-        updateMouseWhenHoverElement(editState.focusEleType);
-      } else {
-        /** Different instances for hovered and selected */
-        if (isDragToolActive || isAIPoseEstimation) {
-          /** Drag mode: Update hovered instance and mouse state */
-          updateMouseWhenHoverObject();
-        } else {
-          /** Create mode: Refresh canvas and mouse state */
-          updateCreatingWhenMouseMove(event);
-          updateMouseWhenCreating();
-        }
+    /** Updata focus info */
+    const focusObjectIndex = judgeFocusOnObject(
+      clientSize,
+      contentMouse,
+      drawData.activeObjectIndex,
+      drawData.objectList,
+    );
+    /** If focus in active object */
+    if (
+      focusObjectIndex > -1 &&
+      focusObjectIndex === drawData.activeObjectIndex
+    ) {
+      setEditState((s) => {
+        s.focusObjectIndex = focusObjectIndex;
+      });
+      /** Update focus element index & mouse style */
+      const activeObject = drawData.objectList[drawData.activeObjectIndex];
+      const { focusEleIndex, focusEleType } = judgeFocusOnElement(
+        contentMouse,
+        activeObject,
+      );
+      setEditState((s) => {
+        s.focusEleIndex = focusEleIndex;
+        s.focusEleType = focusEleType;
+      });
+      if (activeObject.polygon) {
+        const hoverDetail = getFocusPartInPolygonGroup(
+          activeObject.polygon,
+          contentMouse,
+        );
+        setEditState((s) => {
+          s.focusPolygonInfo = hoverDetail;
+        });
       }
+    } else if (isDragToolActive) {
+      setEditState((s) => {
+        s.focusObjectIndex = focusObjectIndex;
+        s.focusEleIndex = -1;
+        s.focusEleType = EElementType.Rect;
+      });
     } else {
-      /** No selected instance */
-      if (isDragToolActive || isAIPoseEstimation) {
-        /** Drag mode: Update hovered instance and mouse state */
-        updateMouseWhenHoverObject();
-      } else {
-        /** Create mode: Refresh canvas and mouse state */
-        updateCreatingWhenMouseMove(event);
-        updateMouseWhenCreating();
-      }
+      setEditState((s) => {
+        s.focusObjectIndex = -1;
+        s.focusEleIndex = -1;
+        s.focusEleType = EElementType.Rect;
+      });
     }
+    updateMouseWhenMouseMove();
+    updateRender();
   };
 
   const onMouseUp: MouseEventHandler<HTMLDivElement> = (event) => {
@@ -2018,19 +2112,40 @@ const Edit: React.FC<EditProps> = (props) => {
       return;
     }
 
-    if (selectedAnyObject) {
-      if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
-        finishEditingWhenMouseUp();
-      } else {
-        if (!isDragToolActive && drawData.creatingObject) {
-          finishCreatingWhenMouseUp(event);
-        }
-      }
-    } else {
-      if (!isDragToolActive && drawData.creatingObject) {
-        finishCreatingWhenMouseUp(event);
-      }
+    finishEditingWhenMouseUp();
+    if (drawData.creatingObject) {
+      finishCreatingWhenMouseUp(event);
     }
+  };
+
+  const scaleObject = (
+    obj: IAnnotationObject,
+    preSize: ISize,
+    curSize: ISize,
+  ) => {
+    const newObj = { ...obj };
+
+    if (newObj.rect) {
+      const newRect = translateRectZoom(newObj.rect, preSize, curSize);
+      newObj.rect = { ...newObj.rect, ...newRect };
+    }
+    if (newObj.keypoints) {
+      const { points, lines } = newObj.keypoints;
+      const newPoints = points.map((point) => {
+        const newPoint = translatePointZoom(point, preSize, curSize);
+        return { ...point, ...newPoint };
+      });
+      newObj.keypoints = { points: newPoints, lines };
+    }
+    if (newObj.polygon) {
+      const newGroups = newObj.polygon.group.map((polygon) => {
+        return polygon.map((point) => {
+          return translatePointZoom(point, preSize, curSize);
+        });
+      });
+      newObj.polygon = { ...newObj.polygon, group: newGroups };
+    }
+    return newObj;
   };
 
   /**
@@ -2045,45 +2160,15 @@ const Edit: React.FC<EditProps> = (props) => {
   ) => {
     const updateDrawData = { ...theDrawData };
     updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
-      const newObj = { ...obj };
-
-      if (newObj.rect) {
-        const newRect = translateRectZoom(newObj.rect, preSize, curSize);
-        newObj.rect = { ...newObj.rect, ...newRect };
-      }
-      if (newObj.keypoints) {
-        const { points, lines } = newObj.keypoints;
-        const newPoints = points.map((point) => {
-          const newPoint = translatePointZoom(point, preSize, curSize);
-          return { ...point, ...newPoint };
-        });
-        newObj.keypoints = { points: newPoints, lines };
-      }
-      if (newObj.polygon) {
-        const newGroups = newObj.polygon.group.map((polygon) => {
-          return polygon.map((point) => {
-            return translatePointZoom(point, preSize, curSize);
-          });
-        });
-        newObj.polygon = { ...newObj.polygon, group: newGroups };
-      }
-      return newObj;
+      return scaleObject(obj, preSize, curSize);
     });
 
-    if (updateDrawData.creatingObject && preSize) {
-      if (updateDrawData.creatingObject.polygon) {
-        const newGroups = updateDrawData.creatingObject.polygon.group.map(
-          (polygon) => {
-            return polygon.map((point) => {
-              return translatePointZoom(point, preSize, curSize);
-            });
-          },
-        );
-        updateDrawData.creatingObject = {
-          ...updateDrawData.creatingObject,
-          polygon: { visible: true, group: newGroups },
-        };
-      }
+    if (updateDrawData.creatingObject) {
+      updateDrawData.creatingObject = scaleObject(
+        updateDrawData.creatingObject,
+        preSize,
+        curSize,
+      );
       if (updateDrawData.creatingObject.maskStep) {
         const newPoints = updateDrawData.creatingObject.maskStep.points.map(
           (point) => {
@@ -2199,29 +2284,6 @@ const Edit: React.FC<EditProps> = (props) => {
     }
   }, [annotations]);
 
-  useEffect(() => {
-    if (
-      drawData.selectedTool === EBasicToolItem.Mask &&
-      drawData.creatingObject?.maskCanvasElement
-    ) {
-      // Active mask will auto change selectedTool
-      return;
-    }
-    setDrawData((s) => {
-      if (drawData.creatingObject) {
-        s.creatingObject = undefined;
-      }
-      if (drawData.selectedTool !== EBasicToolItem.Drag) {
-        s.activeObjectIndex = -1;
-      }
-      if (drawData.selectedTool === EBasicToolItem.Mask) {
-        s.selectedSubTool = s.AIAnnotation
-          ? ESubToolItem.AutoSegmentByBox
-          : ESubToolItem.PenAdd;
-      }
-    });
-  }, [drawData.selectedTool]);
-
   const onRedo = () => {
     const record = redo();
     if (record) {
@@ -2249,9 +2311,16 @@ const Edit: React.FC<EditProps> = (props) => {
   };
 
   const selectTool = (tool: EBasicToolItem) => {
-    if (mode !== EditorMode.Edit) return;
+    if (mode !== EditorMode.Edit || tool === drawData.selectedTool) return;
     setDrawData((s) => {
       s.selectedTool = tool;
+      if (tool === EBasicToolItem.Mask) {
+        s.selectedSubTool = s.AIAnnotation
+          ? ESubToolItem.AutoSegmentByBox
+          : ESubToolItem.PenAdd;
+      }
+      s.activeObjectIndex = -1;
+      s.creatingObject = undefined;
     });
   };
 
@@ -2700,9 +2769,6 @@ const Edit: React.FC<EditProps> = (props) => {
               })
             }
             onActiveObject={(index) => {
-              setDrawData((s) => {
-                s.selectedTool = EBasicToolItem.Drag;
-              });
               setCurrSelectedObject(index);
             }}
             onFocusElement={(index) =>
