@@ -303,7 +303,8 @@ const Edit: React.FC<EditProps> = (props) => {
   const hoverSelectedObject = useMemo(() => {
     return (
       editState.focusObjectIndex > -1 &&
-      editState.focusObjectIndex === drawData.activeObjectIndex
+      editState.focusObjectIndex === drawData.activeObjectIndex &&
+      drawData.objectList[drawData.activeObjectIndex].type !== EObjectType.Mask
     );
   }, [drawData.activeObjectIndex, editState.focusObjectIndex]);
 

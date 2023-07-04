@@ -319,7 +319,7 @@ export const objectToRle = async (
   // const arr = encode(maskData.data, maskData.data.length);
   // return maskPixelCount > 0 ? Array.from(arr) : [];
 
-  console.log('>>>> output', encodeRle(arr));
+  // console.log('>>>> output', encodeRle(arr));
   return maskPixelCount > 0 ? encodeRle(arr) : [];
 };
 
