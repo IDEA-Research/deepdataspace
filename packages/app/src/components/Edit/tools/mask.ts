@@ -246,7 +246,7 @@ export const changeMaskCanvasColor = (
   return maskCanvas;
 };
 
-export const objectToRle = async (
+export const objectToRle = (
   clientSize: ISize,
   naturalSize: ISize,
   maskSteps?: ICreatingMaskStep[],

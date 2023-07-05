@@ -9,8 +9,18 @@ import {
 } from '@/utils/compute';
 import { message, Modal } from 'antd';
 import { Updater } from 'use-immer';
-import { DATA, EnumModelType, FetchAIMaskSegmentReq } from '@/services/type';
-import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
+import {
+  DATA,
+  EnumModelType,
+  FetchAIMaskSegmentReq,
+  FetchEdgeStitchingReq,
+} from '@/services/type';
+import {
+  BODY_TEMPLATE,
+  EBasicToolItem,
+  EObjectType,
+  ESubToolItem,
+} from '@/constants';
 import {
   getCanvasPoint,
   getImageBase64,
@@ -43,6 +53,7 @@ interface IProps {
   updateAllObject: (objectList: IAnnotationObject[]) => void;
   hadChangeRecord: boolean;
   latestLabel: string;
+  labelColors: Record<string, string>;
 }
 
 const useActions = ({
@@ -60,6 +71,7 @@ const useActions = ({
   updateAllObject,
   hadChangeRecord,
   latestLabel,
+  labelColors,
 }: IProps) => {
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
@@ -297,7 +309,7 @@ const useActions = ({
     const currMask =
       drawData.creatingObject?.maskCanvasElement ||
       drawData.creatingObject?.tempMaskSteps
-        ? await objectToRle(
+        ? objectToRle(
             clientSize,
             naturalSize,
             drawData.creatingObject?.tempMaskSteps || [],
@@ -331,6 +343,7 @@ const useActions = ({
           label: latestLabel,
           currIndex: -1,
           maskCanvasElement: rleToCanvas(maskRle, naturalSize, '#fff'),
+          maskRle,
         };
         setDrawData((s) => {
           s.creatingObject = creatingObj;
@@ -446,6 +459,89 @@ const useActions = ({
     }
   };
 
+  const requestEdgeStitchingForMask = async (
+    drawData: DrawData,
+    source: string,
+  ) => {
+    if (!drawData.creatingPrompt?.stroke || !drawData.creatingPrompt?.radius)
+      return;
+
+    const { stroke, radius } = drawData.creatingPrompt;
+
+    const maskObjects = drawData.objectList.filter(
+      (item) => item.type === EObjectType.Mask,
+    );
+
+    if (maskObjects.length < 2) {
+      message.error(
+        'To ensure valid results when using intelligent edge stitching, make sure to use at least 2 mask objects.',
+      );
+      return;
+    }
+
+    const rleList = maskObjects.map((item) => {
+      const maskRle =
+        objectToRle(clientSize, naturalSize, [], item.maskCanvasElement) || [];
+      return { maskRle, categoryName: item.label };
+    });
+
+    const points = stroke.reduce((acc: number[], point: IPoint) => {
+      const { x, y } = point;
+      const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
+      return acc.concat([naturalPoint.x, naturalPoint.y]);
+    }, []);
+
+    const reqParams: FetchEdgeStitchingReq = {
+      rleList,
+      stroke: points,
+      radius,
+    };
+
+    if (editState.imageCacheId) {
+      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    } else {
+      Object.assign(reqParams, { image: source });
+    }
+
+    Object.assign(reqParams, { image: source });
+
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.MaskEdgeStitching>(
+        EnumModelType.MaskEdgeStitching,
+        reqParams,
+      );
+      if (result && result.rleList?.length > 0) {
+        const maskObjects = result.rleList.map((item) => {
+          const color = labelColors[item.categoryName] || '#fff';
+          return {
+            type: EObjectType.Mask,
+            hidden: false,
+            label: item.categoryName,
+            maskRle: item.maskRle,
+            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
+            conf: 1,
+          };
+        });
+
+        // Replace all instances of the mask type
+        const leftObjs = drawData.objectList.filter(
+          (obj) => obj.type !== EObjectType.Mask,
+        );
+
+        const updatedObjects = [...leftObjs, ...maskObjects];
+        updateAllObject(updatedObjects);
+
+        message.success(localeText('smartAnnotation.msg.success'));
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onAiAnnotation = async (
     drawData: DrawData,
     aiLabels: string[],
@@ -497,7 +593,11 @@ const useActions = ({
           break;
         }
         case EBasicToolItem.Mask: {
-          await requestAiSegmentByMask(drawData, imgSrc);
+          if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
+            await requestEdgeStitchingForMask(drawData, imgSrc);
+          } else {
+            await requestAiSegmentByMask(drawData, imgSrc);
+          }
           break;
         }
         default:

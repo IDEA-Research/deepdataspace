@@ -47,6 +47,7 @@ export enum EMaskPromptType {
   Rect = 'rect',
   Point = 'point',
   Stroke = 'stroke',
+  EdgeStitch = 'edgeStitch',
 }
 
 export type PromptItem = {

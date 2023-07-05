@@ -197,6 +197,7 @@ export enum EnumModelType {
   SegmentByPolygon = 'ai_segmentation',
   SegmentByMask = 'ai_segmentation_mask',
   Pose = 'ai_pose',
+  MaskEdgeStitching = 'ai_mask_edge_stitching',
 }
 
 // params type for 3 Ai api request
@@ -232,8 +233,12 @@ export interface FetchAIMaskSegmentReq {
 }
 
 export interface FetchEdgeStitchingReq {
-  image: string; // base64
-  rleList: number[][];
+  image?: string; // base64
+  imageId?: string;
+  rleList: {
+    maskRle: number[];
+    categoryName: string;
+  }[];
   stroke: number[]; // [x1, y1, x2, y2];
   radius: number;
 }
@@ -272,7 +277,10 @@ export interface FetchAIMaskSegmentRsp {
   imageId: string;
 }
 export interface FetchEdgeStitchingRsp {
-  rleList: number[][];
+  rleList: {
+    maskRle: number[];
+    categoryName: string;
+  }[];
 }
 export interface FetchAIPoseEstimationRsp {
   objects: Array<{
@@ -297,6 +305,8 @@ export type ModelParam<T extends EnumModelType> =
     ? FetchAIPolygonSegmentReq
     : T extends EnumModelType.SegmentByMask
     ? FetchAIMaskSegmentReq
+    : T extends EnumModelType.MaskEdgeStitching
+    ? FetchEdgeStitchingReq
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationReq
     : never;
@@ -308,6 +318,8 @@ export type ModelResult<T extends EnumModelType> =
     ? FetchAIPolygonSegmentRsp
     : T extends EnumModelType.SegmentByMask
     ? FetchAIMaskSegmentRsp
+    : T extends EnumModelType.MaskEdgeStitching
+    ? FetchEdgeStitchingRsp
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationRsp
     : never;

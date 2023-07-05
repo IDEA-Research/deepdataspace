@@ -244,25 +244,6 @@ const Edit: React.FC<EditProps> = (props) => {
     mode,
   });
 
-  const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
-    {
-      list,
-      current,
-      setDrawData,
-      editState,
-      setEditState,
-      isRequiring,
-      setIsRequiring,
-      naturalSize,
-      clientSize,
-      onCancel,
-      onSave,
-      updateAllObject,
-      hadChangeRecord,
-      latestLabel: '',
-    },
-  );
-
   const {
     aiLabels,
     setAiLabels,
@@ -285,6 +266,26 @@ const Edit: React.FC<EditProps> = (props) => {
     setEditState,
     updateObject,
   });
+
+  const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
+    {
+      list,
+      current,
+      setDrawData,
+      editState,
+      setEditState,
+      isRequiring,
+      setIsRequiring,
+      naturalSize,
+      clientSize,
+      onCancel,
+      onSave,
+      updateAllObject,
+      hadChangeRecord,
+      latestLabel: '',
+      labelColors,
+    },
+  );
 
   /** =================================================================================================================
   /** States related to hovering and selection
@@ -633,6 +634,7 @@ const Edit: React.FC<EditProps> = (props) => {
           );
           break;
         }
+        case EMaskPromptType.EdgeStitch:
         case EMaskPromptType.Stroke: {
           if (!theDrawData.creatingPrompt.stroke) break;
           const canvasCoordStroke = translatePolygonCoord(
@@ -1193,6 +1195,15 @@ const Edit: React.FC<EditProps> = (props) => {
                 isPositive: true,
               };
               break;
+            case ESubToolItem.AutoEdgeStitching:
+              s.creatingPrompt = {
+                type: EMaskPromptType.EdgeStitch,
+                startPoint: point,
+                stroke: [point],
+                radius: s.brushSize,
+                isPositive: true,
+              };
+              break;
             default:
               break;
           }
@@ -1325,65 +1336,18 @@ const Edit: React.FC<EditProps> = (props) => {
                 isPositive: true,
               };
               break;
+            case ESubToolItem.AutoEdgeStitching:
+              s.creatingPrompt = {
+                type: EMaskPromptType.EdgeStitch,
+                startPoint: mouse,
+                stroke: [mouse],
+                radius: s.brushSize,
+                isPositive: true,
+              };
             default:
               break;
           }
         });
-
-        /** old logic */
-        // const isManualTool = [
-        //   ESubToolItem.BrushAdd,
-        //   ESubToolItem.BrushErase,
-        //   ESubToolItem.PenAdd,
-        //   ESubToolItem.PenErase,
-        // ].includes(drawData.selectedSubTool);
-
-        // if (isManualTool) {
-        //   setDrawData((s) => {
-        //     if (s.creatingObject) {
-        //       if (s.creatingObject.maskStep) {
-        //         // add points for currently path
-        //         s.creatingObject.maskStep.points.push(mouse);
-        //         // judege to close path
-        //         if (
-        //           [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
-        //             s.selectedSubTool,
-        //           ) &&
-        //           isPointOnPoint(
-        //             s.creatingObject.maskStep.points[0],
-        //             contentMouse,
-        //           )
-        //         ) {
-        //           s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
-        //           s.creatingObject.maskStep = undefined;
-        //         }
-        //       } else {
-        //         // init new step for creating points
-        //         s.creatingObject.maskStep = {
-        //           tool: s.selectedSubTool,
-        //           positive:
-        //             s.selectedSubTool === ESubToolItem.PenAdd ||
-        //             s.selectedSubTool === ESubToolItem.BrushAdd,
-        //           points: [mouse],
-        //           radius: s.brushSize,
-        //         };
-        //       }
-        //       if (
-        //         ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-        //           s.selectedSubTool,
-        //         )
-        //       ) {
-        //         // Brush tool need not push history when mousedown
-        //         updateHistory(
-        //           cloneDeep({
-        //             drawData: s,
-        //             clientSize,
-        //           }),
-        //         );
-        //       }
-        //     }
-        //   });
-        // }
         break;
       }
       case EBasicToolItem.Rectangle: {
@@ -1407,6 +1371,7 @@ const Edit: React.FC<EditProps> = (props) => {
           ESubToolItem.PenAdd,
           ESubToolItem.PenErase,
           ESubToolItem.AutoSegmentByStroke,
+          ESubToolItem.AutoEdgeStitching,
         ].includes(drawData.selectedSubTool);
 
       const isMousePress = event.buttons === 1;
@@ -1416,8 +1381,12 @@ const Edit: React.FC<EditProps> = (props) => {
           x: contentMouse.elementX,
           y: contentMouse.elementY,
         };
+        const isCreatingPrompt = [
+          ESubToolItem.AutoSegmentByStroke,
+          ESubToolItem.AutoEdgeStitching,
+        ].includes(drawData.selectedSubTool);
         setDrawData((s) => {
-          if (drawData.selectedSubTool === ESubToolItem.AutoSegmentByStroke) {
+          if (isCreatingPrompt) {
             s.creatingPrompt?.stroke?.push(mouse);
           } else {
             s.creatingObject?.maskStep?.points.push(mouse);
@@ -1701,6 +1670,14 @@ const Edit: React.FC<EditProps> = (props) => {
               s.creatingPrompt = undefined;
             });
             onAiAnnotation({ ...drawData, prompt }, []);
+            break;
+          }
+          case ESubToolItem.AutoEdgeStitching: {
+            if (!drawData.creatingPrompt?.stroke) break;
+            onAiAnnotation({ ...drawData }, []);
+            setDrawDataWithHistory((s) => {
+              s.creatingPrompt = undefined;
+            });
             break;
           }
         }
@@ -2019,7 +1996,7 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const onFinishCurrCreate = async (label: string) => {
     if (currEditObject?.type === EObjectType.Mask) {
-      const maskRle = await objectToRle(
+      const maskRle = objectToRle(
         clientSize,
         naturalSize,
         drawData.creatingObject?.tempMaskSteps || [],
