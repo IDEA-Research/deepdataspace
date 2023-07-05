@@ -43,12 +43,20 @@ export interface ICreatingObject extends IAnnotationObject {
   tempMaskSteps?: ICreatingMaskStep[];
 }
 
+export enum EMaskPromptType {
+  Rect = 'rect',
+  Point = 'point',
+  Stroke = 'stroke',
+}
+
 export type PromptItem = {
-  type: ESubToolItem;
+  type: EMaskPromptType;
   isPositive: boolean;
+  startPoint?: IPoint;
   rect?: IRect;
   point?: IPoint;
   stroke?: IPoint[];
+  radius?: number;
 };
 
 /**
@@ -70,6 +78,7 @@ export interface DrawData {
   creatingObject?: ICreatingObject;
 
   /** prompt actions */
+  creatingPrompt?: PromptItem;
   prompt?: PromptItem[];
   activeRectWhileLoading?: IRect;
   segmentationClicks?: {
@@ -95,6 +104,7 @@ export interface EditState {
     pointIndex: number;
     lineIndex: number;
   };
+  imageCacheId?: string;
 }
 
 export const enum EditorMode {
@@ -138,5 +148,5 @@ export const DEFAULT_EDIT_STATE: EditState = {
     pointIndex: -1,
     lineIndex: -1,
   },
-  focusMaskCanvasList: undefined,
+  // focusMaskCanvasList: undefined,
 };

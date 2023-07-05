@@ -23,6 +23,7 @@ import {
   drawImage,
   drawLine,
   drawPolygonWithFill,
+  drawQuadraticPath,
   drawRect,
   resizeSmoothCanvas,
   shadeEverythingButRect,
@@ -56,7 +57,7 @@ import {
   translateRectCoord,
   Direction,
   translateObjectsToAnnotations,
-  getLimitCoordsFromPoints,
+  translatePolygonCoord,
 } from '@/utils/compute';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
@@ -99,6 +100,7 @@ import {
   EditorMode,
   IAnnotationObject,
   PromptItem,
+  EMaskPromptType,
 } from './type';
 
 export interface EditProps {
@@ -247,6 +249,8 @@ const Edit: React.FC<EditProps> = (props) => {
       list,
       current,
       setDrawData,
+      editState,
+      setEditState,
       isRequiring,
       setIsRequiring,
       naturalSize,
@@ -598,6 +602,60 @@ const Edit: React.FC<EditProps> = (props) => {
       }
     }
 
+    if (theDrawData.creatingPrompt) {
+      const strokeColor = ANNO_STROKE_COLOR.CREATING;
+      const fillColor = ANNO_FILL_COLOR.CREATING;
+      switch (theDrawData.creatingPrompt.type) {
+        case EMaskPromptType.Rect: {
+          const { startPoint } = theDrawData.creatingPrompt;
+          const rect = getRectFromPoints(
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
+              width: contentMouse.elementW,
+              height: contentMouse.elementH,
+            },
+          );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawRect(
+            canvasRef.current,
+            canvasCoordRect,
+            strokeColor,
+            2,
+            LABELS_STROKE_DASH[0],
+            fillColor,
+          );
+          break;
+        }
+        case EMaskPromptType.Stroke: {
+          if (!theDrawData.creatingPrompt.stroke) break;
+          const canvasCoordStroke = translatePolygonCoord(
+            theDrawData.creatingPrompt.stroke,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          drawQuadraticPath(
+            maskCanvasRef.current!,
+            canvasCoordStroke,
+            hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_MASK),
+            (theDrawData.creatingPrompt.radius! * clientSize.width) /
+              naturalSize.width,
+          );
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     // draw esisting objects
     theDrawData.objectList.forEach((obj, index) => {
       if (obj.hidden) return;
@@ -895,6 +953,30 @@ const Edit: React.FC<EditProps> = (props) => {
       });
     }
 
+    // draw propmt while using mask tools
+    if (theDrawData.prompt && theDrawData.prompt.length > 0) {
+      const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
+      if (
+        latestPrompt &&
+        latestPrompt.type === EMaskPromptType.Point &&
+        latestPrompt.point &&
+        isRequiring
+      ) {
+        const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        });
+        drawCircleWithFill(
+          maskCanvasRef.current!,
+          canvasCoordPoint,
+          5,
+          latestPrompt.isPositive ? 'green' : 'red',
+          3,
+          '#fff',
+        );
+      }
+    }
+
     // draw active area while loading ai annotations
     if (isRequiring && theDrawData.activeRectWhileLoading) {
       const canvasCoordRect = translateRectCoord(
@@ -1085,27 +1167,30 @@ const Edit: React.FC<EditProps> = (props) => {
                 },
                 tempMaskSteps: [],
               };
+              s.segmentationMask = undefined;
               break;
             case ESubToolItem.AutoSegmentByBox:
-            case ESubToolItem.AutoSegmentByClick:
-              s.creatingObject = {
-                type: EObjectType.Rectangle,
+              s.creatingPrompt = {
+                type: EMaskPromptType.Rect,
                 startPoint: point,
-                ...basic,
+                isPositive: true,
+              };
+              break;
+            case ESubToolItem.AutoSegmentByClick:
+              s.creatingPrompt = {
+                type: EMaskPromptType.Point,
+                startPoint: point,
+                point: point,
+                isPositive: true,
               };
               break;
             case ESubToolItem.AutoSegmentByStroke:
-              s.creatingObject = {
-                ...basic,
-                type: EObjectType.Mask,
+              s.creatingPrompt = {
+                type: EMaskPromptType.Stroke,
                 startPoint: point,
-                maskStep: {
-                  tool: s.selectedSubTool,
-                  positive: true,
-                  points: [point],
-                  radius: 5,
-                },
-                tempMaskSteps: [],
+                stroke: [point],
+                radius: s.brushSize,
+                isPositive: true,
               };
               break;
             default:
@@ -1164,59 +1249,141 @@ const Edit: React.FC<EditProps> = (props) => {
         break;
       }
       case EBasicToolItem.Mask: {
-        if (
-          ![
-            ESubToolItem.BrushAdd,
-            ESubToolItem.BrushErase,
-            ESubToolItem.PenAdd,
-            ESubToolItem.PenErase,
-          ].includes(drawData.selectedSubTool)
-        )
-          break;
         setDrawData((s) => {
-          if (s.creatingObject) {
-            if (s.creatingObject.maskStep) {
-              // add points for currently path
-              s.creatingObject.maskStep.points.push(mouse);
-              // judege to close path
-              if (
-                [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
-                  s.selectedSubTool,
-                ) &&
-                isPointOnPoint(
-                  s.creatingObject.maskStep.points[0],
-                  contentMouse,
-                )
-              ) {
-                s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
-                s.creatingObject.maskStep = undefined;
+          switch (s.selectedSubTool) {
+            case ESubToolItem.PenAdd:
+            case ESubToolItem.PenErase:
+            case ESubToolItem.BrushAdd:
+            case ESubToolItem.BrushErase:
+              if (s.creatingObject) {
+                if (s.creatingObject.maskStep) {
+                  // add points for currently path
+                  s.creatingObject.maskStep.points.push(mouse);
+                  // judege to close path
+                  if (
+                    [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+                      s.selectedSubTool,
+                    ) &&
+                    isPointOnPoint(
+                      s.creatingObject.maskStep.points[0],
+                      contentMouse,
+                    )
+                  ) {
+                    s.creatingObject.tempMaskSteps?.push(
+                      s.creatingObject.maskStep,
+                    );
+                    s.creatingObject.maskStep = undefined;
+                  }
+                } else {
+                  // init new step for creating points
+                  s.creatingObject.maskStep = {
+                    tool: s.selectedSubTool,
+                    positive:
+                      s.selectedSubTool === ESubToolItem.PenAdd ||
+                      s.selectedSubTool === ESubToolItem.BrushAdd,
+                    points: [mouse],
+                    radius: s.brushSize,
+                  };
+                }
+                if (
+                  ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+                    s.selectedSubTool,
+                  )
+                ) {
+                  // Brush tool need not push history when mousedown
+                  updateHistory(
+                    cloneDeep({
+                      drawData: s,
+                      clientSize,
+                    }),
+                  );
+                }
               }
-            } else {
-              // init new step for creating points
-              s.creatingObject.maskStep = {
-                tool: s.selectedSubTool,
-                positive:
-                  s.selectedSubTool === ESubToolItem.PenAdd ||
-                  s.selectedSubTool === ESubToolItem.BrushAdd,
-                points: [mouse],
-                radius: s.brushSize,
+              s.segmentationMask = undefined;
+              break;
+            case ESubToolItem.AutoSegmentByBox:
+              s.creatingPrompt = {
+                type: EMaskPromptType.Rect,
+                startPoint: mouse,
+                isPositive: true,
               };
-            }
-            if (
-              ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-                s.selectedSubTool,
-              )
-            ) {
-              // Brush tool need not push history when mousedown
-              updateHistory(
-                cloneDeep({
-                  drawData: s,
-                  clientSize,
-                }),
-              );
-            }
+              break;
+            case ESubToolItem.AutoSegmentByClick:
+              s.creatingPrompt = {
+                type: EMaskPromptType.Point,
+                startPoint: mouse,
+                point: mouse,
+                isPositive: true,
+              };
+              break;
+            case ESubToolItem.AutoSegmentByStroke:
+              s.creatingPrompt = {
+                type: EMaskPromptType.Stroke,
+                startPoint: mouse,
+                stroke: [mouse],
+                radius: s.brushSize,
+                isPositive: true,
+              };
+              break;
+            default:
+              break;
           }
         });
+
+        /** old logic */
+        // const isManualTool = [
+        //   ESubToolItem.BrushAdd,
+        //   ESubToolItem.BrushErase,
+        //   ESubToolItem.PenAdd,
+        //   ESubToolItem.PenErase,
+        // ].includes(drawData.selectedSubTool);
+
+        // if (isManualTool) {
+        //   setDrawData((s) => {
+        //     if (s.creatingObject) {
+        //       if (s.creatingObject.maskStep) {
+        //         // add points for currently path
+        //         s.creatingObject.maskStep.points.push(mouse);
+        //         // judege to close path
+        //         if (
+        //           [ESubToolItem.PenAdd, ESubToolItem.PenErase].includes(
+        //             s.selectedSubTool,
+        //           ) &&
+        //           isPointOnPoint(
+        //             s.creatingObject.maskStep.points[0],
+        //             contentMouse,
+        //           )
+        //         ) {
+        //           s.creatingObject.tempMaskSteps?.push(s.creatingObject.maskStep);
+        //           s.creatingObject.maskStep = undefined;
+        //         }
+        //       } else {
+        //         // init new step for creating points
+        //         s.creatingObject.maskStep = {
+        //           tool: s.selectedSubTool,
+        //           positive:
+        //             s.selectedSubTool === ESubToolItem.PenAdd ||
+        //             s.selectedSubTool === ESubToolItem.BrushAdd,
+        //           points: [mouse],
+        //           radius: s.brushSize,
+        //         };
+        //       }
+        //       if (
+        //         ![ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
+        //           s.selectedSubTool,
+        //         )
+        //       ) {
+        //         // Brush tool need not push history when mousedown
+        //         updateHistory(
+        //           cloneDeep({
+        //             drawData: s,
+        //             clientSize,
+        //           }),
+        //         );
+        //       }
+        //     }
+        //   });
+        // }
         break;
       }
       case EBasicToolItem.Rectangle: {
@@ -1231,7 +1398,7 @@ const Edit: React.FC<EditProps> = (props) => {
   const updateCreatingWhenMouseMove = (
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
-    if (drawData.creatingObject) {
+    if (drawData.creatingObject || drawData.creatingPrompt) {
       const allowRecordMousePath =
         drawData.selectedTool === EBasicToolItem.Mask &&
         [
@@ -1242,16 +1409,22 @@ const Edit: React.FC<EditProps> = (props) => {
           ESubToolItem.AutoSegmentByStroke,
         ].includes(drawData.selectedSubTool);
 
-      if (allowRecordMousePath) {
+      const isMousePress = event.buttons === 1;
+
+      if (allowRecordMousePath && isMousePress) {
+        const mouse = {
+          x: contentMouse.elementX,
+          y: contentMouse.elementY,
+        };
         setDrawData((s) => {
-          if (event.buttons === 1) {
-            s.creatingObject?.maskStep?.points.push({
-              x: contentMouse.elementX,
-              y: contentMouse.elementY,
-            });
+          if (drawData.selectedSubTool === ESubToolItem.AutoSegmentByStroke) {
+            s.creatingPrompt?.stroke?.push(mouse);
+          } else {
+            s.creatingObject?.maskStep?.points.push(mouse);
           }
         });
       }
+
       updateRender();
     }
   };
@@ -1259,8 +1432,6 @@ const Edit: React.FC<EditProps> = (props) => {
   const finishCreatingWhenMouseUp = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
   ) => {
-    if (!drawData.creatingObject) return;
-
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -1268,6 +1439,7 @@ const Edit: React.FC<EditProps> = (props) => {
 
     switch (drawData.selectedTool) {
       case EBasicToolItem.Rectangle: {
+        if (!drawData.creatingObject) break;
         if (drawData.creatingObject.startPoint) {
           // Need to check if it can form a rectangle
           if (
@@ -1297,6 +1469,7 @@ const Edit: React.FC<EditProps> = (props) => {
         }
       }
       case EBasicToolItem.Polygon: {
+        if (!drawData.creatingObject) break;
         if (drawData.AIAnnotation) {
           if (drawData.creatingObject.type === EObjectType.Polygon) {
             if (!isInCanvas(contentMouse)) break;
@@ -1385,7 +1558,8 @@ const Edit: React.FC<EditProps> = (props) => {
         break;
       }
       case EBasicToolItem.Skeleton: {
-        if (drawData.creatingObject?.startPoint) {
+        if (!drawData.creatingObject) break;
+        if (drawData.creatingObject.startPoint) {
           if (
             contentMouse.elementX === drawData.creatingObject.startPoint?.x ||
             contentMouse.elementY === drawData.creatingObject.startPoint?.y
@@ -1426,7 +1600,6 @@ const Edit: React.FC<EditProps> = (props) => {
         break;
       }
       case EBasicToolItem.Mask: {
-        if (!drawData.creatingObject) break;
         switch (drawData.selectedSubTool) {
           case ESubToolItem.BrushAdd:
           case ESubToolItem.BrushErase:
@@ -1457,18 +1630,21 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.creatingObject.maskStep = undefined;
                 }
               }
+              s.segmentationMask = undefined;
             });
             break;
           }
           case ESubToolItem.AutoSegmentByBox: {
+            if (!drawData.creatingPrompt?.startPoint) break;
             if (
-              mouse.x === drawData.creatingObject.startPoint?.x &&
-              mouse.y === drawData.creatingObject.startPoint?.y
+              mouse.x === drawData.creatingPrompt.startPoint?.x ||
+              mouse.y === drawData.creatingPrompt.startPoint?.y
             ) {
+              setDrawData((s) => (s.creatingPrompt = undefined));
               break;
             }
             const rect = getRectFromPoints(
-              drawData.creatingObject.startPoint as IPoint,
+              drawData.creatingPrompt.startPoint as IPoint,
               mouse,
               {
                 width: contentMouse.elementW,
@@ -1476,82 +1652,53 @@ const Edit: React.FC<EditProps> = (props) => {
               },
             );
             const promptItem: PromptItem = {
-              type: ESubToolItem.AutoSegmentByBox,
+              type: EMaskPromptType.Rect,
               isPositive: true,
               rect,
             };
-            // const points = getReferencePointsFromRect(rect);
-            // const clicks = points.map((point, index) => {
-            //   return {
-            //     // Only the center point is positive
-            //     isPositive: index === points.length - 1 ? true : false,
-            //     point,
-            //   };
-            // });
             const prompt = drawData.prompt
               ? [...drawData.prompt, promptItem]
               : [promptItem];
             setDrawDataWithHistory((s) => {
-              // s.segmentationClicks = [...clicks];
               s.prompt = prompt;
-              s.creatingObject = undefined;
               s.activeRectWhileLoading = rect;
+              s.creatingPrompt = undefined;
             });
             onAiAnnotation({ ...drawData, prompt }, []);
             break;
           }
           case ESubToolItem.AutoSegmentByClick: {
-            if (!isInCanvas(contentMouse)) break;
+            if (!isInCanvas(contentMouse) || !drawData.creatingPrompt?.point)
+              break;
             const promptItem: PromptItem = {
-              type: ESubToolItem.AutoSegmentByClick,
-              isPositive: true,
-              point: mouse,
-            };
-            const prompt = drawData.prompt
-              ? [...drawData.prompt, promptItem]
-              : [promptItem];
-            const click = {
+              type: EMaskPromptType.Point,
               isPositive: event.button === 0 ? true : false,
               point: mouse,
             };
-            const clicks = drawData.segmentationClicks
-              ? [...drawData.segmentationClicks, click]
-              : [click];
+            const prompt = drawData.prompt
+              ? [...drawData.prompt, promptItem]
+              : [promptItem];
             setDrawDataWithHistory((s) => {
-              s.segmentationClicks = [...clicks];
               s.prompt = prompt;
-              s.creatingObject = undefined;
+              s.creatingPrompt = undefined;
             });
-            onAiAnnotation(
-              { ...drawData, segmentationClicks: clicks, prompt },
-              [],
-            );
+            onAiAnnotation({ ...drawData, prompt }, []);
             break;
           }
           case ESubToolItem.AutoSegmentByStroke: {
-            if (!drawData.creatingObject.maskStep) break;
-            const points = drawData.creatingObject.maskStep.points;
-            const { minX, minY, maxX, maxY } = getLimitCoordsFromPoints(points);
-            const rect = getRectFromPoints(
-              { x: minX, y: minY },
-              { x: maxX, y: maxY },
-              {
-                width: contentMouse.elementW,
-                height: contentMouse.elementH,
-              },
-            );
+            if (!drawData.creatingPrompt?.stroke) break;
             const promptItem: PromptItem = {
-              type: ESubToolItem.AutoSegmentByStroke,
+              type: EMaskPromptType.Stroke,
               isPositive: true,
-              stroke: points,
+              stroke: drawData.creatingPrompt.stroke,
+              radius: drawData.brushSize,
             };
             const prompt = drawData.prompt
               ? [...drawData.prompt, promptItem]
               : [promptItem];
             setDrawDataWithHistory((s) => {
               s.prompt = prompt;
-              s.creatingObject = undefined;
-              s.activeRectWhileLoading = rect;
+              s.creatingPrompt = undefined;
             });
             onAiAnnotation({ ...drawData, prompt }, []);
             break;
@@ -1865,6 +2012,7 @@ const Edit: React.FC<EditProps> = (props) => {
     }
     setDrawData((s) => {
       s.creatingObject = undefined;
+      s.prompt = undefined;
       s.activeObjectIndex = -1;
     });
   };
@@ -1874,7 +2022,7 @@ const Edit: React.FC<EditProps> = (props) => {
       const maskRle = await objectToRle(
         clientSize,
         naturalSize,
-        drawData.creatingObject?.tempMaskSteps,
+        drawData.creatingObject?.tempMaskSteps || [],
         drawData.creatingObject?.maskCanvasElement,
       );
       if (maskRle && maskRle.length > 0) {
@@ -1896,6 +2044,9 @@ const Edit: React.FC<EditProps> = (props) => {
         }
         setDrawData((s) => {
           s.creatingObject = undefined;
+          s.prompt = undefined;
+          s.segmentationMask = undefined;
+          s.segmentationClicks = undefined;
           s.activeObjectIndex = -1;
         });
       } else if (maskRle) {
@@ -2022,12 +2173,18 @@ const Edit: React.FC<EditProps> = (props) => {
       if (hoverAnyObject && hoverSelectedObject && mode === EditorMode.Edit) {
         finishEditingWhenMouseUp();
       } else {
-        if (!isDragToolActive && drawData.creatingObject) {
+        if (
+          !isDragToolActive &&
+          (drawData.creatingObject || drawData.creatingPrompt)
+        ) {
           finishCreatingWhenMouseUp(event);
         }
       }
     } else {
-      if (!isDragToolActive && drawData.creatingObject) {
+      if (
+        !isDragToolActive &&
+        (drawData.creatingObject || drawData.creatingPrompt)
+      ) {
         finishCreatingWhenMouseUp(event);
       }
     }
@@ -2130,6 +2287,19 @@ const Edit: React.FC<EditProps> = (props) => {
         },
       );
     }
+
+    if (updateDrawData.prompt) {
+      updateDrawData.prompt = updateDrawData.prompt.map((item) => {
+        if (item.type === EMaskPromptType.Point && item.point) {
+          return {
+            ...item,
+            point: translatePointZoom(item.point, preSize, curSize),
+          };
+        }
+        return item;
+      });
+    }
+
     setDrawData(updateDrawData);
     updateRender(updateDrawData);
   };
@@ -2435,6 +2605,7 @@ const Edit: React.FC<EditProps> = (props) => {
               s.segmentationClicks = undefined;
               s.segmentationMask = undefined;
               s.activeRectWhileLoading = undefined;
+              s.prompt = undefined;
             }
           });
         } else {
@@ -2585,6 +2756,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.creatingObject = undefined;
                   s.segmentationClicks = undefined;
                   s.segmentationMask = undefined;
+                  s.prompt = undefined;
                 });
               }}
               onAiAnnotation={() => onAiAnnotation(drawData, aiLabels)}
@@ -2600,6 +2772,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.segmentationClicks = undefined;
                   s.segmentationMask = undefined;
                   s.creatingObject = undefined;
+                  s.prompt = undefined;
                 });
               }}
               onCancelCurrCreate={() => {
@@ -2608,6 +2781,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.activeObjectIndex = -1;
                   s.segmentationClicks = undefined;
                   s.segmentationMask = undefined;
+                  s.prompt = undefined;
                 });
               }}
               onChangeConfidenceRange={(range) => {

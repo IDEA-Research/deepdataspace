@@ -10,12 +10,7 @@ import {
 import { message, Modal } from 'antd';
 import { Updater } from 'use-immer';
 import { DATA, EnumModelType, FetchAIMaskSegmentReq } from '@/services/type';
-import {
-  BODY_TEMPLATE,
-  EBasicToolItem,
-  EObjectType,
-  ESubToolItem,
-} from '@/constants';
+import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
 import {
   getCanvasPoint,
   getImageBase64,
@@ -27,14 +22,18 @@ import { useModel } from '@umijs/max';
 import {
   DrawData,
   EditImageData,
+  EditState,
   IAnnotationObject,
   PromptItem,
 } from '../type';
+import { objectToRle, rleToCanvas } from '../tools/mask';
 
 interface IProps {
   list: EditImageData[];
   current: number;
   setDrawData: Updater<DrawData>;
+  editState: EditState;
+  setEditState: Updater<EditState>;
   isRequiring: boolean;
   setIsRequiring: Updater<boolean>;
   naturalSize: ISize;
@@ -50,6 +49,8 @@ const useActions = ({
   list,
   current,
   setDrawData,
+  editState,
+  setEditState,
   isRequiring,
   setIsRequiring,
   naturalSize,
@@ -235,18 +236,9 @@ const useActions = ({
     stroke?: number[];
   }[] => {
     const newPromptArr = prompt.map((item) => {
-      const { type, isPositive, point, rect, stroke } = item;
+      const { type, isPositive, point, rect, stroke, radius } = item;
 
-      const typeAlias =
-        type === ESubToolItem.AutoSegmentByBox
-          ? 'rect'
-          : type === ESubToolItem.AutoSegmentByClick
-          ? 'point'
-          : type === ESubToolItem.AutoSegmentByStroke
-          ? 'stroke'
-          : 'rect';
-
-      const newItem = { type: typeAlias, isPositive };
+      const newItem = { type, isPositive };
 
       if (rect) {
         const { xmax, xmin, ymax, ymin } = translateRectToAbsBbox(rect);
@@ -289,6 +281,7 @@ const useActions = ({
         }, []);
         Object.assign(newItem, {
           stroke: points,
+          radius,
         });
       }
 
@@ -300,38 +293,62 @@ const useActions = ({
 
   const requestAiSegmentByMask = async (drawData: DrawData, source: string) => {
     if (!drawData.prompt) return;
+
+    const currMask =
+      drawData.creatingObject?.maskCanvasElement ||
+      drawData.creatingObject?.tempMaskSteps
+        ? await objectToRle(
+            clientSize,
+            naturalSize,
+            drawData.creatingObject?.tempMaskSteps || [],
+            drawData.creatingObject?.maskCanvasElement,
+          )
+        : [];
+
     const reqParams: FetchAIMaskSegmentReq = {
-      image: source,
+      maskRle: currMask || [],
       maskId: drawData.segmentationMask || '',
       prompt: convertPromptFormat(drawData.prompt),
     };
 
+    if (editState.imageCacheId) {
+      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    } else {
+      Object.assign(reqParams, { image: source });
+    }
+
     try {
-      // setLoading(true);
+      setLoading(true);
       const result = await fetchModelResults<EnumModelType.SegmentByMask>(
         EnumModelType.SegmentByMask,
         reqParams,
       );
       if (result) {
-        const { maskId, maskRle } = result;
+        const { maskId, maskRle, imageId } = result;
         const creatingObj = {
           type: EObjectType.Mask,
           hidden: false,
           label: latestLabel,
           currIndex: -1,
-          maskRle,
+          maskCanvasElement: rleToCanvas(maskRle, naturalSize, '#fff'),
         };
         setDrawData((s) => {
           s.creatingObject = creatingObj;
           s.segmentationMask = maskId;
         });
+        setEditState((s) => {
+          s.imageCacheId = imageId;
+        });
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
       console.error(error.message);
+      setDrawData((s) => {
+        s.prompt = s.prompt?.slice(0, s.prompt.length - 1) || [];
+      });
       message.error(`Request Failed: ${error.message}, Please retry later.`);
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 

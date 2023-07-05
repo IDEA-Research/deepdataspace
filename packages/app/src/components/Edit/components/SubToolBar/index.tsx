@@ -159,9 +159,11 @@ export const SubToolBar: React.FC<IProps> = ({
             ))}
           </>
         )}
-        {[ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-          selectedSubTool,
-        ) && (
+        {[
+          ESubToolItem.BrushAdd,
+          ESubToolItem.BrushErase,
+          ESubToolItem.AutoSegmentByStroke,
+        ].includes(selectedSubTool) && (
           <>
             <div className={styles.divider}></div>
             <div className={styles.slider}>

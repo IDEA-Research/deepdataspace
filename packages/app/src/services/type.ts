@@ -217,15 +217,25 @@ export interface FetchAIPolygonSegmentReq {
 }
 
 export interface FetchAIMaskSegmentReq {
-  image: string;
+  image?: string; // required when first request
+  imageId?: string;
   maskId: string;
+  maskRle: number[];
   prompt: {
     type: string; // 'rect' | 'point' | 'stroke';
     isPositive: boolean;
     point?: number[]; // [x, y]
     rect?: number[]; // [xmin, ymin, xmax, ymax];
     stroke?: number[]; // [x1, y1, x2, y2];
+    radius?: number;
   }[];
+}
+
+export interface FetchEdgeStitchingReq {
+  image: string; // base64
+  rleList: number[][];
+  stroke: number[]; // [x1, y1, x2, y2];
+  radius: number;
 }
 
 export interface FetchAIPoseEstimationReq {
@@ -259,8 +269,11 @@ export interface FetchAIPolygonSegmentRsp {
 export interface FetchAIMaskSegmentRsp {
   maskRle: number[]; // rle
   maskId: string;
+  imageId: string;
 }
-
+export interface FetchEdgeStitchingRsp {
+  rleList: number[][];
+}
 export interface FetchAIPoseEstimationRsp {
   objects: Array<{
     categoryName: string;
