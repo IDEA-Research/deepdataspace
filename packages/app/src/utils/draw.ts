@@ -23,6 +23,14 @@ export function resizeSmoothCanvas(
   }
 }
 
+export function setCanvasGlobalAlpha(
+  canvas: HTMLCanvasElement,
+  alpha: number,
+): void {
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.globalAlpha = alpha;
+}
+
 export function drawImage(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement | HTMLCanvasElement,
