@@ -9,6 +9,8 @@ import LabelOptions from '@/components/LabelOptions';
 import DisplayOptions from '@/components/DisplayOptions';
 import ColumnSettings from '@/components/ColumnSettings';
 import { useLocale } from '@/locales/helper';
+import EditDatasetModal from '@/pages/DatasetList/components/EditDatasetModal';
+import ImportImgsModal from '@/pages/DatasetList/components/ImportImgsModal';
 import styles from './index.less';
 
 const Header: React.FC = () => {
@@ -48,6 +50,10 @@ const Header: React.FC = () => {
           className={styles.backBtn}
           onClick={() => backPath('/dataset')}
         />
+        <div className={styles.editGroup}>
+          <EditDatasetModal />
+          <ImportImgsModal />
+        </div>
         <CategoryFilter
           categoryId={filterValues.categoryId}
           categories={filters.categories}

@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { List, Pagination } from 'antd';
+import { Button, List, Pagination, Tabs } from 'antd';
 import { useModel } from '@umijs/max';
 import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
 import styles from './index.less';
 import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/constants';
-import { LocaleText } from '@/locales/helper';
+import { LocaleText, useLocale } from '@/locales/helper';
 import DatasetItem from '@/components/DatasetItem';
+import NewDatasetModal from './components/NewDatasetModal';
 
 const HomePage: React.FC = () => {
   const { loading, pagination, datasetsData, onPageChange } =
@@ -14,6 +15,13 @@ const HomePage: React.FC = () => {
   const { onInitPageState, onClickItem, onClickCopyLink } =
     useModel('DatasetList.model');
   usePageModelLifeCycle({ onInitPageState, pageState: pagination });
+  const [openModal, setModalOpen] = useState(false);
+  const [curTab, setCurTab] = useState('public');
+  const { localeText } = useLocale();
+
+  const onChangeTab = (key: string) => {
+    setCurTab(key);
+  };
 
   return (
     <PageContainer
@@ -30,6 +38,23 @@ const HomePage: React.FC = () => {
         <div className={styles.listTitle}>
           <LocaleText id="datasets" />
         </div>
+        <Button onClick={() => setModalOpen(true)}>
+          {localeText('dataset.filter.newDataset')}
+        </Button>
+        <Tabs
+          activeKey={curTab}
+          onChange={onChangeTab}
+          items={[
+            {
+              key: 'public',
+              label: localeText('dataset.filter.public'),
+            },
+            {
+              key: 'private',
+              label: localeText('dataset.filter.private'),
+            },
+          ]}
+        />
         <List
           grid={{ gutter: 16, column: 4 }}
           loading={loading}
@@ -56,6 +81,7 @@ const HomePage: React.FC = () => {
           />
         </div>
       )}
+      <NewDatasetModal open={openModal} setOpen={setModalOpen} />
     </PageContainer>
   );
 };

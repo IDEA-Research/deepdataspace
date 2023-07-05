@@ -23,6 +23,7 @@ export default () => {
     list: [],
     total: 0,
   });
+  const [datasetId, setDatasetId] = useImmer('');
 
   const { loading, run: loadDatasets } = useRequest(
     (page?: number, pageSize?: number) => {
@@ -57,8 +58,10 @@ export default () => {
     loading,
     pagination,
     datasetsData,
+    datasetId,
     loadDatasets,
     setPagination,
     onPageChange,
+    setDatasetId,
   };
 };
