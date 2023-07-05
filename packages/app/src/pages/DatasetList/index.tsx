@@ -12,16 +12,11 @@ import NewDatasetModal from './components/NewDatasetModal';
 const HomePage: React.FC = () => {
   const { loading, pagination, datasetsData, onPageChange } =
     useModel('datasets');
-  const { onInitPageState, onClickItem, onClickCopyLink } =
+  const { onInitPageState, onClickItem, onClickCopyLink, updateListFilter } =
     useModel('DatasetList.model');
   usePageModelLifeCycle({ onInitPageState, pageState: pagination });
   const [openModal, setModalOpen] = useState(false);
-  const [curTab, setCurTab] = useState('public');
   const { localeText } = useLocale();
-
-  const onChangeTab = (key: string) => {
-    setCurTab(key);
-  };
 
   return (
     <PageContainer
@@ -42,15 +37,15 @@ const HomePage: React.FC = () => {
           {localeText('dataset.filter.newDataset')}
         </Button>
         <Tabs
-          activeKey={curTab}
-          onChange={onChangeTab}
+          activeKey={pagination?.isPublic}
+          onChange={updateListFilter}
           items={[
             {
-              key: 'public',
+              key: 'true',
               label: localeText('dataset.filter.public'),
             },
             {
-              key: 'private',
+              key: 'false',
               label: localeText('dataset.filter.private'),
             },
           ]}

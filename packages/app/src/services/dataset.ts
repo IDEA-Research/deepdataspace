@@ -10,6 +10,7 @@ export async function fetchDatasetList(
   params: {
     pageNum: number;
     pageSize: number;
+    isPublic: string;
   },
   options?: { [key: string]: any },
 ) {

@@ -59,6 +59,15 @@ export default () => {
     loadDatasets();
   };
 
+  const updateListFilter = (isPublic: string) => {
+    setPagination((s) => {
+      Object.assign(s, {
+        isPublic,
+      });
+    });
+    loadDatasets();
+  };
+
   const checkImageUrls = async (imgs: string[]) => {
     let results: string[] = [];
 
@@ -146,6 +155,7 @@ export default () => {
     onInitPageState,
     onClickItem,
     onClickCopyLink,
+    updateListFilter,
     checkImageUrls,
     handleCreateDataset,
     handleUpdateDataset,
