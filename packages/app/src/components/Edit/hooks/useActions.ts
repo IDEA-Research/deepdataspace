@@ -362,6 +362,9 @@ const useActions = ({
       message.error(`Request Failed: ${error.message}, Please retry later.`);
     } finally {
       setLoading(false);
+      setDrawData((s) => {
+        s.creatingPrompt = undefined;
+      });
     }
   };
 
@@ -476,6 +479,7 @@ const useActions = ({
       message.error(
         'To ensure valid results when using intelligent edge stitching, make sure to use at least 2 mask objects.',
       );
+      setDrawData((s) => (s.creatingPrompt = undefined));
       return;
     }
 
@@ -539,6 +543,9 @@ const useActions = ({
       message.error(`Request Failed: ${error.message}, Please retry later.`);
     } finally {
       setLoading(false);
+      setDrawData((s) => {
+        s.creatingPrompt = undefined;
+      });
     }
   };
 

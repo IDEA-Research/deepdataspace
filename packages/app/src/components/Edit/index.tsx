@@ -84,6 +84,7 @@ import {
   ANNO_MASK_ALPHA,
   ANNO_STROKE_ALPHA,
   ANNO_STROKE_COLOR,
+  PROMPT_FILL_COLOR,
 } from './constants/render';
 import useHistory, { HistoryItem } from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
@@ -899,9 +900,33 @@ const Edit: React.FC<EditProps> = (props) => {
           );
           break;
         }
+        case EMaskPromptType.Point: {
+          if (!theDrawData.creatingPrompt.point) break;
+          const canvasCoordPoint = translatePointCoord(
+            theDrawData.creatingPrompt.point,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            4,
+            theDrawData.creatingPrompt.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE,
+            2,
+            '#fff',
+          );
+        }
         case EMaskPromptType.EdgeStitch:
         case EMaskPromptType.Stroke: {
-          if (!theDrawData.creatingPrompt.stroke) break;
+          if (
+            !theDrawData.creatingPrompt.stroke ||
+            !theDrawData.creatingPrompt.radius
+          )
+            break;
           const canvasCoordStroke = translatePolygonCoord(
             theDrawData.creatingPrompt.stroke,
             {
@@ -909,12 +934,20 @@ const Edit: React.FC<EditProps> = (props) => {
               y: -imagePos.current.y,
             },
           );
+          const radius =
+            (theDrawData.creatingPrompt.radius * clientSize.width) /
+            naturalSize.width;
+          const color =
+            theDrawData.creatingPrompt.type === EMaskPromptType.EdgeStitch
+              ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
+              : theDrawData.creatingPrompt.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE;
           drawQuadraticPath(
             activeCanvasRef.current!,
             canvasCoordStroke,
-            hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
-            (theDrawData.creatingPrompt.radius! * clientSize.width) /
-              naturalSize.width,
+            color,
+            radius,
           );
           break;
         }
@@ -933,36 +966,14 @@ const Edit: React.FC<EditProps> = (props) => {
         drawCircleWithFill(
           activeCanvasRef.current!,
           canvasCoordPoint,
-          3,
-          click.isPositive ? 'green' : 'red',
-          0,
+          4,
+          click.isPositive
+            ? PROMPT_FILL_COLOR.POSITIVE
+            : PROMPT_FILL_COLOR.NEGATIVE,
+          2,
           '#fff',
         );
       });
-    }
-
-    // draw propmt while using mask tools
-    if (theDrawData.prompt && theDrawData.prompt.length > 0) {
-      const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
-      if (
-        latestPrompt &&
-        latestPrompt.type === EMaskPromptType.Point &&
-        latestPrompt.point &&
-        isRequiring
-      ) {
-        const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
-          x: -imagePos.current.x,
-          y: -imagePos.current.y,
-        });
-        drawCircleWithFill(
-          activeCanvasRef.current!,
-          canvasCoordPoint,
-          5,
-          latestPrompt.isPositive ? 'green' : 'red',
-          3,
-          '#fff',
-        );
-      }
     }
 
     // draw active area while loading ai annotations
@@ -1184,7 +1195,18 @@ const Edit: React.FC<EditProps> = (props) => {
   // Logics For Creating Annotations
   // =================================================================================================================
 
-  const startCreateWhenMouseDown = () => {
+  const getPromptBoolean = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ): boolean => {
+    // Right Mouse Click / Lift Mouse Click + (Alt/Option) -> false
+    if (event.button === 2 || (event.button === 0 && event.altKey))
+      return false;
+    return true;
+  };
+
+  const startCreateWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     if (!isInCanvas(contentMouse)) return;
 
     setDrawData((s) => {
@@ -1284,7 +1306,7 @@ const Edit: React.FC<EditProps> = (props) => {
                 type: EMaskPromptType.Point,
                 startPoint: point,
                 point: point,
-                isPositive: true,
+                isPositive: getPromptBoolean(event),
               };
               break;
             case ESubToolItem.AutoSegmentByStroke:
@@ -1293,7 +1315,7 @@ const Edit: React.FC<EditProps> = (props) => {
                 startPoint: point,
                 stroke: [point],
                 radius: s.brushSize,
-                isPositive: true,
+                isPositive: getPromptBoolean(event),
               };
               break;
             case ESubToolItem.AutoEdgeStitching:
@@ -1314,7 +1336,9 @@ const Edit: React.FC<EditProps> = (props) => {
     }
   };
 
-  const updateMaskCreatingOrEditingWhenMouseDown = () => {
+  const updateMaskCreatingOrEditingWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -1381,7 +1405,7 @@ const Edit: React.FC<EditProps> = (props) => {
             type: EMaskPromptType.Point,
             startPoint: mouse,
             point: mouse,
-            isPositive: true,
+            isPositive: getPromptBoolean(event),
           };
           break;
         case ESubToolItem.AutoSegmentByStroke:
@@ -1390,7 +1414,7 @@ const Edit: React.FC<EditProps> = (props) => {
             startPoint: mouse,
             stroke: [mouse],
             radius: s.brushSize,
-            isPositive: true,
+            isPositive: getPromptBoolean(event),
           };
           break;
         case ESubToolItem.AutoEdgeStitching:
@@ -1407,9 +1431,7 @@ const Edit: React.FC<EditProps> = (props) => {
     });
   };
 
-  const finishMaskCreatingOrEditingWhenMouseUp = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
+  const finishMaskCreatingOrEditingWhenMouseUp = async () => {
     if (!drawData.creatingObject && !drawData.creatingPrompt) return;
     const mouse = {
       x: contentMouse.elementX,
@@ -1475,7 +1497,6 @@ const Edit: React.FC<EditProps> = (props) => {
         setDrawDataWithHistory((s) => {
           s.prompt = prompt;
           s.activeRectWhileLoading = rect;
-          s.creatingPrompt = undefined;
         });
         onAiAnnotation({ ...drawData, prompt }, []);
         break;
@@ -1484,15 +1505,14 @@ const Edit: React.FC<EditProps> = (props) => {
         if (!isInCanvas(contentMouse) || !drawData.creatingPrompt?.point) break;
         const promptItem: PromptItem = {
           type: EMaskPromptType.Point,
-          isPositive: event.button === 0 ? true : false,
-          point: mouse,
+          isPositive: drawData.creatingPrompt.isPositive,
+          point: drawData.creatingPrompt.point,
         };
         const prompt = drawData.prompt
           ? [...drawData.prompt, promptItem]
           : [promptItem];
         setDrawDataWithHistory((s) => {
           s.prompt = prompt;
-          s.creatingPrompt = undefined;
         });
         onAiAnnotation({ ...drawData, prompt }, []);
         break;
@@ -1510,7 +1530,6 @@ const Edit: React.FC<EditProps> = (props) => {
           : [promptItem];
         setDrawDataWithHistory((s) => {
           s.prompt = prompt;
-          s.creatingPrompt = undefined;
         });
         onAiAnnotation({ ...drawData, prompt }, []);
         break;
@@ -1518,15 +1537,14 @@ const Edit: React.FC<EditProps> = (props) => {
       case ESubToolItem.AutoEdgeStitching: {
         if (!drawData.creatingPrompt?.stroke) break;
         onAiAnnotation({ ...drawData }, []);
-        setDrawDataWithHistory((s) => {
-          s.creatingPrompt = undefined;
-        });
         break;
       }
     }
   };
 
-  const updateCreatingWhenMouseDown = () => {
+  const updateCreatingWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     if (
       !isInCanvas(contentMouse) ||
       !drawData.creatingObject ||
@@ -1541,7 +1559,7 @@ const Edit: React.FC<EditProps> = (props) => {
     };
     switch (drawData.creatingObject.type) {
       case EObjectType.Mask: {
-        updateMaskCreatingOrEditingWhenMouseDown();
+        updateMaskCreatingOrEditingWhenMouseDown(event);
         return true;
       }
       case EObjectType.Polygon: {
@@ -1601,7 +1619,8 @@ const Edit: React.FC<EditProps> = (props) => {
           ESubToolItem.AutoEdgeStitching,
         ].includes(drawData.selectedSubTool);
 
-      const isMousePress = event.buttons === 1;
+      // Left/Right button is pressed while mousemove
+      const isMousePress = event.buttons === 1 || event.buttons === 2;
 
       if (allowRecordMousePath && isMousePress) {
         const mouse = {
@@ -1675,7 +1694,7 @@ const Edit: React.FC<EditProps> = (props) => {
             if (!isInCanvas(contentMouse)) break;
             // add reference points
             const click = {
-              isPositive: event.button === 0 ? true : false,
+              isPositive: getPromptBoolean(event),
               point: mouse,
             };
             const existClicks = drawData.segmentationClicks || [];
@@ -1800,7 +1819,7 @@ const Edit: React.FC<EditProps> = (props) => {
         return true;
       }
       case EBasicToolItem.Mask: {
-        finishMaskCreatingOrEditingWhenMouseUp(event);
+        finishMaskCreatingOrEditingWhenMouseUp();
         return true;
       }
     }
@@ -1810,7 +1829,9 @@ const Edit: React.FC<EditProps> = (props) => {
   // Logics For Editing Exsiting Annotations
   // =================================================================================================================
 
-  const startEditWhenMouseDown = () => {
+  const startEditWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     if (
       !isInCanvas(contentMouse) ||
       !drawData.creatingObject ||
@@ -1826,7 +1847,7 @@ const Edit: React.FC<EditProps> = (props) => {
 
     switch (drawData.creatingObject.type) {
       case EObjectType.Mask: {
-        updateMaskCreatingOrEditingWhenMouseDown();
+        updateMaskCreatingOrEditingWhenMouseDown(event);
         return true;
       }
       case EObjectType.Polygon:
@@ -2073,15 +2094,13 @@ const Edit: React.FC<EditProps> = (props) => {
     return false;
   };
 
-  const finishEditingWhenMouseUp = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
+  const finishEditingWhenMouseUp = () => {
     if (!drawData.creatingObject || drawData.activeObjectIndex < 0) {
       return false;
     }
     switch (drawData.creatingObject.type) {
       case EObjectType.Mask: {
-        finishMaskCreatingOrEditingWhenMouseUp(event);
+        finishMaskCreatingOrEditingWhenMouseUp();
         return true;
       }
       case EObjectType.Rectangle:
@@ -2173,7 +2192,7 @@ const Edit: React.FC<EditProps> = (props) => {
     });
   };
 
-  const onFinishCurrCreate = async (label: string) => {
+  const onFinishCurrCreate = (label: string) => {
     if (currEditObject?.type === EObjectType.Mask) {
       const maskRle = objectToRle(
         clientSize,
@@ -2232,18 +2251,20 @@ const Edit: React.FC<EditProps> = (props) => {
   // Register Mouse Event
   // =================================================================================================================
 
-  const onMouseDown: MouseEventHandler<HTMLDivElement> = () => {
+  const onMouseDown: MouseEventHandler<HTMLDivElement> = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
     if (!visible || allowMove || isRequiring) return;
 
     // 1. Edit object
-    if (startEditWhenMouseDown()) return;
+    if (startEditWhenMouseDown(event)) return;
 
     // 2. Create object
-    if (updateCreatingWhenMouseDown()) return;
+    if (updateCreatingWhenMouseDown(event)) return;
 
     if (!isDragToolActive) {
       // 3. New object
-      startCreateWhenMouseDown();
+      startCreateWhenMouseDown(event);
     } else {
       // 4. Active object
       if (editState.focusObjectIndex > -1) {
@@ -2281,7 +2302,7 @@ const Edit: React.FC<EditProps> = (props) => {
     }
 
     /** 1. Edit object */
-    if (finishEditingWhenMouseUp(event)) return;
+    if (finishEditingWhenMouseUp()) return;
 
     /** 2. Create Object */
     if (finishCreatingWhenMouseUp(event)) return;
@@ -2515,6 +2536,13 @@ const Edit: React.FC<EditProps> = (props) => {
     setDrawData((s) => {
       s.selectedSubTool = tool;
     });
+
+    // save unfinished mask object
+    if (tool === ESubToolItem.AutoEdgeStitching && drawData.creatingObject) {
+      onFinishCurrCreate(
+        drawData.creatingObject.label || editState.latestLabel || '',
+      );
+    }
   };
 
   const setBrushSize = (size: number) => {

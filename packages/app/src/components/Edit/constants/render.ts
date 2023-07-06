@@ -28,3 +28,8 @@ export const ANNO_STROKE_COLOR = {
 export const ANNO_FILL_COLOR = {
   CREATING: 'transparent',
 };
+
+export const PROMPT_FILL_COLOR = {
+  POSITIVE: 'rgba(1, 128, 0, 0.7)',
+  NEGATIVE: 'rgba(255, 3, 0, 0.7)',
+};
