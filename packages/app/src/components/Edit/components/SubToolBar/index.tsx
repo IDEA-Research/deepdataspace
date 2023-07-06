@@ -163,6 +163,7 @@ export const SubToolBar: React.FC<IProps> = ({
           ESubToolItem.BrushAdd,
           ESubToolItem.BrushErase,
           ESubToolItem.AutoSegmentByStroke,
+          ESubToolItem.AutoEdgeStitching,
         ].includes(selectedSubTool) && (
           <>
             <div className={styles.divider}></div>

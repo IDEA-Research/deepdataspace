@@ -277,6 +277,7 @@ const Edit: React.FC<EditProps> = (props) => {
       list,
       current,
       setDrawData,
+      setDrawDataWithHistory,
       editState,
       setEditState,
       isRequiring,
@@ -1501,7 +1502,6 @@ const Edit: React.FC<EditProps> = (props) => {
           ? [...drawData.prompt, promptItem]
           : [promptItem];
         setDrawDataWithHistory((s) => {
-          s.prompt = prompt;
           s.activeRectWhileLoading = rect;
         });
         onAiAnnotation({ ...drawData, prompt }, []);
@@ -1517,9 +1517,6 @@ const Edit: React.FC<EditProps> = (props) => {
         const prompt = drawData.prompt
           ? [...drawData.prompt, promptItem]
           : [promptItem];
-        setDrawDataWithHistory((s) => {
-          s.prompt = prompt;
-        });
         onAiAnnotation({ ...drawData, prompt }, []);
         break;
       }
@@ -1534,9 +1531,6 @@ const Edit: React.FC<EditProps> = (props) => {
         const prompt = drawData.prompt
           ? [...drawData.prompt, promptItem]
           : [promptItem];
-        setDrawDataWithHistory((s) => {
-          s.prompt = prompt;
-        });
         onAiAnnotation({ ...drawData, prompt }, []);
         break;
       }
@@ -2406,18 +2400,6 @@ const Edit: React.FC<EditProps> = (props) => {
           return click;
         },
       );
-    }
-
-    if (updateDrawData.prompt) {
-      updateDrawData.prompt = updateDrawData.prompt.map((item) => {
-        if (item.type === EMaskPromptType.Point && item.point) {
-          return {
-            ...item,
-            point: translatePointZoom(item.point, preSize, curSize),
-          };
-        }
-        return item;
-      });
     }
 
     setDrawData(updateDrawData);

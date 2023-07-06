@@ -42,6 +42,7 @@ interface IProps {
   list: EditImageData[];
   current: number;
   setDrawData: Updater<DrawData>;
+  setDrawDataWithHistory: Updater<DrawData>;
   editState: EditState;
   setEditState: Updater<EditState>;
   isRequiring: boolean;
@@ -60,6 +61,7 @@ const useActions = ({
   list,
   current,
   setDrawData,
+  setDrawDataWithHistory,
   editState,
   setEditState,
   isRequiring,
@@ -222,7 +224,7 @@ const useActions = ({
             },
           };
 
-          setDrawData((s) => {
+          setDrawDataWithHistory((s) => {
             s.creatingObject = creatingObj;
             s.segmentationMask = mask;
           });
@@ -345,9 +347,11 @@ const useActions = ({
           maskCanvasElement: rleToCanvas(maskRle, naturalSize, '#fff'),
           maskRle,
         };
-        setDrawData((s) => {
+        setDrawDataWithHistory((s) => {
           s.creatingObject = creatingObj;
+          s.prompt = drawData.prompt;
           s.segmentationMask = maskId;
+          s.creatingPrompt = undefined;
         });
         setEditState((s) => {
           s.imageCacheId = imageId;
@@ -356,15 +360,12 @@ const useActions = ({
       }
     } catch (error: any) {
       console.error(error.message);
-      setDrawData((s) => {
-        s.prompt = s.prompt?.slice(0, s.prompt.length - 1) || [];
-      });
       message.error(`Request Failed: ${error.message}, Please retry later.`);
-    } finally {
-      setLoading(false);
-      setDrawData((s) => {
+      setDrawDataWithHistory((s) => {
         s.creatingPrompt = undefined;
       });
+    } finally {
+      setLoading(false);
     }
   };
 
