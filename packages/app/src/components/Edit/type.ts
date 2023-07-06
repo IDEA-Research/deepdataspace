@@ -76,7 +76,7 @@ export interface DrawData {
   objectList: IAnnotationObject[];
   activeClassName: string;
   activeObjectIndex: number;
-  creatingObject?: ICreatingObject;
+  creatingObject?: ICreatingObject; // - editing / creating
 
   /** prompt actions */
   creatingPrompt?: PromptItem;
@@ -90,6 +90,8 @@ export interface DrawData {
 }
 
 export interface EditState {
+  isRequiring: boolean;
+  allowMove: boolean;
   latestLabel: string;
   startRectResizeAnchor?: RectAnchor;
   startElementMovePoint?: {
@@ -138,6 +140,8 @@ export const DEFAULT_DRAW_DATA: DrawData = {
 };
 
 export const DEFAULT_EDIT_STATE: EditState = {
+  isRequiring: false,
+  allowMove: false,
   latestLabel: '',
   startRectResizeAnchor: undefined,
   startElementMovePoint: undefined,

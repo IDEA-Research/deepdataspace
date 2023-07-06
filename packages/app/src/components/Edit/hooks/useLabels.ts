@@ -12,10 +12,11 @@ interface IProps {
   categories: DATA.Category[];
   setCategories?: Updater<DATA.Category[]>;
   drawData: DrawData;
-  setDrawData: Updater<DrawData>;
+  setDrawDataWithHistory: Updater<DrawData>;
   editState: EditState;
   setEditState: Updater<EditState>;
   updateObject: (object: IAnnotationObject, index: number) => void;
+  updateAllObject: (objectList: IAnnotationObject[]) => void;
 }
 
 export default function useLabels({
@@ -23,10 +24,11 @@ export default function useLabels({
   categories,
   setCategories,
   drawData,
-  setDrawData,
+  setDrawDataWithHistory,
   editState,
   setEditState,
   updateObject,
+  updateAllObject,
 }: IProps) {
   const [aiLabels, setAiLabels] = useState<string[]>([]);
   const labelColors = useMemo(
@@ -69,39 +71,35 @@ export default function useLabels({
   };
 
   const onChangeObjectHidden = (index: number, hidden: boolean) => {
-    setDrawData((s) => {
-      if (s.objectList[index]) {
-        s.objectList[index].hidden = hidden;
-      }
-    });
+    const newObject = { ...drawData.objectList[index] };
+    newObject.hidden = hidden;
+    updateObject(newObject, index);
   };
 
   const onChangeCategoryHidden = (category: string, hidden: boolean) => {
-    setDrawData((s) => {
-      s.objectList.forEach((item) => {
-        if (item.label === category) item.hidden = hidden;
-      });
+    const updatedObjects = drawData.objectList.map((item) => {
+      const temp = { ...item };
+      if (temp.label === category) temp.hidden = hidden;
+      return temp;
     });
+    updateAllObject(updatedObjects);
   };
 
   const onChangeElementVisible = (eleType: EElementType, visible: boolean) => {
+    const newObject = { ...drawData.objectList[editState.focusObjectIndex] };
     switch (eleType) {
       case EElementType.Rect: {
-        setDrawData((s) => {
-          const rect = s.objectList[editState.focusObjectIndex]?.rect;
-          if (rect) {
-            rect.visible = visible;
-          }
-        });
+        if (newObject.rect) {
+          newObject.rect.visible = visible;
+          updateObject(newObject, editState.focusObjectIndex);
+        }
         break;
       }
       case EElementType.Polygon: {
-        setDrawData((s) => {
-          const polygon = s.objectList[editState.focusObjectIndex]?.polygon;
-          if (polygon) {
-            polygon.visible = visible;
-          }
-        });
+        if (newObject.polygon) {
+          newObject.polygon.visible = visible;
+          updateObject(newObject, editState.focusObjectIndex);
+        }
         break;
       }
     }
@@ -125,7 +123,7 @@ export default function useLabels({
   };
 
   const onChangeActiveClass = (name: string) => {
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.activeClassName = name;
     });
   };

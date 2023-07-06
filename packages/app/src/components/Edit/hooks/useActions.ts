@@ -45,8 +45,6 @@ interface IProps {
   setDrawDataWithHistory: Updater<DrawData>;
   editState: EditState;
   setEditState: Updater<EditState>;
-  isRequiring: boolean;
-  setIsRequiring: Updater<boolean>;
   naturalSize: ISize;
   clientSize: ISize;
   onCancel?: () => void;
@@ -64,8 +62,6 @@ const useActions = ({
   setDrawDataWithHistory,
   editState,
   setEditState,
-  isRequiring,
-  setIsRequiring,
   naturalSize,
   clientSize,
   onCancel,
@@ -77,6 +73,11 @@ const useActions = ({
 }: IProps) => {
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
+  const { isRequiring } = editState;
+  const setIsRequiring = (requiring: boolean) =>
+    setEditState((s) => {
+      s.isRequiring = requiring;
+    });
 
   const requestAiDetection = async (
     drawData: DrawData,

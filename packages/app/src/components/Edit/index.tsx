@@ -17,7 +17,6 @@ import {
   EBasicToolTypeMap,
 } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
-import { useKeyPress } from 'ahooks';
 import {
   clearCanvas,
   drawCircleWithFill,
@@ -57,7 +56,6 @@ import {
   translateAnnotCoord,
   translatePointCoord,
   translateRectCoord,
-  Direction,
   translateObjectsToAnnotations,
   translatePolygonCoord,
 } from '@/utils/compute';
@@ -76,7 +74,6 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import { TopPagination } from './components/TopPagination';
 import { EQaAction } from '@/pages/Project/constants';
 import AnnotationEditor from './components/AnnotationEditor';
-import { EDITOR_SHORTCUTS, EShortcuts } from './constants/shortcuts';
 import { ShortcutsInfo } from './components/ShortcutsInfo';
 import {
   ANNO_FILL_ALPHA,
@@ -107,6 +104,8 @@ import {
   PromptItem,
   EMaskPromptType,
 } from './type';
+import useMouseCursor from './hooks/useMouseCursor';
+import useShortcuts from './hooks/useShortcuts';
 
 export interface EditProps {
   isSeperate: boolean;
@@ -156,11 +155,7 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const { localeText } = useLocale();
 
-  const [isRequiring, setIsRequiring] = useImmer(false);
-
   const [annotations, setAnnotations] = useImmer<DATA.BaseObject[]>([]);
-
-  const [allowMove, setAllowMove] = useImmer(false);
 
   const [editState, setEditState] = useImmer<EditState>(
     cloneDeep(DEFAULT_EDIT_STATE),
@@ -197,9 +192,9 @@ const Edit: React.FC<EditProps> = (props) => {
     onReset,
     CanvasContainer,
   } = useCanvasContainer({
-    allowMove,
     visible,
-    isRequiring,
+    allowMove: editState.allowMove,
+    isRequiring: editState.isRequiring,
     showMouseAim: true,
     minPadding: {
       top: 30,
@@ -266,10 +261,11 @@ const Edit: React.FC<EditProps> = (props) => {
     categories,
     setCategories,
     drawData,
-    setDrawData,
+    setDrawDataWithHistory,
     editState,
     setEditState,
     updateObject,
+    updateAllObject,
   });
 
   const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
@@ -280,8 +276,6 @@ const Edit: React.FC<EditProps> = (props) => {
       setDrawDataWithHistory,
       editState,
       setEditState,
-      isRequiring,
-      setIsRequiring,
       naturalSize,
       clientSize,
       onCancel,
@@ -292,6 +286,13 @@ const Edit: React.FC<EditProps> = (props) => {
       labelColors,
     },
   );
+
+  const { updateMouseCursor, updateMouseCursorWhenMouseMove } = useMouseCursor({
+    topCanvas: activeCanvasRef.current,
+    editState,
+    drawData,
+    contentMouse,
+  });
 
   /** =================================================================================================================
   /** States related to hovering and selection
@@ -371,31 +372,6 @@ const Edit: React.FC<EditProps> = (props) => {
         s.selectedTool = EBasicToolItem.Mask;
       }
     });
-  };
-
-  const renderPopoverMenu = () => {
-    if (
-      editState.focusObjectIndex > -1 &&
-      drawData.objectList[editState.focusObjectIndex] &&
-      !drawData.objectList[editState.focusObjectIndex].hidden &&
-      editState.focusEleIndex > -1 &&
-      editState.focusEleType === EElementType.Circle
-    ) {
-      const target =
-        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
-          editState.focusEleIndex
-        ];
-      if (target) {
-        return (
-          <PopoverMenu
-            index={editState.focusEleIndex}
-            targetElement={target!}
-            imagePos={imagePos.current}
-          />
-        );
-      }
-    }
-    return <></>;
   };
 
   // =================================================================================================================
@@ -700,6 +676,8 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const updateEditingRender = (creatingObject: ICreatingObject) => {
     // draw currently annotated objects
+    if (creatingObject.hidden) return;
+
     const canvasCoordObject = translateAnnotCoord(creatingObject, {
       x: -imagePos.current.x,
       y: -imagePos.current.y,
@@ -984,7 +962,7 @@ const Edit: React.FC<EditProps> = (props) => {
     }
 
     // draw active area while loading ai annotations
-    if (isRequiring && theDrawData.activeRectWhileLoading) {
+    if (editState.isRequiring && theDrawData.activeRectWhileLoading) {
       const canvasCoordRect = translateRectCoord(
         theDrawData.activeRectWhileLoading,
         {
@@ -1111,92 +1089,6 @@ const Edit: React.FC<EditProps> = (props) => {
     // draw creating object
     updateRenderActiveCanvas(updateDrawData);
   };
-
-  /** =================================================================================================================
-  /** update mouse style 
-  /** ================================================================================================================= */
-
-  const updateMouseCursor = useCallback(
-    (value: string, position?: Direction) => {
-      if (!activeCanvasRef.current) return;
-
-      let cursor = value;
-      if (position) {
-        switch (position) {
-          case Direction.TOP:
-          case Direction.BOTTOM:
-            cursor = 'ns-resize';
-            break;
-          case Direction.TOP_LEFT:
-          case Direction.BOTTOM_RIGHT:
-            cursor = 'nwse-resize';
-            break;
-          case Direction.BOTTOM_LEFT:
-          case Direction.TOP_RIGHT:
-            cursor = 'nesw-resize';
-            break;
-          default:
-            cursor = 'ew-resize';
-        }
-      }
-      if (cursor !== activeCanvasRef.current.style.cursor) {
-        activeCanvasRef.current.style.cursor = cursor;
-      }
-    },
-    [activeCanvasRef.current],
-  );
-
-  const updateMouseWhenMouseMove = () => {
-    if (
-      editState.focusObjectIndex > -1 &&
-      editState.focusObjectIndex === drawData.activeObjectIndex
-    ) {
-      switch (editState.focusEleType) {
-        case EElementType.Rect: {
-          if (drawData.activeObjectIndex > -1) {
-            const { rect } = drawData.objectList[drawData.activeObjectIndex];
-            if (rect) {
-              const anchorUnderMouse = getAnchorUnderMouseByRect(rect!, {
-                x: contentMouse.elementX,
-                y: contentMouse.elementY,
-              });
-              // focus on the resize point
-              if (anchorUnderMouse) {
-                updateMouseCursor('resize', anchorUnderMouse.type);
-              } else {
-                updateMouseCursor('move');
-              }
-            }
-          }
-          break;
-        }
-        case EElementType.Polygon:
-        case EElementType.Circle:
-        default: {
-          updateMouseCursor('pointer');
-          break;
-        }
-      }
-    } else if (editState.focusObjectIndex > -1) {
-      updateMouseCursor('pointer');
-    } else if (!isDragToolActive) {
-      updateMouseCursor('crosshair');
-    } else {
-      updateMouseCursor('grab');
-    }
-  };
-
-  useEffect(() => {
-    if (allowMove) {
-      updateMouseCursor('grabbing');
-    } else {
-      if (drawData.selectedTool === EBasicToolItem.Drag) {
-        updateMouseCursor('grab');
-      } else {
-        updateMouseCursor('crosshair');
-      }
-    }
-  }, [allowMove]);
 
   // =================================================================================================================
   // Logics For Creating Annotations
@@ -2154,22 +2046,6 @@ const Edit: React.FC<EditProps> = (props) => {
   // Annotation Eidtor
   // =================================================================================================================
 
-  const currEditObject = useMemo(() => {
-    if (drawData.activeObjectIndex > -1) {
-      // Edit object
-      return drawData.objectList[drawData.activeObjectIndex];
-    } else if (
-      drawData.creatingObject &&
-      drawData.creatingObject.type === EObjectType.Mask &&
-      (drawData.creatingObject.maskCanvasElement ||
-        drawData.creatingObject.tempMaskSteps?.length)
-    ) {
-      // New mask
-      return drawData.creatingObject;
-    }
-    return undefined;
-  }, [drawData]);
-
   const onDeleteCurrObject = () => {
     if (drawData.activeObjectIndex > -1) {
       removeObject(drawData.activeObjectIndex);
@@ -2182,7 +2058,7 @@ const Edit: React.FC<EditProps> = (props) => {
   };
 
   const onFinishCurrCreate = (label: string) => {
-    if (currEditObject?.type === EObjectType.Mask) {
+    if (drawData.creatingObject?.type === EObjectType.Mask) {
       const maskRle = objectToRle(
         clientSize,
         naturalSize,
@@ -2246,7 +2122,7 @@ const Edit: React.FC<EditProps> = (props) => {
   const onMouseDown: MouseEventHandler<HTMLDivElement> = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
   ) => {
-    if (!visible || allowMove || isRequiring) return;
+    if (!visible || editState.allowMove || editState.isRequiring) return;
 
     // 1. Edit object
     if (startEditWhenMouseDown(event)) return;
@@ -2260,7 +2136,9 @@ const Edit: React.FC<EditProps> = (props) => {
         setCurrSelectedObject();
       } else {
         // 4. Drag object
-        setAllowMove(true);
+        setEditState((s) => {
+          s.allowMove = true;
+        });
       }
     } else {
       // 5. New object
@@ -2269,7 +2147,13 @@ const Edit: React.FC<EditProps> = (props) => {
   };
 
   const onMouseMove: MouseEventHandler<HTMLDivElement> = (event) => {
-    if (!visible || !canvasRef.current || isRequiring || allowMove) return;
+    if (
+      !visible ||
+      !canvasRef.current ||
+      editState.isRequiring ||
+      editState.allowMove
+    )
+      return;
 
     if (mode !== EditorMode.Edit) return;
 
@@ -2281,15 +2165,17 @@ const Edit: React.FC<EditProps> = (props) => {
 
     /** 3. Updata focus info */
     updateFocusInfoWhenMouseMove();
-    updateMouseWhenMouseMove();
+    updateMouseCursorWhenMouseMove();
     updateRender();
   };
 
   const onMouseUp: MouseEventHandler<HTMLDivElement> = (event) => {
-    if (!visible || !canvasRef.current || isRequiring) return;
+    if (!visible || !canvasRef.current || editState.isRequiring) return;
 
-    if (allowMove) {
-      setAllowMove(false);
+    if (editState.allowMove) {
+      setEditState((s) => {
+        s.allowMove = false;
+      });
       return;
     }
 
@@ -2545,6 +2431,20 @@ const Edit: React.FC<EditProps> = (props) => {
     });
   };
 
+  useShortcuts({
+    visible,
+    mode,
+    drawData,
+    setDrawData,
+    setEditState,
+    onSaveAnnotations,
+    onAccept,
+    onReject,
+    onChangeObjectHidden,
+    onChangeCategoryHidden,
+    removeObject,
+  });
+
   const activeAIAnnotation = useCallback(
     (active: boolean) => {
       if (!process.env.MODEL_API_PATH && active) {
@@ -2616,144 +2516,30 @@ const Edit: React.FC<EditProps> = (props) => {
     return actions;
   }, [mode, onReviewResult, onEnterEdit, onSaveAnnotations, list[current]]);
 
-  /** =================================================================================================================
-  /** Register editor shortcut keys
-  /** =================================================================================================================
-
-  /** Save Results */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.Save].shortcut,
-    (event: KeyboardEvent) => {
-      event.preventDefault();
-      if (mode === EditorMode.Edit) {
-        onSaveAnnotations(drawData);
+  const renderPopoverMenu = () => {
+    if (
+      editState.focusObjectIndex > -1 &&
+      drawData.objectList[editState.focusObjectIndex] &&
+      !drawData.objectList[editState.focusObjectIndex].hidden &&
+      editState.focusEleIndex > -1 &&
+      editState.focusEleType === EElementType.Circle
+    ) {
+      const target =
+        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
+          editState.focusEleIndex
+        ];
+      if (target) {
+        return (
+          <PopoverMenu
+            index={editState.focusEleIndex}
+            targetElement={target!}
+            imagePos={imagePos.current}
+          />
+        );
       }
-    },
-    {
-      exactMatch: true,
-    },
-  );
-
-  /** Accept Results */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.Accept].shortcut,
-    (event: KeyboardEvent) => {
-      event.preventDefault();
-      onAccept();
-    },
-    {
-      exactMatch: true,
-    },
-  );
-
-  /** Reject Results */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.Reject].shortcut,
-    (event: KeyboardEvent) => {
-      event.preventDefault();
-      onReject();
-    },
-    {
-      exactMatch: true,
-    },
-  );
-
-  /** Pan Image */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.PanImage].shortcut,
-    (event: KeyboardEvent) => {
-      if (!visible) return;
-      event.preventDefault();
-      if (event.type === 'keydown') {
-        setAllowMove(true);
-      } else if (event.type === 'keyup') {
-        setAllowMove(false);
-      }
-    },
-    {
-      events: ['keydown', 'keyup'],
-    },
-  );
-
-  /** Cancel Current Selected Object or Creaing Object */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.CancelCurrObject].shortcut,
-    (event: KeyboardEvent) => {
-      if (!visible) return;
-      if (event.type === 'keyup') {
-        if (drawData.creatingObject) {
-          setDrawData((s) => {
-            if (
-              s.creatingObject?.type === EObjectType.Mask &&
-              s.creatingObject?.maskStep?.points?.length &&
-              s.creatingObject?.tempMaskSteps?.length
-            ) {
-              // Creating single Mask
-              s.creatingObject.maskStep = undefined;
-            } else {
-              s.creatingObject = undefined;
-              s.activeObjectIndex = -1;
-            }
-            if (s.AIAnnotation) {
-              s.segmentationClicks = undefined;
-              s.segmentationMask = undefined;
-              s.activeRectWhileLoading = undefined;
-              s.prompt = undefined;
-            }
-          });
-        } else {
-          setDrawData((s) => {
-            s.activeObjectIndex = -1;
-          });
-        }
-      }
-    },
-    { events: ['keydown', 'keyup'] },
-  );
-
-  /** Hide Current Selected Object */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.HideCurrObject].shortcut,
-    (event) => {
-      if (drawData.activeObjectIndex === -1) return;
-      event.preventDefault();
-      onChangeObjectHidden(
-        drawData.activeObjectIndex,
-        !drawData.objectList[drawData.activeObjectIndex].hidden,
-      );
-    },
-    {
-      exactMatch: true,
-    },
-  );
-
-  /** Hide the Category of Current Object */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.HideCurrCategory].shortcut,
-    (event) => {
-      if (drawData.activeObjectIndex === -1) return;
-      event.preventDefault();
-      const { label, hidden } = drawData.objectList[drawData.activeObjectIndex];
-      onChangeCategoryHidden(label, !hidden);
-    },
-    {
-      exactMatch: true,
-    },
-  );
-
-  /** Delete Current Selected Object */
-  useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.DeleteCurrObject].shortcut,
-    (event) => {
-      if (!visible || mode !== EditorMode.Edit) return;
-      if (['Delete', 'Backspace'].includes(event.key)) {
-        if (drawData.activeObjectIndex > -1) {
-          removeObject(drawData.activeObjectIndex);
-        }
-      }
-    },
-    { events: ['keyup'] },
-  );
+    }
+    return <></>;
+  };
 
   if (visible) {
     return (
@@ -2827,11 +2613,11 @@ const Edit: React.FC<EditProps> = (props) => {
                 drawData.AIAnnotation
               ) && (
                 <AnnotationEditor
-                  hideTitle={currEditObject?.type === EObjectType.Mask}
+                  hideTitle={drawData.creatingObject?.type === EObjectType.Mask}
                   allowAddCategory={isSeperate}
                   latestLabel={editState.latestLabel}
                   categories={categories}
-                  currEditObject={currEditObject}
+                  currEditObject={drawData.creatingObject}
                   onCreateCategory={onCreateCategory}
                   onDeleteCurrObject={onDeleteCurrObject}
                   onFinishCurrCreate={onFinishCurrCreate}
