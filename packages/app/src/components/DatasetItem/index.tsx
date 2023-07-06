@@ -34,7 +34,7 @@ const DatasetItem: React.FC<IProps> = (props) => {
         <div className={styles.imgBox}>
           <div className={styles.imgWrap}>
             <Image
-              src={data?.coverUrl}
+              src={data?.coverUrl ?? ''}
               alt="cover"
               onError={(e: any) => {
                 e.target.src = generateDefaultCover(data?.objectTypes);
@@ -76,9 +76,7 @@ const DatasetItem: React.FC<IProps> = (props) => {
               )}
             </div>
           </div>
-
-          <div className={styles.group}>{data.groupName}</div>
-
+          <div className={styles.desc}>{data.description}</div>
           <div className={styles.extra}>
             <div className={styles.extra_item}>
               <span>{data.numImages}</span>

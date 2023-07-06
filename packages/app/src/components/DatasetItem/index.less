@@ -86,17 +86,22 @@
     padding-right: 6px;
   }
 
-  .group {
+  .desc {
     max-height: 32px;
     color: #67738c;
     margin-bottom: 16px;
     padding: 0 2px;
     font-size: 12px;
-    height: 12px;
+    height: 28px;
     line-height: 130%;
-    white-space: nowrap;
+    word-wrap: break-word;
     text-overflow: ellipsis;
     overflow: hidden;
+    display: box;
+    -webkit-line-clamp: 2;
+
+    /* !autoprefixer: off */
+    -webkit-box-orient: vertical;
   }
 }
 
