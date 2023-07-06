@@ -8,7 +8,6 @@ import {
   LABELS_STROKE_DASH,
   BODY_TEMPLATE,
   ESubToolItem,
-  EBasicToolTypeMap,
 } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import {
@@ -216,6 +215,7 @@ const Edit: React.FC<EditProps> = (props) => {
     initObjectList,
     updateAllObject,
     updateObject,
+    setCurrSelectedObject,
   } = useObjects({
     annotations,
     setAnnotations,
@@ -355,33 +355,6 @@ const Edit: React.FC<EditProps> = (props) => {
         s.focusEleType = EElementType.Rect;
       });
     }
-  };
-
-  const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
-    if (index < 0) return;
-    setDrawData((s) => {
-      s.activeObjectIndex = index;
-      s.creatingObject = {
-        ...drawData.objectList[index],
-        currIndex: undefined,
-        startPoint: undefined,
-        tempMaskSteps: [],
-        maskStep: undefined,
-      };
-
-      if (
-        s.selectedTool !== EBasicToolItem.Drag &&
-        s.objectList[index] &&
-        EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
-      ) {
-        s.selectedTool = EBasicToolItem.Drag;
-      }
-
-      // TODO: support edit mask in drag tool
-      if (s.objectList[index].type === EObjectType.Mask) {
-        s.selectedTool = EBasicToolItem.Mask;
-      }
-    });
   };
 
   // =================================================================================================================
