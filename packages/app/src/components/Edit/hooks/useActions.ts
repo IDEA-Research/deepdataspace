@@ -33,12 +33,15 @@ import {
   DrawData,
   EditImageData,
   EditState,
+  EditorMode,
   IAnnotationObject,
   PromptItem,
 } from '../type';
 import { objectToRle, rleToCanvas } from '../tools/mask';
+import { EQaAction } from '@/pages/Project/constants';
 
 interface IProps {
+  mode: EditorMode;
   list: EditImageData[];
   current: number;
   setDrawData: Updater<DrawData>;
@@ -47,15 +50,17 @@ interface IProps {
   setEditState: Updater<EditState>;
   naturalSize: ISize;
   clientSize: ISize;
-  onCancel?: () => void;
-  onSave?: (imageId: string, annotations: DATA.BaseObject[]) => Promise<void>;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
   hadChangeRecord: boolean;
   latestLabel: string;
   labelColors: Record<string, string>;
+  onCancel?: () => void;
+  onSave?: (imageId: string, annotations: DATA.BaseObject[]) => Promise<void>;
+  onReviewResult?: (imageId: string, action: EQaAction) => Promise<void>;
 }
 
 const useActions = ({
+  mode,
   list,
   current,
   setDrawData,
@@ -64,12 +69,13 @@ const useActions = ({
   setEditState,
   naturalSize,
   clientSize,
-  onCancel,
-  onSave,
   updateAllObject,
   hadChangeRecord,
   latestLabel,
   labelColors,
+  onCancel,
+  onSave,
+  onReviewResult,
 }: IProps) => {
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
@@ -681,10 +687,24 @@ const useActions = ({
     reportEvent('dataset_item_edit_cancel');
   };
 
+  const onReject = () => {
+    if (mode === EditorMode.Review && onReviewResult) {
+      onReviewResult(list[current]?.id || '', EQaAction.Reject);
+    }
+  };
+
+  const onAccept = () => {
+    if (mode === EditorMode.Review && onReviewResult) {
+      onReviewResult(list[current]?.id || '', EQaAction.Accept);
+    }
+  };
+
   return {
     onAiAnnotation,
     onSaveAnnotations,
     onCancelAnnotations,
+    onReject,
+    onAccept,
   };
 };
 

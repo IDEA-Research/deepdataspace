@@ -1,5 +1,5 @@
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
-import { IAnnotationObject } from '@/components/Edit/type';
+import { DrawData, IAnnotationObject } from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
 import {
@@ -1287,4 +1287,112 @@ export const translateAnnotCoord = (
   }
 
   return newAnnoObj;
+};
+
+/**
+ * Scale obj to curSize
+ * @param obj
+ * @param preSize
+ * @param curSize
+ * @returns
+ */
+export const scaleObject = (
+  obj: IAnnotationObject,
+  preSize: ISize,
+  curSize: ISize,
+) => {
+  const newObj = { ...obj };
+
+  if (newObj.rect) {
+    const newRect = translateRectZoom(newObj.rect, preSize, curSize);
+    newObj.rect = { ...newObj.rect, ...newRect };
+  }
+  if (newObj.keypoints) {
+    const { points, lines } = newObj.keypoints;
+    const newPoints = points.map((point) => {
+      const newPoint = translatePointZoom(point, preSize, curSize);
+      return { ...point, ...newPoint };
+    });
+    newObj.keypoints = { points: newPoints, lines };
+  }
+  if (newObj.polygon) {
+    const newGroups = newObj.polygon.group.map((polygon) => {
+      return polygon.map((point) => {
+        return translatePointZoom(point, preSize, curSize);
+      });
+    });
+    newObj.polygon = { ...newObj.polygon, group: newGroups };
+  }
+  return newObj;
+};
+
+/**
+ * Scale draw data
+ * @param preSize
+ * @param curSize
+ */
+export const scaleDrawData = (
+  theDrawData: DrawData,
+  preSize: ISize,
+  curSize: ISize,
+) => {
+  const updateDrawData = { ...theDrawData };
+  updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
+    return scaleObject(obj, preSize, curSize);
+  });
+
+  if (updateDrawData.creatingObject) {
+    updateDrawData.creatingObject = scaleObject(
+      updateDrawData.creatingObject,
+      preSize,
+      curSize,
+    );
+    if (updateDrawData.creatingObject.maskStep) {
+      const newPoints = updateDrawData.creatingObject.maskStep.points.map(
+        (point) => {
+          return translatePointZoom(point, preSize, curSize);
+        },
+      );
+      updateDrawData.creatingObject = {
+        ...updateDrawData.creatingObject,
+        maskStep: {
+          ...updateDrawData.creatingObject.maskStep,
+          points: newPoints,
+        },
+      };
+    }
+    if (updateDrawData.creatingObject.tempMaskSteps) {
+      const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
+        (step) => {
+          return {
+            ...step,
+            points: step.points.map((point) =>
+              translatePointZoom(point, preSize, curSize),
+            ),
+          };
+        },
+      );
+      updateDrawData.creatingObject = {
+        ...updateDrawData.creatingObject,
+        tempMaskSteps: newSteps,
+      };
+    }
+  }
+
+  if (updateDrawData.segmentationClicks) {
+    updateDrawData.segmentationClicks = updateDrawData.segmentationClicks.map(
+      (click) => {
+        if (click.point) {
+          const newPoint = translatePointZoom(click.point, preSize, curSize);
+          return {
+            ...click,
+            point: newPoint,
+          };
+        }
+        return click;
+      },
+    );
+  }
+
+  return updateDrawData;
 };

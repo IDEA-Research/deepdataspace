@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { DraftFunction, Updater, useImmer } from 'use-immer';
 import { cloneDeep, isEqual } from 'lodash';
+import { scaleDrawData, translateObjectsToAnnotations } from '@/utils/compute';
+import { DATA } from '@/services/type';
 import { DrawData } from '../type';
 
 export interface HistoryItem {
@@ -10,14 +12,29 @@ export interface HistoryItem {
 
 interface IProps {
   clientSize: ISize;
+  naturalSize: ISize;
   setDrawData: Updater<DrawData>;
-  onAutoSave?: (item: HistoryItem) => void;
+  onAutoSave?: (annotations: DATA.BaseObject[]) => void;
 }
 
-const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
+const useHistory = ({
+  clientSize,
+  naturalSize,
+  onAutoSave,
+  setDrawData,
+}: IProps) => {
   const [historyQueue, setHistoryQueue] = useImmer<HistoryItem[]>([]);
   const [currentIndex, setCurrIndex] = useState(0);
   const maxCacheSize = 20;
+
+  const autoSave = (item: HistoryItem) => {
+    const annotations = translateObjectsToAnnotations(
+      item.drawData.objectList,
+      naturalSize,
+      item.clientSize,
+    );
+    onAutoSave?.(annotations);
+  };
 
   /**
    * Undo the last action
@@ -25,10 +42,15 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
   const undo = useCallback(() => {
     if (currentIndex > 0) {
       setCurrIndex((prevIndex) => prevIndex - 1);
-      onAutoSave?.(historyQueue[currentIndex - 1]);
-      return historyQueue[currentIndex - 1];
+      const record = historyQueue[currentIndex - 1];
+      const updateDrawData = scaleDrawData(
+        record.drawData,
+        record.clientSize,
+        clientSize,
+      );
+      setDrawData(updateDrawData);
+      autoSave(record);
     }
-    return null;
   }, [currentIndex, historyQueue]);
 
   /**
@@ -37,10 +59,15 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
   const redo = useCallback(() => {
     if (currentIndex < historyQueue.length - 1) {
       setCurrIndex((prevIndex) => prevIndex + 1);
-      onAutoSave?.(historyQueue[currentIndex + 1]);
-      return historyQueue[currentIndex + 1];
+      const record = historyQueue[currentIndex + 1];
+      const updateDrawData = scaleDrawData(
+        record.drawData,
+        record.clientSize,
+        clientSize,
+      );
+      setDrawData(updateDrawData);
+      autoSave(record);
     }
-    return null;
   }, [currentIndex, historyQueue]);
 
   /**
@@ -59,7 +86,7 @@ const useHistory = ({ clientSize, onAutoSave, setDrawData }: IProps) => {
         }
         setCurrIndex(queue.length - 1);
       });
-      onAutoSave?.(item);
+      autoSave(item);
     },
     [currentIndex, maxCacheSize],
   );

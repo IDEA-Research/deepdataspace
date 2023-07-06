@@ -14,7 +14,6 @@ interface IProps {
   drawData: DrawData;
   setDrawDataWithHistory: Updater<DrawData>;
   editState: EditState;
-  setEditState: Updater<EditState>;
   updateObject: (object: IAnnotationObject, index: number) => void;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
 }
@@ -26,7 +25,6 @@ export default function useLabels({
   drawData,
   setDrawDataWithHistory,
   editState,
-  setEditState,
   updateObject,
   updateAllObject,
 }: IProps) {
@@ -60,15 +58,6 @@ export default function useLabels({
   }, [visible]);
 
   const curObjects = drawData.objectList;
-
-  const onChangeObjectLabel = (index: number, label: string) => {
-    setEditState((s) => {
-      s.latestLabel = label;
-    });
-    const newObject = { ...drawData.objectList[index] };
-    newObject.label = label;
-    updateObject(newObject, index);
-  };
 
   const onChangeObjectHidden = (index: number, hidden: boolean) => {
     const newObject = { ...drawData.objectList[index] };
@@ -142,7 +131,6 @@ export default function useLabels({
     setAiLabels,
     labelColors,
     curObjects,
-    onChangeObjectLabel,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     onChangeElementVisible,

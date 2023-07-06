@@ -1,10 +1,4 @@
-import React, {
-  MouseEventHandler,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { MouseEventHandler, useEffect, useMemo, useRef } from 'react';
 import { Button, Divider, message } from 'antd';
 import {
   EObjectType,
@@ -40,8 +34,6 @@ import {
   moveRect,
   resizeRect,
   setRectBetweenPixels,
-  translatePointZoom,
-  translateRectZoom,
   translatePointsToPointObjs,
   movePoint,
   getKeypointsFromRect,
@@ -56,8 +48,8 @@ import {
   translateAnnotCoord,
   translatePointCoord,
   translateRectCoord,
-  translateObjectsToAnnotations,
   translatePolygonCoord,
+  scaleDrawData,
 } from '@/utils/compute';
 import { DATA } from '@/services/type';
 import TopTools from '@/components/TopTools';
@@ -83,15 +75,14 @@ import {
   ANNO_STROKE_COLOR,
   PROMPT_FILL_COLOR,
 } from './constants/render';
-import useHistory, { HistoryItem } from './hooks/useHistory';
+import useHistory from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
 import { cloneDeep } from 'lodash';
-import { Modal } from 'antd';
 import { useLocale } from '@/locales/helper';
 import { usePreviousState } from '@/hooks/usePreviousState';
 import useCanvasContainer from '@/hooks/useCanvasContainer';
 import { SubToolBar } from './components/SubToolBar';
-import { objectToRle, renderMask, rleToCanvas } from './tools/mask';
+import { renderMask } from './tools/mask';
 import {
   DEFAULT_DRAW_DATA,
   DEFAULT_EDIT_STATE,
@@ -99,13 +90,13 @@ import {
   EditImageData,
   EditState,
   EditorMode,
-  IAnnotationObject,
   ICreatingObject,
   PromptItem,
   EMaskPromptType,
 } from './type';
 import useMouseCursor from './hooks/useMouseCursor';
 import useShortcuts from './hooks/useShortcuts';
+import useToolActions from './hooks/useToolActions';
 
 export interface EditProps {
   isSeperate: boolean;
@@ -205,15 +196,6 @@ const Edit: React.FC<EditProps> = (props) => {
   const [preClientSize, clearPreClientSize] =
     usePreviousState<ISize>(clientSize);
 
-  const autoSave = (item: HistoryItem) => {
-    const annotations = translateObjectsToAnnotations(
-      item.drawData.objectList,
-      naturalSize,
-      item.clientSize,
-    );
-    onAutoSave?.(annotations);
-  };
-
   const {
     undo,
     redo,
@@ -223,8 +205,9 @@ const Edit: React.FC<EditProps> = (props) => {
     setDrawDataWithHistory,
   } = useHistory({
     clientSize,
+    naturalSize,
     setDrawData,
-    onAutoSave: autoSave,
+    onAutoSave,
   });
 
   const {
@@ -239,7 +222,9 @@ const Edit: React.FC<EditProps> = (props) => {
     clientSize,
     naturalSize,
     drawData,
+    setDrawData,
     setDrawDataWithHistory,
+    editState,
     setEditState,
     mode,
   });
@@ -248,7 +233,6 @@ const Edit: React.FC<EditProps> = (props) => {
     aiLabels,
     setAiLabels,
     labelColors,
-    onChangeObjectLabel,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     onChangeElementVisible,
@@ -263,35 +247,61 @@ const Edit: React.FC<EditProps> = (props) => {
     drawData,
     setDrawDataWithHistory,
     editState,
-    setEditState,
     updateObject,
     updateAllObject,
   });
 
-  const { onAiAnnotation, onSaveAnnotations, onCancelAnnotations } = useActions(
-    {
-      list,
-      current,
-      setDrawData,
-      setDrawDataWithHistory,
-      editState,
-      setEditState,
-      naturalSize,
-      clientSize,
-      onCancel,
-      onSave,
-      updateAllObject,
-      hadChangeRecord,
-      latestLabel: editState.latestLabel,
-      labelColors,
-    },
-  );
+  const {
+    onAiAnnotation,
+    onSaveAnnotations,
+    onCancelAnnotations,
+    onReject,
+    onAccept,
+  } = useActions({
+    mode,
+    list,
+    current,
+    setDrawData,
+    setDrawDataWithHistory,
+    editState,
+    setEditState,
+    naturalSize,
+    clientSize,
+    onCancel,
+    onSave,
+    updateAllObject,
+    hadChangeRecord,
+    latestLabel: editState.latestLabel,
+    labelColors,
+  });
 
   const { updateMouseCursor, updateMouseCursorWhenMouseMove } = useMouseCursor({
     topCanvas: activeCanvasRef.current,
     editState,
     drawData,
     contentMouse,
+  });
+
+  const {
+    onDeleteCurrObject,
+    onFinishCurrCreate,
+    onCloseAnnotationEditor,
+    selectTool,
+    selectSubTool,
+    setBrushSize,
+    activeAIAnnotation,
+  } = useToolActions({
+    mode,
+    drawData,
+    setDrawData,
+    editState,
+    setEditState,
+    labelColors,
+    clientSize,
+    naturalSize,
+    addObject,
+    removeObject,
+    updateObject,
   });
 
   /** =================================================================================================================
@@ -2043,79 +2053,6 @@ const Edit: React.FC<EditProps> = (props) => {
   };
 
   // =================================================================================================================
-  // Annotation Eidtor
-  // =================================================================================================================
-
-  const onDeleteCurrObject = () => {
-    if (drawData.activeObjectIndex > -1) {
-      removeObject(drawData.activeObjectIndex);
-    }
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.prompt = undefined;
-      s.activeObjectIndex = -1;
-    });
-  };
-
-  const onFinishCurrCreate = (label: string) => {
-    if (drawData.creatingObject?.type === EObjectType.Mask) {
-      const maskRle = objectToRle(
-        clientSize,
-        naturalSize,
-        drawData.creatingObject?.tempMaskSteps || [],
-        drawData.creatingObject?.maskCanvasElement,
-      );
-      if (maskRle && maskRle.length > 0) {
-        const color = labelColors[label] || '#fff';
-        const newObject = {
-          type: EObjectType.Mask,
-          label,
-          hidden: false,
-          maskRle,
-          maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
-          conf: 1,
-        };
-        if (drawData.activeObjectIndex > -1) {
-          // edit mask object
-          updateObject(newObject, drawData.activeObjectIndex);
-        } else {
-          // add mask object
-          addObject(newObject, true);
-        }
-        setEditState((s) => {
-          s.latestLabel = label;
-        });
-        setDrawData((s) => {
-          s.creatingObject = undefined;
-          s.prompt = undefined;
-          s.segmentationMask = undefined;
-          s.segmentationClicks = undefined;
-          s.activeObjectIndex = -1;
-        });
-      } else if (maskRle) {
-        // Empty mask
-        message.warning(localeText('editor.anno.mask.emptyWarning'));
-      } else {
-        // Other error
-        message.error(localeText('editor.anno.mask.translateToRleError'));
-      }
-    } else {
-      onChangeObjectLabel(drawData.activeObjectIndex, label);
-      setDrawData((s) => {
-        s.creatingObject = undefined;
-        s.activeObjectIndex = -1;
-      });
-    }
-  };
-
-  const onCloseAnnotationEditor = () => {
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.activeObjectIndex = -1;
-    });
-  };
-
-  // =================================================================================================================
   // Register Mouse Event
   // =================================================================================================================
 
@@ -2190,108 +2127,6 @@ const Edit: React.FC<EditProps> = (props) => {
   // Effects
   // =================================================================================================================
 
-  const scaleObject = (
-    obj: IAnnotationObject,
-    preSize: ISize,
-    curSize: ISize,
-  ) => {
-    const newObj = { ...obj };
-
-    if (newObj.rect) {
-      const newRect = translateRectZoom(newObj.rect, preSize, curSize);
-      newObj.rect = { ...newObj.rect, ...newRect };
-    }
-    if (newObj.keypoints) {
-      const { points, lines } = newObj.keypoints;
-      const newPoints = points.map((point) => {
-        const newPoint = translatePointZoom(point, preSize, curSize);
-        return { ...point, ...newPoint };
-      });
-      newObj.keypoints = { points: newPoints, lines };
-    }
-    if (newObj.polygon) {
-      const newGroups = newObj.polygon.group.map((polygon) => {
-        return polygon.map((point) => {
-          return translatePointZoom(point, preSize, curSize);
-        });
-      });
-      newObj.polygon = { ...newObj.polygon, group: newGroups };
-    }
-    return newObj;
-  };
-
-  /**
-   * Scale draw data
-   * @param preSize
-   * @param curSize
-   */
-  const scaleDrawData = (
-    theDrawData: DrawData,
-    preSize: ISize,
-    curSize: ISize,
-  ) => {
-    const updateDrawData = { ...theDrawData };
-    updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
-      return scaleObject(obj, preSize, curSize);
-    });
-
-    if (updateDrawData.creatingObject) {
-      updateDrawData.creatingObject = scaleObject(
-        updateDrawData.creatingObject,
-        preSize,
-        curSize,
-      );
-      if (updateDrawData.creatingObject.maskStep) {
-        const newPoints = updateDrawData.creatingObject.maskStep.points.map(
-          (point) => {
-            return translatePointZoom(point, preSize, curSize);
-          },
-        );
-        updateDrawData.creatingObject = {
-          ...updateDrawData.creatingObject,
-          maskStep: {
-            ...updateDrawData.creatingObject.maskStep,
-            points: newPoints,
-          },
-        };
-      }
-      if (updateDrawData.creatingObject.tempMaskSteps) {
-        const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
-          (step) => {
-            return {
-              ...step,
-              points: step.points.map((point) =>
-                translatePointZoom(point, preSize, curSize),
-              ),
-            };
-          },
-        );
-        updateDrawData.creatingObject = {
-          ...updateDrawData.creatingObject,
-          tempMaskSteps: newSteps,
-        };
-      }
-    }
-
-    if (updateDrawData.segmentationClicks) {
-      updateDrawData.segmentationClicks = updateDrawData.segmentationClicks.map(
-        (click) => {
-          if (click.point) {
-            const newPoint = translatePointZoom(click.point, preSize, curSize);
-            return {
-              ...click,
-              point: newPoint,
-            };
-          }
-          return click;
-        },
-      );
-    }
-
-    setDrawData(updateDrawData);
-    updateRender(updateDrawData);
-  };
-
   /**
    * Rebuilds the draw data for the annotation tool.
    * @param {boolean} isUpdateDrawData - Optional parameter that specifies whether to update draw data.
@@ -2307,7 +2142,9 @@ const Edit: React.FC<EditProps> = (props) => {
       });
     } else if (preClientSize) {
       // scale change
-      scaleDrawData(drawData, preClientSize, clientSize);
+      const updateDrawData = scaleDrawData(drawData, preClientSize, clientSize);
+      setDrawData(updateDrawData);
+      updateRender(updateDrawData);
       clearPreClientSize();
     }
   };
@@ -2357,80 +2194,6 @@ const Edit: React.FC<EditProps> = (props) => {
     }
   }, [annotations]);
 
-  const onRedo = () => {
-    const record = redo();
-    if (record) {
-      scaleDrawData(record.drawData, record.clientSize, clientSize);
-    }
-  };
-
-  const onUndo = () => {
-    const record = undo();
-    if (record) {
-      scaleDrawData(record.drawData, record.clientSize, clientSize);
-    }
-  };
-
-  const onReject = () => {
-    if (mode === EditorMode.Review && onReviewResult) {
-      onReviewResult(list[current]?.id || '', EQaAction.Reject);
-    }
-  };
-
-  const onAccept = () => {
-    if (mode === EditorMode.Review && onReviewResult) {
-      onReviewResult(list[current]?.id || '', EQaAction.Accept);
-    }
-  };
-
-  const selectTool = (tool: EBasicToolItem) => {
-    if (mode !== EditorMode.Edit || tool === drawData.selectedTool) return;
-    setDrawData((s) => {
-      s.selectedTool = tool;
-      if (tool === EBasicToolItem.Mask) {
-        s.selectedSubTool = s.AIAnnotation
-          ? ESubToolItem.AutoSegmentByBox
-          : ESubToolItem.PenAdd;
-      }
-      s.activeObjectIndex = -1;
-      s.creatingObject = undefined;
-    });
-  };
-
-  const selectSubTool = (tool: ESubToolItem) => {
-    if (mode !== EditorMode.Edit) return;
-    setDrawData((s) => {
-      s.selectedSubTool = tool;
-    });
-
-    // save unfinished mask object
-    if (tool === ESubToolItem.AutoEdgeStitching && drawData.creatingObject) {
-      onFinishCurrCreate(
-        drawData.creatingObject.label || editState.latestLabel || '',
-      );
-    }
-  };
-
-  const setBrushSize = (size: number) => {
-    if (mode !== EditorMode.Edit) return;
-    setDrawData((s) => {
-      s.brushSize = size;
-    });
-  };
-
-  const displayAIModeUnavailableModal = () => {
-    Modal.info({
-      centered: true,
-      closable: true,
-      title: localeText('smartAnnotation.infoModal.title'),
-      content: localeText('smartAnnotation.infoModal.content'),
-      okText: localeText('smartAnnotation.infoModal.action'),
-      onOk: () => {
-        window.open('https://deepdataspace.com', '_blank');
-      },
-    });
-  };
-
   useShortcuts({
     visible,
     mode,
@@ -2444,20 +2207,6 @@ const Edit: React.FC<EditProps> = (props) => {
     onChangeCategoryHidden,
     removeObject,
   });
-
-  const activeAIAnnotation = useCallback(
-    (active: boolean) => {
-      if (!process.env.MODEL_API_PATH && active) {
-        displayAIModeUnavailableModal();
-        return;
-      }
-      if (mode !== EditorMode.Edit) return;
-      setDrawData((s) => {
-        s.AIAnnotation = active;
-      });
-    },
-    [mode],
-  );
 
   const supportActions = useMemo(() => {
     const actions = actionElements
@@ -2717,8 +2466,8 @@ const Edit: React.FC<EditProps> = (props) => {
                     setAiLabels([]);
                   }}
                   onActiveAIAnnotation={activeAIAnnotation}
-                  undo={onUndo}
-                  redo={onRedo}
+                  undo={undo}
+                  redo={redo}
                 />
                 {drawData.selectedTool === EBasicToolItem.Mask && (
                   <SubToolBar
@@ -2776,29 +2525,6 @@ const Edit: React.FC<EditProps> = (props) => {
             onDeleteObject={removeObject}
             onChangeEleVisible={onChangeElementVisible}
             onChangePointVisible={onChangePointVisible}
-            onConvertPolygonToAIMode={(objIndex) => {
-              if (!process.env.MODEL_API_PATH) {
-                displayAIModeUnavailableModal();
-                return;
-              }
-              setDrawData((s) => {
-                s.AIAnnotation = true;
-                s.selectedTool = EBasicToolItem.Polygon;
-                s.creatingObject = {
-                  type: EObjectType.Polygon,
-                  label: drawData.objectList[objIndex].label,
-                  hidden: false,
-                  polygon: {
-                    visible: true,
-                    group: drawData.objectList[objIndex].polygon?.group || [],
-                  },
-                };
-                s.activeObjectIndex = -1;
-                const objectList = [...s.objectList];
-                objectList.splice(objIndex, 1);
-                s.objectList = [...objectList];
-              });
-            }}
             onChangeActiveClassName={onChangeActiveClass}
           />
         </div>

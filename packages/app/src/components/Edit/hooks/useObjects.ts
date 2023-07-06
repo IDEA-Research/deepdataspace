@@ -1,4 +1,9 @@
-import { EElementType, EObjectType } from '@/constants';
+import {
+  EBasicToolItem,
+  EBasicToolTypeMap,
+  EElementType,
+  EObjectType,
+} from '@/constants';
 import { DATA } from '@/services/type';
 import { getSegmentationPoints } from '@/utils/annotation';
 import {
@@ -17,7 +22,9 @@ interface IProps {
   annotations: DATA.BaseObject[];
   setAnnotations: Updater<DATA.BaseObject[]>;
   drawData: DrawData;
+  setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
+  editState: EditState;
   setEditState: Updater<EditState>;
   clientSize: ISize;
   naturalSize: ISize;
@@ -26,7 +33,9 @@ interface IProps {
 const useObjects = ({
   mode,
   drawData,
+  setDrawData,
   setDrawDataWithHistory,
+  editState,
   setEditState,
   clientSize,
   naturalSize,
@@ -158,12 +167,40 @@ const useObjects = ({
     });
   };
 
+  const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
+    if (index < 0) return;
+    setDrawData((s) => {
+      s.activeObjectIndex = index;
+      s.creatingObject = {
+        ...drawData.objectList[index],
+        currIndex: undefined,
+        startPoint: undefined,
+        tempMaskSteps: [],
+        maskStep: undefined,
+      };
+
+      if (
+        s.selectedTool !== EBasicToolItem.Drag &&
+        s.objectList[index] &&
+        EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
+      ) {
+        s.selectedTool = EBasicToolItem.Drag;
+      }
+
+      // TODO: support edit mask in drag tool
+      if (s.objectList[index].type === EObjectType.Mask) {
+        s.selectedTool = EBasicToolItem.Mask;
+      }
+    });
+  };
+
   return {
     initObjectList,
     addObject,
     removeObject,
     updateObject,
     updateAllObject,
+    setCurrSelectedObject,
   };
 };
 
