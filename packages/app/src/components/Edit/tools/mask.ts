@@ -14,7 +14,7 @@ import {
   drawQuadraticPath,
 } from '@/utils/draw';
 import { ESubToolItem, LABELS_STROKE_DASH } from '@/constants';
-import { ANNO_STROKE_ALPHA } from '../constants/render';
+import { ANNO_MASK_ALPHA, ANNO_STROKE_ALPHA } from '../constants/render';
 
 export const mockMaskAnnotation = {
   categoryName: 'person',
@@ -94,7 +94,7 @@ export const renderMaskSteps = (
           maskCanvas!,
           canvasCoordPoints,
           step.positive,
-          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_MASK),
+          hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
           'transparent',
         );
       }
@@ -108,7 +108,7 @@ export const renderMaskSteps = (
           canvasCoordPoints,
           step.positive,
           strokeColor,
-          ANNO_STROKE_ALPHA.CREATING_MASK,
+          ANNO_MASK_ALPHA.CREATING,
           (step.radius * clientSize.width) / naturalSize.width,
         );
       }
@@ -135,7 +135,7 @@ export const renderMask = (
 
   // draw mask image
   if (maskCanvasElement) {
-    ctx.globalAlpha = ANNO_STROKE_ALPHA.CREATING_MASK;
+    ctx.globalAlpha = ANNO_MASK_ALPHA.CREATING;
     drawImage(maskCanvas, maskCanvasElement, {
       x: imagePos.x,
       y: imagePos.y,
@@ -207,7 +207,7 @@ export const renderMask = (
         drawQuadraticPath(
           maskCanvas!,
           canvasCoordPath,
-          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_MASK),
+          hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
           (maskStep.radius * clientSize.width) / naturalSize.width,
         );
       }

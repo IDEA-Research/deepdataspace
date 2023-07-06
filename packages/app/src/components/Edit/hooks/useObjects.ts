@@ -118,7 +118,7 @@ const useObjects = ({
     if (mode !== EditorMode.Edit) return;
     setDrawDataWithHistory((s) => {
       s.objectList.push(object);
-      s.creatingObject = undefined;
+      s.creatingObject = { ...object };
       s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
     });
   };
@@ -129,6 +129,7 @@ const useObjects = ({
       if (s.objectList[index]) {
         s.objectList.splice(index, 1);
         s.activeObjectIndex = -1;
+        s.creatingObject = undefined;
       }
     });
     setEditState((s) => {

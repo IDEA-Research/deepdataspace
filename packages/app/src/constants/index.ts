@@ -210,6 +210,13 @@ export enum EBasicToolItem {
   Mask = 'Mask',
 }
 
+export const EBasicToolTypeMap = {
+  [EBasicToolItem.Rectangle]: EObjectType.Rectangle,
+  [EBasicToolItem.Polygon]: EObjectType.Polygon,
+  [EBasicToolItem.Skeleton]: EObjectType.Skeleton,
+  [EBasicToolItem.Mask]: EObjectType.Mask,
+};
+
 export enum ESubToolItem {
   PenAdd = 'PenAdd',
   PenErase = 'PenErase',
