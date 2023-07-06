@@ -866,6 +866,118 @@ const Edit: React.FC<EditProps> = (props) => {
     }
   };
 
+  const updateCreatingPromptRender = (theDrawData: DrawData) => {
+    // draw creating prompt
+    if (theDrawData.creatingPrompt) {
+      const strokeColor = ANNO_STROKE_COLOR.CREATING;
+      const fillColor = ANNO_FILL_COLOR.CREATING;
+      switch (theDrawData.creatingPrompt.type) {
+        case EMaskPromptType.Rect: {
+          const { startPoint } = theDrawData.creatingPrompt;
+          const rect = getRectFromPoints(
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
+              width: contentMouse.elementW,
+              height: contentMouse.elementH,
+            },
+          );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawRect(
+            activeCanvasRef.current,
+            canvasCoordRect,
+            strokeColor,
+            2,
+            LABELS_STROKE_DASH[0],
+            fillColor,
+          );
+          break;
+        }
+        case EMaskPromptType.EdgeStitch:
+        case EMaskPromptType.Stroke: {
+          if (!theDrawData.creatingPrompt.stroke) break;
+          const canvasCoordStroke = translatePolygonCoord(
+            theDrawData.creatingPrompt.stroke,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          drawQuadraticPath(
+            activeCanvasRef.current!,
+            canvasCoordStroke,
+            hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
+            (theDrawData.creatingPrompt.radius! * clientSize.width) /
+              naturalSize.width,
+          );
+          break;
+        }
+        default:
+          break;
+      }
+
+      // draw segmentation reference points
+      if (theDrawData.segmentationClicks) {
+        theDrawData.segmentationClicks.forEach((click) => {
+          const canvasCoordPoint = translatePointCoord(click.point, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            3,
+            click.isPositive ? 'green' : 'red',
+            0,
+            '#fff',
+          );
+        });
+      }
+
+      // draw propmt while using mask tools
+      if (theDrawData.prompt && theDrawData.prompt.length > 0) {
+        const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
+        if (
+          latestPrompt &&
+          latestPrompt.type === EMaskPromptType.Point &&
+          latestPrompt.point &&
+          isRequiring
+        ) {
+          const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            5,
+            latestPrompt.isPositive ? 'green' : 'red',
+            3,
+            '#fff',
+          );
+        }
+      }
+
+      // draw active area while loading ai annotations
+      if (isRequiring && theDrawData.activeRectWhileLoading) {
+        const canvasCoordRect = translateRectCoord(
+          theDrawData.activeRectWhileLoading,
+          {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          },
+        );
+        shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+      }
+    }
+  };
+
   const updateRenderActiveCanvas = (updateDrawData?: DrawData) => {
     if (!visible || !activeCanvasRef.current) return;
 
@@ -884,6 +996,7 @@ const Edit: React.FC<EditProps> = (props) => {
     } else {
       updateCreatingRender(theDrawData.creatingObject);
     }
+    updateCreatingPromptRender(theDrawData);
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
@@ -976,118 +1089,8 @@ const Edit: React.FC<EditProps> = (props) => {
       }
     });
 
-    // draw segmentation reference points
-    if (theDrawData.segmentationClicks) {
-      theDrawData.segmentationClicks.forEach((click) => {
-        const canvasCoordPoint = translatePointCoord(click.point, {
-          x: -imagePos.current.x,
-          y: -imagePos.current.y,
-        });
-        drawCircleWithFill(
-          canvasRef.current!,
-          canvasCoordPoint,
-          3,
-          click.isPositive ? 'green' : 'red',
-          0,
-          '#fff',
-        );
-      });
-    }
-
-    // draw propmt while using mask tools
-    if (theDrawData.prompt && theDrawData.prompt.length > 0) {
-      const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
-      if (
-        latestPrompt &&
-        latestPrompt.type === EMaskPromptType.Point &&
-        latestPrompt.point &&
-        isRequiring
-      ) {
-        const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
-          x: -imagePos.current.x,
-          y: -imagePos.current.y,
-        });
-        drawCircleWithFill(
-          activeCanvasRef.current!,
-          canvasCoordPoint,
-          5,
-          latestPrompt.isPositive ? 'green' : 'red',
-          3,
-          '#fff',
-        );
-      }
-    }
-
-    // draw active area while loading ai annotations
-    if (isRequiring && theDrawData.activeRectWhileLoading) {
-      const canvasCoordRect = translateRectCoord(
-        theDrawData.activeRectWhileLoading,
-        {
-          x: -imagePos.current.x,
-          y: -imagePos.current.y,
-        },
-      );
-      shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
-    }
-
     // draw creating object
     updateRenderActiveCanvas(updateDrawData);
-
-    // draw creating prompt
-    if (theDrawData.creatingPrompt) {
-      const strokeColor = ANNO_STROKE_COLOR.CREATING;
-      const fillColor = ANNO_FILL_COLOR.CREATING;
-      switch (theDrawData.creatingPrompt.type) {
-        case EMaskPromptType.Rect: {
-          const { startPoint } = theDrawData.creatingPrompt;
-          const rect = getRectFromPoints(
-            startPoint!,
-            {
-              x: contentMouse.elementX,
-              y: contentMouse.elementY,
-            },
-            {
-              width: contentMouse.elementW,
-              height: contentMouse.elementH,
-            },
-          );
-          const canvasCoordRect = translateRectCoord(rect, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          drawRect(
-            canvasRef.current,
-            canvasCoordRect,
-            strokeColor,
-            2,
-            LABELS_STROKE_DASH[0],
-            fillColor,
-          );
-          break;
-        }
-        case EMaskPromptType.EdgeStitch:
-        case EMaskPromptType.Stroke: {
-          if (!theDrawData.creatingPrompt.stroke) break;
-          const canvasCoordStroke = translatePolygonCoord(
-            theDrawData.creatingPrompt.stroke,
-            {
-              x: -imagePos.current.x,
-              y: -imagePos.current.y,
-            },
-          );
-          drawQuadraticPath(
-            activeCanvasRef.current!,
-            canvasCoordStroke,
-            hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
-            (theDrawData.creatingPrompt.radius! * clientSize.width) /
-              naturalSize.width,
-          );
-          break;
-        }
-        default:
-          break;
-      }
-    }
   };
 
   /** =================================================================================================================
