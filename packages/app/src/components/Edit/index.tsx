@@ -178,6 +178,12 @@ const Edit: React.FC<EditProps> = (props) => {
     return drawData.selectedTool === EBasicToolItem.Drag;
   }, [drawData.selectedTool]);
 
+  const isAIPoseEstimation = useMemo(() => {
+    return (
+      drawData.AIAnnotation && drawData.selectedTool === EBasicToolItem.Skeleton
+    );
+  }, [drawData.AIAnnotation, drawData.selectedTool]);
+
   const {
     scale,
     naturalSize,
@@ -324,7 +330,7 @@ const Edit: React.FC<EditProps> = (props) => {
           s.focusPolygonInfo = hoverDetail;
         });
       }
-    } else if (isDragToolActive) {
+    } else if (isDragToolActive || isAIPoseEstimation) {
       setEditState((s) => {
         s.focusObjectIndex = focusObjectIndex;
         s.focusEleIndex = -1;
@@ -1170,7 +1176,7 @@ const Edit: React.FC<EditProps> = (props) => {
           break;
         }
       }
-    } else if (editState.focusObjectIndex > 0) {
+    } else if (editState.focusObjectIndex > -1) {
       updateMouseCursor('pointer');
     } else if (!isDragToolActive) {
       updateMouseCursor('crosshair');
@@ -1961,7 +1967,8 @@ const Edit: React.FC<EditProps> = (props) => {
   };
 
   const updateEditingWhenMouseMove = () => {
-    if (drawData.activeObjectIndex < 0) return false;
+    if (!drawData.creatingObject || drawData.activeObjectIndex < 0)
+      return false;
 
     const { focusEleIndex, focusEleType, startRectResizeAnchor } = editState;
     if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
@@ -1969,21 +1976,19 @@ const Edit: React.FC<EditProps> = (props) => {
       if (startRectResizeAnchor) {
         updateMouseCursor('resize', startRectResizeAnchor.type);
         setDrawData((s) => {
-          const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
             editState.startRectResizeAnchor &&
-            activeObject &&
-            activeObject.rect
+            s.creatingObject &&
+            s.creatingObject.rect
           ) {
             const newRect = resizeRect(
-              activeObject.rect,
+              s.creatingObject.rect,
               editState.startRectResizeAnchor,
               contentMouse,
             );
-            activeObject.rect = { ...activeObject.rect, ...newRect };
+            s.creatingObject.rect = { ...s.creatingObject.rect, ...newRect };
           }
-          s.creatingObject = { ...activeObject };
         });
         return true;
       }
@@ -1991,21 +1996,19 @@ const Edit: React.FC<EditProps> = (props) => {
       if (editState.startElementMovePoint) {
         updateMouseCursor('move');
         setDrawData((s) => {
-          const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
             editState.startElementMovePoint &&
-            activeObject &&
-            activeObject.rect
+            s.creatingObject &&
+            s.creatingObject.rect
           ) {
             const newRect = moveRect(
-              activeObject.rect,
+              s.creatingObject.rect,
               editState.startElementMovePoint,
               contentMouse,
             );
-            activeObject.rect = { ...activeObject.rect, ...newRect };
+            s.creatingObject.rect = { ...s.creatingObject.rect, ...newRect };
           }
-          s.creatingObject = { ...activeObject };
         });
         return true;
       }
@@ -2014,20 +2017,18 @@ const Edit: React.FC<EditProps> = (props) => {
       if (editState.startElementMovePoint) {
         updateMouseCursor('move');
         setDrawData((s) => {
-          const activeObject = s.objectList[s.activeObjectIndex];
           if (
             s.activeObjectIndex > -1 &&
             editState.focusEleIndex > -1 &&
             editState.startElementMovePoint &&
-            activeObject?.keypoints?.points?.[editState.focusEleIndex]
+            s.creatingObject?.keypoints?.points?.[editState.focusEleIndex]
           ) {
             const point =
-              activeObject?.keypoints?.points?.[editState.focusEleIndex];
+              s.creatingObject?.keypoints?.points?.[editState.focusEleIndex];
             const { x: newX, y: newY } = movePoint(contentMouse);
             point.x = newX;
             point.y = newY;
           }
-          s.creatingObject = { ...activeObject };
         });
         return true;
       }
@@ -2038,36 +2039,34 @@ const Edit: React.FC<EditProps> = (props) => {
         if (pointIndex > -1) {
           // move single point
           setDrawData((s) => {
-            const activeObject = s.objectList[s.activeObjectIndex];
             if (
               s.activeObjectIndex > -1 &&
               editState.focusEleIndex > -1 &&
               editState.startElementMovePoint &&
-              activeObject?.polygon?.group[index]
+              s.creatingObject?.polygon?.group[index]
             ) {
-              const polygon = activeObject?.polygon?.group[index];
+              const polygon = s.creatingObject?.polygon?.group[index];
               polygon[pointIndex] = movePoint(contentMouse);
             }
-            s.creatingObject = { ...activeObject };
           });
           return true;
         } else {
           // move polygon
           setDrawData((s) => {
-            const activeObject = s.objectList[s.activeObjectIndex];
             if (
               s.activeObjectIndex > -1 &&
               editState.focusEleIndex > -1 &&
               editState.startElementMovePoint &&
-              activeObject?.polygon?.group[index]
+              s.creatingObject?.polygon?.group[index]
             ) {
-              const polygon = activeObject?.polygon?.group[index];
+              const polygon = s.creatingObject?.polygon?.group[index];
               const newPolygon = movePolygon(
                 polygon,
                 editState.startElementMovePoint,
                 contentMouse,
               );
-              activeObject.polygon.group[index] = newPolygon;
+              s.creatingObject.polygon.group[index] = newPolygon;
+              // TODO: fix move offset
               // console.log(
               //   '>>> move polygon',
               //   editState.startElementMovePoint.mousePoint,
@@ -2084,9 +2083,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   };
               });
             }
-            s.creatingObject = { ...activeObject };
           });
-
           return true;
         }
       }
@@ -2120,10 +2117,21 @@ const Edit: React.FC<EditProps> = (props) => {
           editState.startElementMovePoint.initPoint?.y === mouse.y;
 
         const isRemovePolygonPoints =
-          !drawData.creatingObject &&
           isMouseStand &&
           editState.focusPolygonInfo.index > -1 &&
           editState.focusPolygonInfo.pointIndex > -1;
+
+        if (isRemovePolygonPoints) {
+          const copyObject = cloneDeep(drawData.creatingObject);
+          const { index, pointIndex } = editState.focusPolygonInfo;
+          const polygon = copyObject.polygon?.group[index];
+          if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
+            polygon.splice(pointIndex, 1);
+          }
+          updateObject(copyObject, drawData.activeObjectIndex);
+        } else if (isResizingOrMoving) {
+          updateObject(drawData.creatingObject, drawData.activeObjectIndex);
+        }
 
         if (
           drawData.AIAnnotation &&
@@ -2136,19 +2144,6 @@ const Edit: React.FC<EditProps> = (props) => {
           ) {
             onAiAnnotation(drawData, aiLabels);
           }
-        }
-
-        if (isRemovePolygonPoints) {
-          const object = drawData.objectList[editState.focusObjectIndex];
-          const copyObject = cloneDeep(object);
-          const { index, pointIndex } = editState.focusPolygonInfo;
-          const polygon = copyObject.polygon?.group[index];
-          if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
-            polygon.splice(pointIndex, 1);
-          }
-          updateObject(copyObject, editState.focusObjectIndex);
-        } else if (isResizingOrMoving) {
-          updateAllObject(drawData.objectList);
         }
 
         setEditState((s) => {
@@ -2217,6 +2212,9 @@ const Edit: React.FC<EditProps> = (props) => {
           // add mask object
           addObject(newObject, true);
         }
+        setEditState((s) => {
+          s.latestLabel = label;
+        });
         setDrawData((s) => {
           s.creatingObject = undefined;
           s.prompt = undefined;
@@ -2262,17 +2260,17 @@ const Edit: React.FC<EditProps> = (props) => {
     // 2. Create object
     if (updateCreatingWhenMouseDown(event)) return;
 
-    if (!isDragToolActive) {
-      // 3. New object
-      startCreateWhenMouseDown(event);
-    } else {
-      // 4. Active object
+    if (isDragToolActive || isAIPoseEstimation) {
       if (editState.focusObjectIndex > -1) {
+        // 3. Active object
         setCurrSelectedObject();
-        return;
+      } else {
+        // 4. Drag object
+        setAllowMove(true);
       }
-      // 5. Drag object
-      setAllowMove(true);
+    } else {
+      // 5. New object
+      startCreateWhenMouseDown(event);
     }
   };
 
@@ -2924,6 +2922,8 @@ const Edit: React.FC<EditProps> = (props) => {
                     );
                   });
                   s.objectList = visibleObjects;
+                  s.activeObjectIndex = -1;
+                  s.creatingObject = undefined;
                   message.success(
                     localeText('smartAnnotation.msg.applyConf', {
                       count: visibleObjects.length,

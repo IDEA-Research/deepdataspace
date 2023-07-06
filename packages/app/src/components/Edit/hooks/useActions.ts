@@ -384,7 +384,20 @@ const useActions = ({
         pointColors,
       },
     };
-    const skeletonObjs = drawData.objectList.filter(
+
+    const objectList = [...drawData.objectList];
+    if (
+      drawData.activeObjectIndex > -1 &&
+      objectList[drawData.activeObjectIndex] &&
+      drawData.creatingObject
+    ) {
+      // update creating object
+      objectList[drawData.activeObjectIndex] = {
+        ...objectList[drawData.activeObjectIndex],
+        ...drawData.creatingObject,
+      };
+    }
+    const skeletonObjs = objectList.filter(
       (obj) => obj.type === EObjectType.Skeleton,
     );
     if (skeletonObjs.length > 0) {

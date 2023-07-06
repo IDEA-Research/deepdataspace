@@ -143,12 +143,18 @@ const useObjects = ({
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setDrawDataWithHistory((s) => {
       s.objectList[index] = object;
+      if (s.creatingObject && s.activeObjectIndex === index) {
+        s.creatingObject = { ...object };
+      }
     });
   };
 
   const updateAllObject = (objectList: IAnnotationObject[]) => {
     setDrawDataWithHistory((s) => {
       s.objectList = objectList;
+      if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+        s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
+      }
     });
   };
 

@@ -3,9 +3,8 @@ import { Updater } from 'use-immer';
 import { getCategoryColors } from '@/utils/color';
 import { DATA } from '@/services/type';
 import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
-import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
+import { EElementType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
-import { changeMaskCanvasColor } from '../tools/mask';
 
 interface IProps {
   visible: boolean;
@@ -66,14 +65,6 @@ export default function useLabels({
     });
     const newObject = { ...drawData.objectList[index] };
     newObject.label = label;
-    // mask color change
-    if (newObject.type === EObjectType.Mask && newObject.maskCanvasElement) {
-      const color = labelColors[label] || '#ffffff';
-      newObject.maskCanvasElement = changeMaskCanvasColor(
-        newObject.maskCanvasElement,
-        color,
-      );
-    }
     updateObject(newObject, index);
   };
 
