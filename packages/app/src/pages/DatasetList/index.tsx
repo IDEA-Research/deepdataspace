@@ -33,9 +33,6 @@ const HomePage: React.FC = () => {
         <div className={styles.listTitle}>
           <LocaleText id="datasets" />
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          {localeText('dataset.filter.newDataset')}
-        </Button>
         <Tabs
           activeKey={pagination?.isPublic}
           onChange={updateListFilter}
@@ -49,6 +46,11 @@ const HomePage: React.FC = () => {
               label: localeText('dataset.filter.private'),
             },
           ]}
+          tabBarExtraContent={
+            <Button type="primary" onClick={() => setModalOpen(true)}>
+              {localeText('dataset.filter.newDataset')}
+            </Button>
+          }
         />
         <List
           grid={{ gutter: 16, column: 4 }}

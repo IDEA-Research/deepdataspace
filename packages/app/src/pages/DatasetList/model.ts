@@ -5,7 +5,7 @@ import { message } from 'antd';
 import { DATA } from '@/services/type';
 import { globalLocaleText } from '@/locales/helper';
 import { PaginationState } from '@/models/datasets';
-import { size, split, map } from 'lodash';
+import { size, map } from 'lodash';
 import { createDataset, updateDataset, importImages } from '@/services/dataset';
 
 export interface newDatasetForm {
@@ -15,8 +15,7 @@ export interface newDatasetForm {
 }
 
 export default () => {
-  const { loadDatasets, setPagination, setDatasetId, datasetId } =
-    useModel('datasets');
+  const { loadDatasets, setPagination, setDatasetId } = useModel('datasets');
   const { pageState, loadDatasetInfo, loadImgList } =
     useModel('dataset.common');
 
@@ -103,11 +102,10 @@ export default () => {
 
       message.success(globalLocaleText('dataset.create.success'));
       setDatasetId(id);
+      loadDatasets();
     } catch (error) {
       message.error(globalLocaleText('dataset.create.error', { error }));
     }
-
-    return true;
   };
 
   const handleUpdateDataset = async (values: newDatasetForm) => {
@@ -121,20 +119,22 @@ export default () => {
     try {
       await updateDataset(pageState.datasetId, { name, description, isPublic });
       message.success(globalLocaleText('dataset.update.success'));
+      loadDatasetInfo();
     } catch (error) {
       message.error(globalLocaleText('dataset.update.error', { error }));
     }
-
-    loadDatasetInfo();
   };
 
-  const handleImportImages = async (values: any) => {
-    if (!values?.imageUrl || size(values?.imageUrl) === 0) {
-      message.warning(globalLocaleText('dataset.import.warn'));
-      return;
+  const handleImportImages = async (datasetId: string, imgs: string[]) => {
+    if (size(datasetId) === 0) {
+      return message.warning(globalLocaleText('dataset.update.warn'));
     }
 
-    const imageList = map(split(values?.imageUrl, ','), (url) => {
+    if (size(imgs) === 0) {
+      return message.warning(globalLocaleText('dataset.import.warn'));
+    }
+
+    const imageList = map(imgs, (url) => {
       const _obj = {
         imageUrl: url,
       };
@@ -144,11 +144,12 @@ export default () => {
     try {
       await importImages({ datasetId, imageList });
       message.success(globalLocaleText('dataset.import.success'));
+
+      loadImgList();
+      loadDatasets();
     } catch (error) {
       message.error(globalLocaleText('dataset.import.error', { error }));
     }
-
-    loadImgList();
   };
 
   return {

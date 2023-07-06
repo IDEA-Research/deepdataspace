@@ -8,7 +8,7 @@ import {
 import { Button, Modal, Empty } from 'antd';
 import { useModel } from '@umijs/max';
 import { useLocale } from '@/locales/helper';
-import { concat, map, split } from 'lodash';
+import { map } from 'lodash';
 import Masonry from 'react-masonry-component';
 import styles from './index.less';
 
@@ -22,6 +22,7 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
   const { handleCreateDataset, handleImportImages, checkImageUrls } =
     useModel('DatasetList.model');
   const { onPageContentLoaded } = useModel('dataset.common');
+  const { datasetId } = useModel('datasets');
   const { localeText } = useLocale();
 
   return (
@@ -38,8 +39,8 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
           {localeText('dataset.create.modal.title')}
         </div>
         <StepsForm
-          onFinish={(v) => {
-            handleImportImages(v);
+          onFinish={() => {
+            handleImportImages(datasetId, imgList);
             setOpen(false);
           }}
           formProps={{
@@ -75,7 +76,10 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
           <StepsForm.StepForm
             name="step1"
             title={localeText('dataset.create.modal.title')}
-            onFinish={handleCreateDataset}
+            onFinish={(v) => {
+              handleCreateDataset(v);
+              return true;
+            }}
           >
             <ProFormText
               name="name"
@@ -119,9 +123,9 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
               width="lg"
               placeholder={localeText('dataset.import.modal.placeholder')}
               onBlur={(e: any) => {
-                const _temp = concat(split(e.target.value, ','), imgList);
+                const _imgs = [...imgList, ...e.target.value.split('\n')];
 
-                checkImageUrls(_temp).then((results) => {
+                checkImageUrls(_imgs).then((results) => {
                   setImgList(results);
                 });
               }}

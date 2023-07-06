@@ -3,14 +3,14 @@ import { ProFormTextArea, ModalForm } from '@ant-design/pro-components';
 import { Button, Empty } from 'antd';
 import { useModel } from '@umijs/max';
 import { useLocale } from '@/locales/helper';
-import { map, split, concat } from 'lodash';
+import { map } from 'lodash';
 import Masonry from 'react-masonry-component';
 import styles from './index.less';
 
 const ImportImgsModal = () => {
   const [imgList, setImgList] = useState<string[]>([]);
   const { handleImportImages, checkImageUrls } = useModel('DatasetList.model');
-  const { onPageContentLoaded } = useModel('dataset.common');
+  const { onPageContentLoaded, pageState } = useModel('dataset.common');
   const { localeText } = useLocale();
 
   return (
@@ -20,8 +20,9 @@ const ImportImgsModal = () => {
         destroyOnClose: true,
       }}
       trigger={<Button>{localeText('dataset.import.edit.modal.title')}</Button>}
-      onFinish={(v) => {
-        handleImportImages(v);
+      onFinish={() => {
+        handleImportImages(pageState?.datasetId, imgList);
+        setImgList([]);
         return true;
       }}
       submitter={{
@@ -50,9 +51,9 @@ const ImportImgsModal = () => {
           label={localeText('dataset.import.modal.label')}
           placeholder={localeText('dataset.import.modal.placeholder')}
           onBlur={(e: any) => {
-            const _temp = concat(split(e.target.value, ','), imgList);
+            const _imgs = [...imgList, ...e.target.value.split('\n')];
 
-            checkImageUrls(_temp).then((results) => {
+            checkImageUrls(_imgs).then((results) => {
               setImgList(results);
             });
           }}

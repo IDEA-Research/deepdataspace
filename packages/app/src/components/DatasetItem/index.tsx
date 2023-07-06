@@ -42,21 +42,23 @@ const DatasetItem: React.FC<IProps> = (props) => {
               preview={false}
             />
           </div>
-          <div className={styles.types}>
-            {data.objectTypes.map((type) => (
-              <div key={type} className={styles.iconWrap}>
-                <Tooltip title={type} placement="bottom">
-                  <Icon
-                    component={
-                      ANNOTATION_TYPE_ICONS[
-                        type as keyof typeof ANNOTATION_TYPE_ICONS
-                      ]
-                    }
-                  />
-                </Tooltip>
-              </div>
-            ))}
-          </div>
+          {data.objectTypes.length && (
+            <div className={styles.types}>
+              {data.objectTypes.map((type) => (
+                <div key={type} className={styles.iconWrap}>
+                  <Tooltip title={type} placement="bottom">
+                    <Icon
+                      component={
+                        ANNOTATION_TYPE_ICONS[
+                          type as keyof typeof ANNOTATION_TYPE_ICONS
+                        ]
+                      }
+                    />
+                  </Tooltip>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.infoWrap}>
