@@ -921,60 +921,60 @@ const Edit: React.FC<EditProps> = (props) => {
         default:
           break;
       }
+    }
 
-      // draw segmentation reference points
-      if (theDrawData.segmentationClicks) {
-        theDrawData.segmentationClicks.forEach((click) => {
-          const canvasCoordPoint = translatePointCoord(click.point, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          drawCircleWithFill(
-            activeCanvasRef.current!,
-            canvasCoordPoint,
-            3,
-            click.isPositive ? 'green' : 'red',
-            0,
-            '#fff',
-          );
+    // draw segmentation reference points
+    if (theDrawData.segmentationClicks) {
+      theDrawData.segmentationClicks.forEach((click) => {
+        const canvasCoordPoint = translatePointCoord(click.point, {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
         });
-      }
-
-      // draw propmt while using mask tools
-      if (theDrawData.prompt && theDrawData.prompt.length > 0) {
-        const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
-        if (
-          latestPrompt &&
-          latestPrompt.type === EMaskPromptType.Point &&
-          latestPrompt.point &&
-          isRequiring
-        ) {
-          const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          drawCircleWithFill(
-            activeCanvasRef.current!,
-            canvasCoordPoint,
-            5,
-            latestPrompt.isPositive ? 'green' : 'red',
-            3,
-            '#fff',
-          );
-        }
-      }
-
-      // draw active area while loading ai annotations
-      if (isRequiring && theDrawData.activeRectWhileLoading) {
-        const canvasCoordRect = translateRectCoord(
-          theDrawData.activeRectWhileLoading,
-          {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          },
+        drawCircleWithFill(
+          activeCanvasRef.current!,
+          canvasCoordPoint,
+          3,
+          click.isPositive ? 'green' : 'red',
+          0,
+          '#fff',
         );
-        shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+      });
+    }
+
+    // draw propmt while using mask tools
+    if (theDrawData.prompt && theDrawData.prompt.length > 0) {
+      const latestPrompt = theDrawData.prompt[theDrawData.prompt.length - 1];
+      if (
+        latestPrompt &&
+        latestPrompt.type === EMaskPromptType.Point &&
+        latestPrompt.point &&
+        isRequiring
+      ) {
+        const canvasCoordPoint = translatePointCoord(latestPrompt.point, {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        });
+        drawCircleWithFill(
+          activeCanvasRef.current!,
+          canvasCoordPoint,
+          5,
+          latestPrompt.isPositive ? 'green' : 'red',
+          3,
+          '#fff',
+        );
       }
+    }
+
+    // draw active area while loading ai annotations
+    if (isRequiring && theDrawData.activeRectWhileLoading) {
+      const canvasCoordRect = translateRectCoord(
+        theDrawData.activeRectWhileLoading,
+        {
+          x: -imagePos.current.x,
+          y: -imagePos.current.y,
+        },
+      );
+      shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
     }
   };
 
@@ -989,13 +989,14 @@ const Edit: React.FC<EditProps> = (props) => {
     clearCanvas(activeCanvasRef.current);
 
     const theDrawData = updateDrawData || drawData;
-    if (!theDrawData.creatingObject) return;
-
-    if (theDrawData.activeObjectIndex > -1) {
-      updateEditingRender(theDrawData.creatingObject);
-    } else {
-      updateCreatingRender(theDrawData.creatingObject);
+    if (theDrawData.creatingObject) {
+      if (theDrawData.activeObjectIndex > -1) {
+        updateEditingRender(theDrawData.creatingObject);
+      } else {
+        updateCreatingRender(theDrawData.creatingObject);
+      }
     }
+
     updateCreatingPromptRender(theDrawData);
   };
 
