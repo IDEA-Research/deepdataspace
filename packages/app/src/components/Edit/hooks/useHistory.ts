@@ -32,6 +32,7 @@ const useHistory = ({
       item.drawData.objectList,
       naturalSize,
       item.clientSize,
+      true,
     );
     if (onAutoSave) onAutoSave(annotations);
   };

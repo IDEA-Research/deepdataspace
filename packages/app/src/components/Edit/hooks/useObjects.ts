@@ -102,8 +102,10 @@ const useObjects = ({
       };
       Object.assign(newObj, { polygon });
     }
+
     if (maskRle) {
       Object.assign(newObj, {
+        maskRle,
         maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
       });
     }
