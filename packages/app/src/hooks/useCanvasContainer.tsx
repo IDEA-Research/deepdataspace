@@ -35,8 +35,6 @@ export default function useCanvasContainer({
 
   const containerMouse = useMouse(containerRef.current);
 
-  const [scale, setScale] = useState(1);
-
   /** The original size of image */
   const [naturalSize, setNaturalSize] = useState<ISize>({
     width: 0,
@@ -44,13 +42,15 @@ export default function useCanvasContainer({
   });
 
   /** The scaled size of image */
-  const clientSize = useMemo(
-    () => ({
-      width: naturalSize.width * scale,
-      height: naturalSize.height * scale,
-    }),
-    [naturalSize, scale],
-  );
+  const [clientSize, setClientSize] = useImmer<{
+    width: number;
+    height: number;
+    scale: number;
+  }>({
+    width: naturalSize.width,
+    height: naturalSize.height,
+    scale: 1,
+  });
 
   /** The top-left location on canvas container */
   const imagePos = useRef<IPoint>({ x: 0, y: 0 });
@@ -81,8 +81,7 @@ export default function useCanvasContainer({
 
   const [movingImgAnchor, setMovingImgAnchor] = useImmer<IPoint | null>(null);
 
-  /** Initial position to fit container */
-  useEffect(() => {
+  const initClientSizeToFit = (naturalSize: ISize) => {
     const containerWidth = containerMouse.elementW;
     const containerHeight = containerMouse.elementH;
 
@@ -97,9 +96,18 @@ export default function useCanvasContainer({
         x: (containerWidth - width) * 0.5,
         y: (containerHeight - height) * 0.5,
       };
-      setScale(scale);
+      setClientSize({
+        scale,
+        width: naturalSize.width * scale,
+        height: naturalSize.height * scale,
+      });
       lastScalePosRef.current = undefined;
     }
+  };
+
+  /** Initial position to fit container */
+  useEffect(() => {
+    initClientSizeToFit(naturalSize);
   }, [naturalSize, containerMouse.elementW, containerMouse.elementH]);
 
   const adaptImagePosWhileZoom = () => {
@@ -122,8 +130,6 @@ export default function useCanvasContainer({
     const y = mouseY - clientSize.height * posRatioY;
 
     imagePos.current = { x, y };
-
-    console.log(x.toFixed(0), y.toFixed(0));
   };
 
   useEffect(() => {
@@ -132,10 +138,10 @@ export default function useCanvasContainer({
 
   const zoom = (isZoomIn: boolean, step: number, isZoomBtn?: boolean) => {
     if (!visible || isRequiring) return;
-    setScale((s) => {
+    setClientSize((s) => {
       let scale = isZoomIn
-        ? Math.min(MAX_SCALE, fixedFloatNum(s + step, 2))
-        : Math.max(MIN_SCALE, fixedFloatNum(s - step, 2));
+        ? Math.min(MAX_SCALE, fixedFloatNum(s.scale + step, 2))
+        : Math.max(MIN_SCALE, fixedFloatNum(s.scale - step, 2));
 
       // Record the starting zoom scale ratio.
       if (
@@ -161,7 +167,10 @@ export default function useCanvasContainer({
         };
         movedRef.current = false;
       }
-      return scale;
+
+      s.scale = scale;
+      s.width = naturalSize.width * scale;
+      s.height = naturalSize.height * scale;
     });
   };
 
@@ -186,14 +195,18 @@ export default function useCanvasContainer({
 
   const onReset = () => {
     lastScalePosRef.current = undefined;
-    setScale(1);
+    initClientSizeToFit(naturalSize);
   };
 
   // Reset data when hidden.
   useEffect(() => {
     if (!visible) {
       setNaturalSize({ width: 0, height: 0 });
-      setScale(1);
+      setClientSize({
+        scale: 1,
+        width: 0,
+        height: 0,
+      });
       imagePos.current = { x: 0, y: 0 };
       lastScalePosRef.current = undefined;
     }
@@ -252,6 +265,7 @@ export default function useCanvasContainer({
     const img = e.target as HTMLImageElement;
     const naturalSize = { width: img.naturalWidth, height: img.naturalHeight };
     setNaturalSize(naturalSize);
+    initClientSizeToFit(naturalSize);
   };
 
   /** Container render function */
@@ -325,10 +339,13 @@ export default function useCanvasContainer({
 
   return {
     CanvasContainer,
-    scale,
+    scale: clientSize.scale,
     containerRef,
     naturalSize,
-    clientSize,
+    clientSize: {
+      width: clientSize.width,
+      height: clientSize.height,
+    },
     containerMouse,
     contentMouse,
     imagePos,
