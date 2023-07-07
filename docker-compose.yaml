@@ -1,0 +1,59 @@
+version: '3.9'
+x-base-config: &base-config
+  build: .
+  restart: always
+  environment:
+    PYTHONUNBUFFERED: '1'
+    DDS_DEPLOY: 'docker-compose'
+    DDS_VERBOSE_LOG: 'true'
+    DDS_DATA_DIR: /dds/datasets
+    DDS_REDIS_HOST: redis
+    DDS_REDIS_PORT: 6379
+    DDS_REDIS_PASS: redis
+    DDS_REDIS_DBNAME: 0
+    DDS_MONGODB_HOST: mongodb
+    DDS_MONGODB_PORT: 27017
+    DDS_MONGODB_USER: mongodb
+    DDS_MONGODB_PASS: mongodb
+    DDS_MONGODB_DBNAME: dds
+    DDS_DJANGO_KEY: 'e940e80a0e38d462d5731d11d3119bf3'
+    DJANGO_SETTINGS_MODULE: deepdataspace.server.settings
+  volumes:
+    - ${DDS_DATASET_DIR}:/dds/datasets:ro
+    - dds-sample:/dds/samples
+services:
+  mongodb:
+    image: mongo:6.0.6
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongodb
+      MONGO_INITDB_ROOT_PASSWORD: mongodb
+      MONGO_INITDB_DATABASE: dds
+    volumes:
+      - mongodb-data:/data/db
+      - ./docker/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js
+  redis:
+    image: redis:6.2.7
+    command:
+      - redis-server
+      - --save 600 10
+      - --appendonly yes
+      - --requirepass redis
+    volumes:
+      - redis-data:/data
+  dds-web:
+    <<: *base-config
+    command: sh -c "django-admin runserver 0.0.0.0:8765 --pythonpath . --settings deepdataspace.server.settings"
+    ports:
+      - ${DDS_PORT}:8765
+  dds-celery:
+    <<: *base-config
+    command: sh -c "celery -A deepdataspace.task:app worker -l info -c 1"
+  dds-init:
+    <<: *base-config
+    restart: on-failure
+    command: sh -c "python ./docker/init-dds.py"
+volumes:
+  mongodb-data:
+  redis-data:
+  dds-sample:

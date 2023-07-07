@@ -128,6 +128,7 @@ LOGGING = {
         },
     }
 }
+
 if is_local:
     LOGGING["handlers"]["django"] = {
         "level"    : "INFO",

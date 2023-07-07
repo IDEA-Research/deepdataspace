@@ -421,4 +421,5 @@ export default {
   'requestConfig.responseStatus.msg': '响应状态：{status}',
   'requestConfig.noResponse.msg': '无响应！请重试。',
   'requestConfig.requestError.msg': '请求错误，请重试。',
+  'requestConfig.errorContent.msg': '请求文本中存在敏感词，请检查。',
 };

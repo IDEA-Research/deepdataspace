@@ -99,8 +99,7 @@ const useActions = ({
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
-      console.error(error.message);
-      message.error(`Request Failed: ${error.message}, Please retry later.`);
+      message.error(localeText('smartAnnotation.msg.error'));
     } finally {
       setLoading(false);
     }
@@ -211,8 +210,7 @@ const useActions = ({
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
-      console.error(error.message);
-      message.error(`Request Failed: ${error.message}, Please retry later.`);
+      message.error(localeText('smartAnnotation.msg.error'));
     } finally {
       setLoading(false);
     }
@@ -310,8 +308,7 @@ const useActions = ({
         }
       }
     } catch (error: any) {
-      console.error(error.message);
-      message.error(`Request Failed: ${error.message}, Please retry later.`);
+      message.error(localeText('smartAnnotation.msg.error'));
     } finally {
       setLoading(false);
     }

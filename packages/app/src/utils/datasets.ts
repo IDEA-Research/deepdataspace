@@ -5,7 +5,7 @@ import { includes } from 'lodash';
  * @param type
  */
 export const generateDefaultCover = (type: string[]) => {
-  let _img_index: number = 5;
+  let _img_index: number = 0;
 
   if (includes(type, 'Classification')) {
     _img_index = 1;

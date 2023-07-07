@@ -1180,3 +1180,76 @@ export const convertToVerticesArray = (
 
   return vertices;
 };
+
+export const translateRectCoord = (
+  rect: IRect,
+  newCoordOrigin: IPoint,
+): IRect => {
+  return {
+    ...rect,
+    x: rect.x - newCoordOrigin.x,
+    y: rect.y - newCoordOrigin.y,
+  };
+};
+
+export const translatePolygonCoord = (
+  polygon: IPolygon,
+  newCoordOrigin: IPoint,
+): IPolygon => {
+  return polygon.map((point) => {
+    return {
+      x: point.x - newCoordOrigin.x,
+      y: point.y - newCoordOrigin.y,
+    };
+  });
+};
+
+export const translatePointCoord = (
+  point: IPoint,
+  newCoordOrigin: IPoint,
+): IPoint => {
+  return {
+    x: point.x - newCoordOrigin.x,
+    y: point.y - newCoordOrigin.y,
+  };
+};
+
+export const translateAnnotCoord = (
+  annoObj: IAnnotationObject,
+  newCoordOrigin: IPoint,
+): IAnnotationObject => {
+  const { rect, polygon, keypoints } = annoObj;
+  const newAnnoObj = { ...annoObj };
+
+  if (rect) {
+    newAnnoObj.rect = {
+      ...rect,
+      ...translateRectCoord(rect, newCoordOrigin),
+    };
+  }
+
+  if (polygon) {
+    const newGroup = polygon.group.map((polyItem) => {
+      return translatePolygonCoord(polyItem, newCoordOrigin);
+    });
+    newAnnoObj.polygon = {
+      ...polygon,
+      group: newGroup,
+    };
+  }
+
+  if (keypoints) {
+    const newPoints = keypoints.points.map((point) => {
+      return {
+        ...point,
+        ...translatePointCoord(point, newCoordOrigin),
+      };
+    });
+    newAnnoObj.keypoints = {
+      ...keypoints,
+      points: newPoints,
+    };
+  }
+
+  return newAnnoObj;
+};

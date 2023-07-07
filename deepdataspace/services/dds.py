@@ -56,7 +56,6 @@ class DDS(metaclass=SingletonMeta):
                  port: int = None,
                  reload: bool = None,
                  configfile: str = None,
-                 runtime_dir: str = None,
                  from_cmdline: bool = False):
 
         self.config_data = {}
@@ -77,9 +76,8 @@ class DDS(metaclass=SingletonMeta):
         self.port = int(self.argument_or_config("django_port", port, 8765))
         self.reload = self.argument_or_config("django_reload", reload, False)
 
-        if runtime_dir is None:
-            home_dir = os.path.expanduser("~")
-            runtime_dir = os.path.join(home_dir, ".deepdataspace")
+        home_dir = os.path.expanduser("~")
+        runtime_dir = os.path.join(home_dir, ".deepdataspace")
         self.runtime_dir = self.argument_or_config("runtime_dir", runtime_dir, None)
 
         self.configfile = configfile
@@ -153,7 +151,6 @@ class DDS(metaclass=SingletonMeta):
         with zipfile.ZipFile(sample_file, "r") as fp:
             fp.extractall(f"{self.data_dir}/")
 
-        return
 
     def _init_shared_files_and_dirs(self):
         # init shared files and directories
