@@ -14,8 +14,9 @@ import { ReactComponent as ClickIcon } from '@/assets/svg/click.svg';
 import { ReactComponent as MagicBrushIcon } from '@/assets/svg/star-stick.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/auto-awesome.svg';
 import { ReactComponent as StrokeIcon } from '@/assets/svg/signature.svg';
-import { getIconFromShortcut } from '../ShortcutsInfo';
 import { useLocale } from '@/locales/helper';
+import { useMemo } from 'react';
+import { useKeyPress } from 'ahooks';
 
 type TToolItem<T> = {
   key: T;
@@ -43,7 +44,7 @@ export const SubToolBar: React.FC<IProps> = ({
 }) => {
   const { localeText } = useLocale();
 
-  const BasicMaskTools: TToolItem<ESubToolItem>[] = [
+  const basicMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.PenAdd,
       name: localeText('editor.subtoolbar.mask.penAdd'),
@@ -66,7 +67,7 @@ export const SubToolBar: React.FC<IProps> = ({
     },
   ];
 
-  const SmartMaskTools: TToolItem<ESubToolItem>[] = [
+  const smartMaskTools: TToolItem<ESubToolItem>[] = [
     {
       key: ESubToolItem.AutoSegmentByBox,
       name: localeText('editor.subtoolbar.mask.box'),
@@ -94,25 +95,49 @@ export const SubToolBar: React.FC<IProps> = ({
     },
   ];
 
-  const popoverContent = (item: TToolItem<ESubToolItem>) => {
-    return (
-      <div className={styles['popover-container']}>
-        <span className={styles.title}>{item.name}</span>
-        {item.shortcut && (
-          <span className={styles.key}>
-            {getIconFromShortcut(item.shortcut.shortcut)}
-          </span>
-        )}
-      </div>
-    );
-  };
+  const toolsWithBrushSize = [
+    ESubToolItem.BrushAdd,
+    ESubToolItem.BrushErase,
+    ESubToolItem.AutoSegmentByStroke,
+    ESubToolItem.AutoEdgeStitching,
+  ];
+
+  const allSubTools = useMemo(() => {
+    return [...basicMaskTools, ...smartMaskTools];
+  }, [basicMaskTools, smartMaskTools]);
+
+  const shortcuts = useMemo(() => {
+    const keys: string[] = [];
+    for (let i = 1; i <= allSubTools.length; i++) {
+      keys.push(i.toString());
+    }
+    return keys;
+  }, [allSubTools]);
+
+  useKeyPress(
+    shortcuts,
+    (event) => {
+      const tool = allSubTools.find((_, index) => {
+        return (index + 1).toString() === event.key;
+      });
+      if (tool) {
+        if (
+          smartMaskTools.find((item) => tool.key === item.key) &&
+          !isAIAnnotationActive
+        )
+          return;
+        onChangeSubTool(tool.key);
+      }
+    },
+    {
+      exactMatch: true,
+    },
+  );
 
   const mouseEventHandler = (event: React.MouseEvent) => {
     // enable mouseup propagate only for brush
     if (
-      [ESubToolItem.BrushAdd, ESubToolItem.BrushErase].includes(
-        selectedSubTool,
-      ) &&
+      toolsWithBrushSize.includes(selectedSubTool) &&
       event.type === 'mouseup'
     ) {
       return;
@@ -121,10 +146,20 @@ export const SubToolBar: React.FC<IProps> = ({
     }
   };
 
+  const popoverContent = (item: TToolItem<ESubToolItem>) => {
+    const shortcut = allSubTools.findIndex((tool) => tool.key === item.key) + 1;
+    return (
+      <div className={styles['popover-container']}>
+        <span className={styles.title}>{item.name}</span>
+        {shortcut && <span className={styles.key}>{shortcut}</span>}
+      </div>
+    );
+  };
+
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
       <div className={styles.container}>
-        {BasicMaskTools.map((item) => (
+        {basicMaskTools.map((item) => (
           <Popover
             placement="bottom"
             content={popoverContent(item)}
@@ -142,7 +177,7 @@ export const SubToolBar: React.FC<IProps> = ({
         {isAIAnnotationActive && (
           <>
             <div className={styles.divider}></div>
-            {SmartMaskTools.map((item) => (
+            {smartMaskTools.map((item) => (
               <Popover
                 placement="bottom"
                 content={popoverContent(item)}
@@ -159,12 +194,7 @@ export const SubToolBar: React.FC<IProps> = ({
             ))}
           </>
         )}
-        {[
-          ESubToolItem.BrushAdd,
-          ESubToolItem.BrushErase,
-          ESubToolItem.AutoSegmentByStroke,
-          ESubToolItem.AutoEdgeStitching,
-        ].includes(selectedSubTool) && (
+        {toolsWithBrushSize.includes(selectedSubTool) && (
           <>
             <div className={styles.divider}></div>
             <div className={styles.slider}>
