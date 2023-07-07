@@ -12,7 +12,7 @@ interface IProps {
   categories: DATA.Category[];
   setCategories?: Updater<DATA.Category[]>;
   drawData: DrawData;
-  setDrawDataWithHistory: Updater<DrawData>;
+  setDrawData: Updater<DrawData>;
   editState: EditState;
   updateObject: (object: IAnnotationObject, index: number) => void;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
@@ -23,7 +23,7 @@ export default function useLabels({
   categories,
   setCategories,
   drawData,
-  setDrawDataWithHistory,
+  setDrawData,
   editState,
   updateObject,
   updateAllObject,
@@ -112,7 +112,7 @@ export default function useLabels({
   };
 
   const onChangeActiveClass = (name: string) => {
-    setDrawDataWithHistory((s) => {
+    setDrawData((s) => {
       s.activeClassName = name;
     });
   };

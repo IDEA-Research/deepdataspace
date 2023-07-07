@@ -245,7 +245,7 @@ const Edit: React.FC<EditProps> = (props) => {
     categories,
     setCategories,
     drawData,
-    setDrawDataWithHistory,
+    setDrawData,
     editState,
     updateObject,
     updateAllObject,

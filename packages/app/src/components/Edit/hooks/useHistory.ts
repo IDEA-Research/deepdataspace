@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { DraftFunction, Updater, useImmer } from 'use-immer';
 import { cloneDeep, isEqual } from 'lodash';
 import { scaleDrawData, translateObjectsToAnnotations } from '@/utils/compute';
@@ -33,13 +33,13 @@ const useHistory = ({
       naturalSize,
       item.clientSize,
     );
-    onAutoSave?.(annotations);
+    if (onAutoSave) onAutoSave(annotations);
   };
 
   /**
    * Undo the last action
    */
-  const undo = useCallback(() => {
+  const undo = () => {
     if (currentIndex > 0) {
       setCurrIndex((prevIndex) => prevIndex - 1);
       const record = historyQueue[currentIndex - 1];
@@ -51,12 +51,12 @@ const useHistory = ({
       setDrawData(updateDrawData);
       autoSave(record);
     }
-  }, [currentIndex, historyQueue]);
+  };
 
   /**
    * Redo the last undone action
    */
-  const redo = useCallback(() => {
+  const redo = () => {
     if (currentIndex < historyQueue.length - 1) {
       setCurrIndex((prevIndex) => prevIndex + 1);
       const record = historyQueue[currentIndex + 1];
@@ -68,32 +68,29 @@ const useHistory = ({
       setDrawData(updateDrawData);
       autoSave(record);
     }
-  }, [currentIndex, historyQueue]);
+  };
 
   /**
    * Update the history queue with the new objects
    */
-  const updateHistory = useCallback(
-    (item: HistoryItem) => {
-      setHistoryQueue((queue) => {
-        if (queue[currentIndex] && isEqual(item, queue[currentIndex])) {
-          return queue;
-        }
-        queue.splice(currentIndex + 1);
-        queue.push(item);
-        if (queue.length > maxCacheSize) {
-          queue.shift();
-        }
-        setCurrIndex(queue.length - 1);
-      });
-      autoSave(item);
-    },
-    [currentIndex, maxCacheSize],
-  );
+  const updateHistory = (item: HistoryItem) => {
+    setHistoryQueue((queue) => {
+      if (queue[currentIndex] && isEqual(item, queue[currentIndex])) {
+        return queue;
+      }
+      queue.splice(currentIndex + 1);
+      queue.push(item);
+      if (queue.length > maxCacheSize) {
+        queue.shift();
+      }
+      setCurrIndex(queue.length - 1);
+    });
+    autoSave(item);
+  };
 
-  const clearHistory = useCallback(() => {
+  const clearHistory = () => {
     setHistoryQueue([]);
-  }, []);
+  };
 
   const setDrawDataWithHistory: Updater<DrawData> = (
     updater: DrawData | DraftFunction<DrawData>,
