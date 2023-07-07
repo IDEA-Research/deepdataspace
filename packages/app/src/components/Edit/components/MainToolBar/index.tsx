@@ -39,7 +39,7 @@ interface IProps {
   redo: () => void;
 }
 
-export const SideToolBar: React.FC<IProps> = ({
+export const MainToolBar: React.FC<IProps> = ({
   selectedTool,
   isAIAnnotationActive,
   onChangeSelectedTool,
@@ -77,6 +77,13 @@ export const SideToolBar: React.FC<IProps> = ({
       shortcut: EDITOR_SHORTCUTS[EShortcuts.SkeletonTool],
       icon: <Icon component={OBJECT_ICON[EObjectType.Skeleton]} />,
       description: localeText('editor.toolbar.skeleton.desc'),
+    },
+    {
+      key: EBasicToolItem.Mask,
+      name: localeText('editor.toolbar.mask'),
+      shortcut: EDITOR_SHORTCUTS[EShortcuts.MaskTool],
+      icon: <Icon component={OBJECT_ICON[EObjectType.Mask]} />,
+      description: localeText('editor.toolbar.mask.desc'),
     },
   ];
 
@@ -184,7 +191,7 @@ export const SideToolBar: React.FC<IProps> = ({
   ) => {
     const icon = getIconFromShortcut(item.shortcut.shortcut);
     return (
-      <div className={styles.container}>
+      <div className={styles['popover-container']}>
         <div>
           <span className={styles.title}>{item.name}</span>
           <span className={styles.key}>{icon}</span>
@@ -197,7 +204,7 @@ export const SideToolBar: React.FC<IProps> = ({
 
   return (
     <FloatWrapper>
-      <div className={styles.sideToolbar}>
+      <div className={styles.container}>
         {basicTools.map((item) => (
           <Popover
             placement="right"
