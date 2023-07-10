@@ -6,13 +6,14 @@ The login and logout RESTful APIs.
 
 import logging
 
+from deepdataspace.constants import ErrCode
 from deepdataspace.model.user import User
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import AuthenticatedAPIView
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import AuthenticatedAPIView
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 logger = logging.getLogger("django")
 
@@ -38,7 +39,7 @@ class LoginView(BaseAPIView):
 
         if user is None:
             logger.warning(f"user[{username}] failed to login with password[{password}]")
-            raise_exception(403, "invalid username or password", 403)
+            raise_exception(ErrCode.UserAuthenticationFailed, ErrCode.UserAuthenticationFailedMsg)
         else:
             logger.info(f"user[{username}] login successfully")
         token = user.login_user()

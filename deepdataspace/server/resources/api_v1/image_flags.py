@@ -7,13 +7,14 @@ RESTful api to update flags of images in a dataset.
 import time
 
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import ErrCode
 from deepdataspace.model import DataSet
 from deepdataspace.model.image import Image
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 
 class ImageFlagsView(BaseAPIView):
@@ -31,30 +32,34 @@ class ImageFlagsView(BaseAPIView):
 
         dataset = DataSet.find_one({"id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"subset[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound, f"subset[{dataset_id}] not found")
         if dataset.status in DatasetStatus.DontRead_:
-            raise_exception(404, f"dataset_id[{dataset_id}] is in status {dataset.status} now, try again later")
+            raise_exception(ErrCode.DatasetNotReadable,
+                            f"dataset_id[{dataset_id}] is in status {dataset.status} now, try again later")
 
         for flag_group in flag_groups:
             if not isinstance(flag_group, dict):
-                raise_exception(400, f"field flag_groups[] must be a list of object, got '{flag_group}'")
+                raise_exception(ErrCode.FlagGroupsNotListOfObj,
+                                f"field flag_groups[] must be a list of object, got '{flag_group}'")
             flag = flag_group.pop("flag", None)
 
             if flag is None:
-                raise_exception(400, "field flag_groups[].flag is required")
+                raise_exception(ErrCode.FlagObjectMissingFlag, "field flag_groups[].flag is required")
             try:
                 flag = int(flag)
                 assert flag in [0, 1, 2]
             except Exception:
-                raise_exception(400, f"field flag_groups[].flag must be one of [1, 2], got '{flag}'")
+                raise_exception(ErrCode.FlagObjectFlagValueInvalid,
+                                f"field flag_groups[].flag must be one of [0, 1, 2], got '{flag}'")
 
             ids = flag_group.pop("ids", None)
             if ids is None:
-                raise_exception(400, "field flag_groups[].ids is required")
+                raise_exception(ErrCode.FlagObjectMissingIDs, "field flag_groups[].ids is required")
             try:
                 ids = list(ids)
             except Exception:
-                raise_exception(400, f"field flag_groups[].ids must be a list, got '{type(ids)}'")
+                raise_exception(ErrCode.FlagObjectIDsNotList,
+                                f"field flag_groups[].ids must be a list, got '{type(ids)}'")
 
             flag_group["flag"] = flag
             flag_group["ids"] = ids

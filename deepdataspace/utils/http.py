@@ -1,7 +1,7 @@
 """
-deepdataspace.server.resources.common
+deepdataspace.utils.http
 
-Convenient functions and classes for RESTful resources.
+Convenient functions and classes for http protocol.
 """
 import logging
 import time
@@ -13,11 +13,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.views import exception_handler
 
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import UserStatus
 from deepdataspace.model.user import User
 from deepdataspace.model.user import UserToken
 
-logger = logging.getLogger("django")
+logger = logging.getLogger("utils.http")
 
 
 def format_response(data: dict, status: int = 200, code: int = 0, msg: str = "success",
@@ -33,9 +34,9 @@ def format_response(data: dict, status: int = 200, code: int = 0, msg: str = "su
     """
 
     formatted_data = {
-        "code"   : code,
+        "code": code,
         "message": msg,
-        "data"   : data
+        "data": data
     }
 
     headers = {
@@ -49,7 +50,7 @@ def format_response(data: dict, status: int = 200, code: int = 0, msg: str = "su
 
 
 class APIException(Exception):
-    def __init__(self, code: int, msg: str, http_status: int = 200):
+    def __init__(self, code: int, msg: str, http_status: int):
         """
         A custom exception class, which can be raised anywhere in the code, and will be handled by django drf.
         This avoids try-catch layer by layer in deep function calls.
@@ -87,6 +88,8 @@ def raise_exception(code: int, msg: str, status: int = None):
     # if status is None, then set status by code
     if status is None and 200 <= code <= 599:
         status = code
+    elif status is None and code >= 100000:
+        status = code // 1000
     raise APIException(code, msg, status)
 
 
@@ -111,8 +114,8 @@ class Argument:
     If parse fails, this will raise an APIException directly.
     """
 
-    JSON = "json" # argument should be parsed in json body
-    QUERY = "query" # argument should be parsed in query string
+    JSON = "json"  # argument should be parsed in json body
+    QUERY = "query"  # argument should be parsed in query string
     _LOCATION_ALL = [JSON, QUERY]
 
     class _PositiveInt:
@@ -215,7 +218,7 @@ def parse_arguments(request, arguments: List[Argument]):
             if arg.default is not None:  # use the default value if it is not None
                 args.append(arg.default)
             elif arg.required is True:  # raise an 400 exception if the argument is required
-                raise_exception(400, f"field[{arg.name}] is required")
+                raise_exception(ErrCode.ParameterMissing, f"field[{arg.name}] is required", 400)
             else:  # no default value, not required, just use None as argument value
                 args.append(None)
         else:  # the argument is found, try to parse it
@@ -223,7 +226,8 @@ def parse_arguments(request, arguments: List[Argument]):
                 val = arg.type(val)
             except Exception as err:
                 logger.info(err)
-                raise_exception(400, f"field[{arg.name}] is not of expected type, it must be a/an {arg.type}")
+                raise_exception(ErrCode.ParameterIsInvalid,
+                                f"field[{arg.name}] is not of expected type, it must be a/an {arg.type}", 400)
             else:
                 args.append(val)
 
@@ -238,19 +242,19 @@ class TokenAuthentication(BaseAuthentication):
     def authenticate(self, request):
         token = request.META.get("HTTP_TOKEN", None)
         if token is None:
-            raise_exception(401, "unauthorized", 401)
+            raise_exception(ErrCode.Unauthorized, ErrCode.UnauthorizedMsg, 401)
 
         token = UserToken.find_one({"id": token})
         if token is None:
-            raise_exception(401, "unauthorized", 401)
+            raise_exception(ErrCode.Unauthorized, ErrCode.UnauthorizedMsg, 401)
 
         ts = int(time.time())
         if ts >= token.expire:
-            raise_exception(401, "unauthorized", 401)
+            raise_exception(ErrCode.Unauthorized, ErrCode.UnauthorizedMsg, 401)
 
         user = User.find_one({"id": token.user_id})
         if user is None or user.status != UserStatus.Active:
-            raise_exception(401, "unauthorized", 401)
+            raise_exception(ErrCode.Unauthorized, ErrCode.UnauthorizedMsg, 401)
 
         user.refresh_token(token.id)
         return user, token

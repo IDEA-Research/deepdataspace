@@ -882,15 +882,16 @@ class TestLabelImageWithReview(LabelingProjectMixin):
             label2_id = label2[0].id if label2 else ""
 
             if idx < 5 or idx >= 95:
-                assert image.can_set_review(task2, reviewer1, label1_id) is False
-                assert image.can_set_review(task2, reviewer2, label1_id) is False
-                assert image.can_set_review(task2, reviewer1, label2_id) is False
-                assert image.can_set_review(task2, reviewer2, label2_id) is False
+                with pytest.raises(APIException):
+                    image.ensure_status_for_reviewing(task2, reviewer1, label1_id)
+                    image.ensure_status_for_reviewing(task2, reviewer2, label1_id)
+                    image.ensure_status_for_reviewing(task2, reviewer1, label2_id)
+                    image.ensure_status_for_reviewing(task2, reviewer2, label2_id)
             else:
-                assert image.can_set_review(task2, reviewer1, label1_id) is True
-                assert image.can_set_review(task2, reviewer2, label1_id) is True
-                assert image.can_set_review(task2, reviewer1, label2_id) is True
-                assert image.can_set_review(task2, reviewer2, label2_id) is True
+                assert image.ensure_status_for_reviewing(task2, reviewer1, label1_id) is True
+                assert image.ensure_status_for_reviewing(task2, reviewer2, label1_id) is True
+                assert image.ensure_status_for_reviewing(task2, reviewer1, label2_id) is True
+                assert image.ensure_status_for_reviewing(task2, reviewer2, label2_id) is True
 
         project = LabelProject.find_one({"id": project.id})
         assert project.task_num_total == 2

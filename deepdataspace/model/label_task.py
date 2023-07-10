@@ -21,6 +21,7 @@ from pymongo.typings import _DocumentType
 
 from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelImageQAActions
 from deepdataspace.constants import LabelProjectQAActions
 from deepdataspace.constants import LabelProjectRoles
@@ -37,6 +38,7 @@ from deepdataspace.model.image import ImageModel
 from deepdataspace.model.label import Label
 from deepdataspace.model.object import Object
 from deepdataspace.model.user import User
+from deepdataspace.utils.http import APIException
 from deepdataspace.utils.string import get_str_md5
 
 Num = Union[float, int]
@@ -52,8 +54,12 @@ def gen_uuid():
     return uuid.uuid4().hex
 
 
-LabelProjectError = type("LabelTaskError", (Exception,), {})
-LabelTaskError = type("LabelTaskError", (Exception,), {})
+class LabelProjectError(APIException):
+    pass
+
+
+class LabelTaskError(APIException):
+    pass
 
 
 class LabelProject(BaseModel):
@@ -89,7 +95,7 @@ class LabelProject(BaseModel):
     task_num_rejected: int = 0
     task_num_accepted: int = 0
     categories: str = ""
-    pre_label: str = None  # objects blong to pre_label will be imported as default labels
+    pre_label: str = None  # objects belong to pre_label will be imported as default labels
 
     @classmethod
     def create_project(cls,
@@ -115,16 +121,29 @@ class LabelProject(BaseModel):
 
         # check data requirements
         if not managers:
-            raise LabelProjectError("Managers can't be empty")
+            raise LabelProjectError(
+                ErrCode.CreateLabelProjectRequireManager,
+                ErrCode.CreateLabelProjectRequireManagerMsg,
+                400)
 
         if not datasets:
-            raise LabelProjectError("Datasets can't be empty")
+            raise LabelProjectError(
+                ErrCode.CreateLabelProjectRequireDataset,
+                ErrCode.CreateLabelProjectRequireDatasetMsg,
+                400)
 
         if not categories:
-            raise LabelProjectError("Categories can't be empty")
+            raise LabelProjectError(
+                ErrCode.CreateLabelProjectRequireCategory,
+                ErrCode.CreateLabelProjectRequireCategoryMsg,
+                400
+            )
 
         if not owner.is_staff:
-            raise LabelProjectError("Only staff can create a project")
+            raise LabelProjectError(
+                ErrCode.UserCantCreateLabelProject,
+                ErrCode.UserCantCreateLabelProjectMsg,
+                403)
 
         # create the project
         project_id = uuid.uuid4().hex
@@ -136,7 +155,10 @@ class LabelProject(BaseModel):
         dataset_ids = list(d["id"] for d in datasets)
         exist_project = LabelProject.find_one({"datasets.id": {"$in": dataset_ids}})
         if exist_project is not None:
-            raise LabelProjectError(f"Project {exist_project.name} already exists for dataset {dataset_ids}")
+            raise LabelProjectError(
+                ErrCode.CreateLabelProjectDatasetOccupied,
+                ErrCode.CreateLabelProjectDatasetOccupiedMsg,
+                400)
 
         status = LabelProjectStatus.Waiting
         project = LabelProject(id=project_id,
@@ -180,7 +202,10 @@ class LabelProject(BaseModel):
 
         if managers is not None:
             if not managers:  # empty list
-                raise LabelProjectError("Managers can't be empty")
+                raise LabelProjectError(
+                    ErrCode.EditLabelProjectRequireManager,
+                    ErrCode.EditLabelProjectRequireManagerMsg,
+                    400)
 
             old_managers = self.managers
             old_ids = [m["id"] for m in old_managers]
@@ -251,27 +276,27 @@ class LabelProject(BaseModel):
                         continue
 
                     anno = {
-                        "category_id"  : obj["category_name"],
+                        "category_id": obj["category_name"],
                         "category_name": obj["category_name"],
-                        "bounding_box" : obj["bounding_box"]
+                        "bounding_box": obj["bounding_box"]
                     }
                     annotations.append(anno)
                     category_names.add(obj["category_name"])
 
                 default_labels = UserLabelData(
-                        user_id="_pre",
-                        user_name="_pre",
-                        annotations=annotations
+                    user_id="_pre",
+                    user_name="_pre",
+                    annotations=annotations
                 )
 
                 lti = LTIModel(
-                        id=f"{task.id}_{idx}",
-                        idx=idx,
-                        image_id=image["id"],
-                        default_labels=default_labels,
-                        task_id=task.id,
-                        url=image["url"],
-                        url_full_res=image["url_full_res"])
+                    id=f"{task.id}_{idx}",
+                    idx=idx,
+                    image_id=image["id"],
+                    default_labels=default_labels,
+                    task_id=task.id,
+                    url=image["url"],
+                    url_full_res=image["url_full_res"])
                 lti.batch_save()
             LTIModel.finish_batch_save()
 
@@ -302,14 +327,20 @@ class LabelProject(BaseModel):
         """
 
         if self.status != LabelProjectStatus.Waiting:
-            msg = f"Project can only be initialized in status of 'waiting', current status is {self.status}."
-            raise LabelProjectError(msg)
+            raise LabelProjectError(
+                ErrCode.InitLabelProjectMustBeWaiting,
+                ErrCode.InitLabelProjectMustBeWaitingMsg,
+                400
+            )
 
         if batch_size is None or \
                 label_times is None or \
                 review_times is None:
-            msg = "batch_size, label_times, review_times must be set at the same time."
-            raise LabelProjectError(msg)
+            raise LabelProjectError(
+                ErrCode.InitLabelProjectTaskConfigError,
+                ErrCode.InitLabelProjectTaskConfigErrorMsg,
+                400
+            )
 
         self.status = LabelProjectStatus.Initializing
         self.batch_size = batch_size
@@ -359,8 +390,11 @@ class LabelProject(BaseModel):
         """
 
         if self.status != LabelProjectStatus.Reviewing:
-            msg = f"Project can only be accepted in status of 'reviewing', current status is {self.status}."
-            raise LabelProjectError(msg)
+            raise LabelProjectError(
+                ErrCode.QALabelProjectMustBeReviewing,
+                ErrCode.QALabelProjectMustBeReviewingMsg,
+                400
+            )
 
         self.status = LabelProjectStatus.Accepted
         self.save()
@@ -371,8 +405,10 @@ class LabelProject(BaseModel):
         """
 
         if self.status != LabelProjectStatus.Reviewing:
-            msg = f"Project can only be rejected in status of 'reviewing', current status is {self.status}."
-            raise LabelProjectError(msg)
+            raise LabelProjectError(
+                ErrCode.QALabelProjectMustBeReviewing,
+                ErrCode.QALabelProjectMustBeReviewingMsg,
+                400)
 
         self.status = LabelProjectStatus.Rejected
         self.save()
@@ -387,7 +423,10 @@ class LabelProject(BaseModel):
         elif action == LabelProjectQAActions.Reject:
             return self.reject_project()
         else:
-            raise LabelProjectError(f"Invalid project qa action: {action}.")
+            raise LabelProjectError(
+                ErrCode.QALabelProjectActionError,
+                ErrCode.QALabelProjectActionErrorMsg,
+                400)
 
     @staticmethod
     def _get_image_batch(dataset_id, offset):
@@ -493,8 +532,11 @@ class LabelProject(BaseModel):
         """
 
         if self.status != LabelProjectStatus.Accepted:
-            msg = f"Project can only be exported in status of 'accepted', current status is {self.status}."
-            raise LabelProjectError(msg)
+            raise LabelProjectError(
+                ErrCode.ExportLabelProjectMustBeAccepted,
+                ErrCode.ExportLabelProjectMustBeAcceptedMsg,
+                400
+            )
 
         label_set_name = f"{label_set_name}[{self.id[:8]}]"
         logger.info(f"exporting project {self.id} to label set {label_set_name}")
@@ -508,7 +550,7 @@ class LabelProject(BaseModel):
 
             status = DatasetStatus.Ready
             try:
-                update_data = {"status"                            : DatasetStatus.Importing,
+                update_data = {"status": DatasetStatus.Importing,
                                "detail_status.export_label_project": DatasetStatus.Importing}
                 DataSet.update_one({"id": dataset_id}, update_data)
                 logger.info(f"[{idx + 1}/{num}]exporting label project to dataset {dataset_id}")
@@ -522,7 +564,7 @@ class LabelProject(BaseModel):
                 status = DatasetStatus.Ready
                 logger.info(f"[{idx + 1}/{num}]export label project to dataset {dataset_id} success")
             finally:
-                update_data = {"status"                            : DatasetStatus.Ready,
+                update_data = {"status": DatasetStatus.Ready,
                                "detail_status.export_label_project": status}
                 DataSet.update_one({"id": dataset_id}, update_data)
 
@@ -581,7 +623,10 @@ class ProjectRole(BaseModel):
             num_del_owner = cls.count_num(filters)
             num_cur_owner = cls.count_num({"project_id": project.id, "role": LabelProjectRoles.Owner})
             if num_del_owner == num_cur_owner:
-                raise LabelTaskError("Cannot delete all owners of a project.")
+                raise LabelTaskError(
+                    ErrCode.CantDeleteAllOwnersOfLabelProject,
+                    ErrCode.CantDeleteAllOwnersOfLabelProjectMsg,
+                    400)
         cls.delete_many(filters)
 
     @classmethod
@@ -605,7 +650,10 @@ class ProjectRole(BaseModel):
                 del_owner.add(user_id)
 
         if del_owner == num_cur_owner:
-            raise LabelTaskError("Cannot delete all owners of a project.")
+            raise LabelTaskError(
+                ErrCode.CantDeleteAllOwnersOfLabelProject,
+                ErrCode.CantDeleteAllOwnersOfLabelProjectMsg,
+                400)
 
         filters["$or"] = or_filters
         cls.delete_many(filters)
@@ -644,8 +692,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id"   : user.id,
-                   "role"      : {"$in": list(LabelProjectRoles.Leaders_)}}
+                   "user_id": user.id,
+                   "role": {"$in": list(LabelProjectRoles.Leaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -655,8 +703,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id"   : user.id,
-                   "role"      : {"$in": list(LabelProjectRoles.GTELeaders_)}}
+                   "user_id": user.id,
+                   "role": {"$in": list(LabelProjectRoles.GTELeaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -666,8 +714,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id"   : user.id,
-                   "role"      : {"$in": list(LabelProjectRoles.GTLeaders_)}}
+                   "user_id": user.id,
+                   "role": {"$in": list(LabelProjectRoles.GTLeaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -695,8 +743,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id"   : user.id,
-                   "role"      : {"$in": list(LabelProjectRoles.Workers_)}}
+                   "user_id": user.id,
+                   "role": {"$in": list(LabelProjectRoles.Workers_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -811,7 +859,7 @@ class TaskRole(BaseModel):
     # Below are kinds of numbers of this user.
     # Roughly speaking, they are divided into two parts:
     # - The task progress bonded numbers.
-    #   These numbers presents the task progress of this user.
+    #   These numbers present the task progress of this user.
     #   If the team leader decide to replace an old user, these numbers will be inherited by the new user.
     # - The user bonded numbers
     #   These numbers presents the user's contribution to the task.
@@ -837,25 +885,42 @@ class TaskRole(BaseModel):
         """
 
         if role not in LabelProjectRoles.TaskBondedRoles_:
-            raise LabelTaskError(f"Cannot add role {role} to task.")
+            raise LabelTaskError(
+                ErrCode.LabelProjectRoleIsNotTaskLevel,
+                ErrCode.LabelProjectTaskNotFoundMsg,
+                400
+            )
 
         if role in LabelProjectRoles.Leaders_ and len(users) > 1:
-            raise LabelTaskError(f"Cannot add more than one {role} to task.")
+            raise LabelTaskError(
+                ErrCode.NumOfTaskLeaderMismatchesConfig,
+                ErrCode.NumOfTaskLeaderMismatchesConfigMsg,
+                400)
 
         if role in LabelProjectRoles.ReviewKinds_ and len(users) >= 1 and project.review_times == 0:
-            raise LabelTaskError(f"Cannot add {role} because review is not enabled.")
+            raise LabelTaskError(
+                ErrCode.TaskDoesNotRequireReviewer,
+                ErrCode.TaskDoesNotRequireReviewerMsg,
+                400)
 
         if role == LabelProjectRoles.Labeler and len(users) != project.label_times:
-            raise LabelTaskError(f"Must set exactly {project.label_times} labeler(s) to task one time.")
+            raise LabelTaskError(
+                ErrCode.NumOfTaskLabelerMismatchesConfig,
+                ErrCode.NumOfTaskLabelerMismatchesConfigMsg,
+                400)
 
         if role == LabelProjectRoles.Reviewer and len(users) != project.review_times:
-            raise LabelTaskError(f"Must set exactly {project.review_times} reviewer(s) to task one time.")
+            raise LabelTaskError(
+                ErrCode.NumOfTaskReviewerMismatchesConfig,
+                ErrCode.NumOfTaskReviewerMismatchesConfigMsg,
+                400)
 
         filters = {"task_id": task.id, "role": role, "is_active": True}
         num_active = TaskRole.count_num(filters)
         if num_active > 0:
-            msg = f"Cannot set {role}, task already has {num_active} roles, you can only replace one of them."
-            raise LabelTaskError(msg)
+            raise LabelTaskError(ErrCode.TryInitRoleForTaskWithActiveRoles,
+                                 ErrCode.TryInitRoleForTaskWithActiveRolesMsg,
+                                 400)
         return True
 
     @classmethod
@@ -936,20 +1001,32 @@ class TaskRole(BaseModel):
         """
 
         if role not in LabelProjectRoles.TaskBondedRoles_:
-            raise LabelTaskError(f"Cannot set role {role} to task.")
+            raise LabelTaskError(
+                ErrCode.LabelProjectRoleIsNotTaskLevel,
+                ErrCode.LabelProjectRoleIsNotTaskLevelMsg,
+                400)
 
         if old_user.id == new_user.id:
-            raise LabelTaskError(f"Cannot replace {role} with the same user.")
+            raise LabelTaskError(
+                ErrCode.CantReplaceRoleWithTheSameUser,
+                ErrCode.CantReplaceRoleWithTheSameUserMsg,
+                400)
 
         filters = {"task_id": task.id, "user_id": old_user.id, "role": role, "is_active": True}
         old_role = TaskRole.find_one(filters)
         if old_role is None:
-            raise LabelTaskError(f"Cannot find old user of {role} role in this task.")
+            raise LabelTaskError(
+                ErrCode.OldUserDoesNotHaveTheTaskRole,
+                ErrCode.OldUserDoesNotHaveTheTaskRoleMsg,
+                400)
 
         filters["user_id"] = new_user.id
         new_role = TaskRole.find_one(filters)
         if new_role is not None:
-            raise LabelTaskError(f"Cannot replace user with new user, because he/she is already in this task.")
+            raise LabelTaskError(
+                ErrCode.NewUserAlreadyHaveTheTaskRole,
+                ErrCode.NewUserAlreadyHaveTheTaskRoleMsg,
+                400)
 
         return old_role
 
@@ -961,9 +1038,15 @@ class TaskRole(BaseModel):
         """
 
         if old_role.task_id != new_role.task_id:
-            raise LabelTaskError(f"Cannot transfer role to another task, {old_role.task_id} != {new_role.task_id}.")
+            raise LabelTaskError(
+                ErrCode.CantTransferRoleBetweenDifferentTask,
+                ErrCode.CantTransferRoleBetweenDifferentTaskMsg,
+                400)
         if old_role.role != new_role.role:
-            raise LabelTaskError(f"Cannot transfer role to another role, {old_role.role} != {new_role.role}.")
+            raise LabelTaskError(
+                ErrCode.CantTransferRoleToDifferentKind,
+                ErrCode.CantTransferRoleToDifferentKindMsg,
+                400)
 
         # transfer task progress
         new_role.label_num_waiting = old_role.label_num_waiting
@@ -981,7 +1064,7 @@ class TaskRole(BaseModel):
 
         # delete old role from project
         filters = {"project_id": task.project_id, "is_active": True,
-                   "user_id"   : old_role.user_id, "role": old_role.role,
+                   "user_id": old_role.user_id, "role": old_role.role,
                    }
         has_active_role = TaskRole.count_num(filters) > 0
         if not has_active_role:
@@ -1017,13 +1100,13 @@ class TaskRole(BaseModel):
                 f"labels.{new_user_id}": {
                     "$map": {
                         "input": f"$labels.{new_user_id}",
-                        "as"   : "label",
-                        "in"   : {
+                        "as": "label",
+                        "in": {
                             "$mergeObjects": [
                                 "$$label",
                                 {
-                                    "id"       : {"$concat": ["$$label.id", f"_{ts}", ts]},
-                                    "user_id"  : new_user_id,
+                                    "id": {"$concat": ["$$label.id", f"_{ts}", ts]},
+                                    "user_id": new_user_id,
                                     "user_name": new_user_name
                                 }
                             ]
@@ -1038,13 +1121,13 @@ class TaskRole(BaseModel):
                 f"reviews.{new_user_id}": {
                     "$map": {
                         "input": f"$reviews.{new_user_id}",
-                        "as"   : "review",
-                        "in"   : {
+                        "as": "review",
+                        "in": {
                             "$mergeObjects": [
                                 "$$review",
                                 {
-                                    "id"       : {"$concat": ["$$review.id", f"_{ts}"]},
-                                    "user_id"  : new_user_id,
+                                    "id": {"$concat": ["$$review.id", f"_{ts}"]},
+                                    "user_id": new_user_id,
                                     "user_name": new_user_name
                                 }
                             ]
@@ -1331,7 +1414,10 @@ class LabelTask(BaseModel):
         """
 
         if role not in LabelProjectRoles.Leaders_:
-            raise LabelTaskError(f"Cannot set leader by role {role}.")
+            raise LabelTaskError(
+                ErrCode.TaskRoleNotOfLeaderKind,
+                ErrCode.TaskRoleNotOfLeaderKindMsg,
+                400)
 
         old_leader_role = TaskRole.find_one({"task_id": self.id, "role": role, "is_active": True})
         if old_leader_role is not None:
@@ -1388,14 +1474,17 @@ class LabelTask(BaseModel):
         """
         Restart a rejected task by leader.
         When team leader restart a task:
-        - 1. task status should be 'working'
+        - 1. task status should be 'rejected'
         - 2. all images' status of all roles should be 'rejected'
         - 3. update progress for all roles
         """
 
-        # 1. task status should be 'working'
+        # 1. task status should be 'rejected'
         if self.status != LabelTaskStatus.Rejected:
-            raise LabelTaskError(f"Cannot restart task, task status {self.status} != {LabelTaskStatus.Rejected}")
+            raise LabelTaskError(
+                ErrCode.RestartLabelTaskMustBeRejected,
+                ErrCode.RestartLabelTaskMustBeRejectedMsg,
+                400)
         self.status = LabelTaskStatus.Working
         self.save()
 
@@ -1421,8 +1510,11 @@ class LabelTask(BaseModel):
         """
 
         if self.status != LabelTaskStatus.Reviewing:
-            msg = f"Cannot reject task, task status {self.status} != {LabelTaskStatus.Reviewing}"
-            raise LabelTaskError(msg)
+            raise LabelTaskError(
+                ErrCode.RejectLabelTaskMustBeReviewing,
+                ErrCode.RejectLabelTaskMustBeReviewingMsg,
+                400
+            )
         self.status = LabelTaskStatus.Rejected
         self.save()
 
@@ -1434,7 +1526,10 @@ class LabelTask(BaseModel):
         """
 
         if self.status != LabelTaskStatus.Reviewing:
-            raise LabelTaskError(f"Cannot accept task, task status {self.status} != {LabelTaskStatus.Reviewing}")
+            raise LabelTaskError(
+                ErrCode.AcceptLabelTaskMustBeReviewing,
+                ErrCode.AcceptLabelTaskMustBeReviewingMsg,
+                400)
 
         self.status = LabelTaskStatus.Accepted
         self.save()
@@ -1446,7 +1541,10 @@ class LabelTask(BaseModel):
         """
 
         if self.status != LabelTaskStatus.Rejected:
-            raise LabelTaskError(f"Cannot enforce accept task, task status {self.status} != {LabelTaskStatus.Rejected}")
+            raise LabelTaskError(
+                ErrCode.ForceAcceptLabelTaskMustBeRejected,
+                ErrCode.ForceAcceptLabelTaskMustBeRejectedMsg,
+                400)
 
         self.status = LabelTaskStatus.Accepted
         self.save()
@@ -1464,7 +1562,10 @@ class LabelTask(BaseModel):
         elif action == LabelTaskQAActions.ForceAccept:
             return self.accept_rejected_task()
         else:
-            raise LabelTaskError(f"Invalid task qa action: {action}")
+            raise LabelTaskError(
+                ErrCode.QALabelTaskActionError,
+                ErrCode.QALabelTaskActionErrorMsg,
+                400)
 
     def get_max_role(self, user: User):
         """
@@ -1550,7 +1651,7 @@ class LabelTaskImageModel(BaseModel):
 
         return f"{cls.__name__}.{cls.belong_dataset}"
 
-    def can_set_label(self, task: LabelTask, labeler: User):
+    def ensure_status_for_labeling(self, task: LabelTask, labeler: User):
         """
         Check if target labeler can set label for target task.
 
@@ -1560,7 +1661,10 @@ class LabelTaskImageModel(BaseModel):
         """
 
         if task.status != LabelTaskStatus.Working:
-            return False
+            raise LabelTaskError(
+                ErrCode.LabelImageRequireTaskStatusWorking,
+                ErrCode.LabelImageRequireTaskStatusWorkingMsg,
+                400)
 
         labels = self.labels.get(labeler.id, [])
         if not labels:
@@ -1573,7 +1677,12 @@ class LabelTaskImageModel(BaseModel):
                 if review.label_id == label_id and review.action == LabelImageQAActions.Reject:
                     accepted_by_all = False
 
-        return not accepted_by_all
+        if accepted_by_all:
+            raise LabelTaskError(
+                ErrCode.LabelImageRequireUnfinishedReviewing,
+                ErrCode.LabelImageRequireUnfinishedReviewingMsg,
+                400)
+        return True
 
     def _update_label(self, labeler, label_annotations: List[Dict]):
         """
@@ -1655,7 +1764,7 @@ class LabelTaskImageModel(BaseModel):
         self._update_label_progress(task, labeler)
         return new_label.dict()
 
-    def can_set_review(self, task: LabelTask, reviewer: User, label_id: str):
+    def ensure_status_for_reviewing(self, task: LabelTask, reviewer: User, label_id: str):
         """
         Reviewer cannot set review in any of these conditions:
          - the task is not in working status.
@@ -1663,16 +1772,18 @@ class LabelTaskImageModel(BaseModel):
          - the target label does not exist
          - reviewer has reviewed target label before.
         """
-
-        if not label_id:
-            return False
-
         if task.status != LabelTaskStatus.Working:
-            return False
+            raise LabelTaskError(
+                ErrCode.ReviewImageRequireTaskStatusWorking,
+                ErrCode.ReviewImageRequireTaskStatusWorkingMsg,
+                400)
 
         labeler_status = [s for k, s in self.role_status.items() if k.startswith("labeler_")]
         if any(s in LabelTaskImageStatus.WaitForLabeling_ for s in labeler_status):
-            return False
+            raise LabelTaskError(
+                ErrCode.ReviewImageRequireFinishedLabeling,
+                ErrCode.ReviewImageRequireFinishedLabelingMsg,
+                400)
 
         found_label = False
         for labeler_id, label_data_list in self.labels.items():
@@ -1681,11 +1792,17 @@ class LabelTaskImageModel(BaseModel):
                     found_label = True
                     break
         if not found_label:
-            return False
+            raise LabelTaskError(
+                ErrCode.ReviewImageTargetLabelNotFound,
+                ErrCode.ReviewImageTargetLabelNotFoundMsg,
+                400)
 
         for review_data in self.reviews.get(reviewer.id, []):
             if review_data.label_id == label_id:
-                return False
+                raise LabelTaskError(
+                    ErrCode.ReviewImageFoundExistedReview,
+                    ErrCode.ReviewImageFoundExistedReviewMsg,
+                    400)
 
         return True
 
