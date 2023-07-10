@@ -193,7 +193,21 @@ function fetchTaskResults<T extends EnumModelType>(
   );
 }
 
+function fetchMaskTaskResults<T extends EnumModelType>(
+  taskUuid: string,
+  options?: { [key: string]: any },
+) {
+  return request<API.FetchModelRsp<T>>(
+    `${process.env.MODEL_API_PATH}/mask_task_statuses/${taskUuid}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
 export async function pollTaskResults<T extends EnumModelType>(
+  type: EnumModelType,
   taskUuid: string,
   maxAttempts = 5000,
   interval = 1000,
@@ -201,7 +215,11 @@ export async function pollTaskResults<T extends EnumModelType>(
   let attempts = 0;
 
   while (attempts < maxAttempts) {
-    const results = await fetchTaskResults<T>(taskUuid);
+    const fetchTaskResultsRequest =
+      type === EnumModelType.SegmentByMask
+        ? fetchMaskTaskResults
+        : fetchTaskResults;
+    const results = await fetchTaskResultsRequest<T>(taskUuid);
 
     if (results.status === EnumTaskStatus.Success) {
       return results.result;
@@ -226,7 +244,7 @@ export async function fetchModelResults<T extends EnumModelType>(
 ) {
   try {
     const { taskUuid } = await fetchTaskUuid(type, params);
-    const result = await pollTaskResults<T>(taskUuid);
+    const result = await pollTaskResults<T>(type, taskUuid);
     return result;
   } catch (error: any) {
     throw new Error(error.message);
