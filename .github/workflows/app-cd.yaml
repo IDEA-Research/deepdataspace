@@ -2,7 +2,9 @@ name: app-cd
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*-dev*'
+      - 'v*.*.*-test*'
+      - 'v*.*.*-prd*'
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 env:
