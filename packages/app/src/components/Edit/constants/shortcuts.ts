@@ -18,6 +18,7 @@ export enum EShortcuts {
   PolygonTool,
   SkeletonTool,
   DragTool,
+  MaskTool,
   /** General Actions */
   SmartAnnotation,
   Undo,
@@ -59,6 +60,12 @@ export const EDITOR_SHORTCUTS: Record<EShortcuts, TShortcutItem> = {
     type: EShortcutType.Tool,
     shortcut: ['s'],
     descTextKey: 'editor.shortcuts.tools.skeleton',
+  },
+  [EShortcuts.MaskTool]: {
+    name: 'MaskTool',
+    type: EShortcutType.Tool,
+    shortcut: ['m'],
+    descTextKey: 'editor.shortcuts.tools.mask',
   },
   [EShortcuts.DragTool]: {
     name: 'DragTool',

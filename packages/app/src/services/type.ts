@@ -47,6 +47,8 @@ export namespace DATA {
     pointNames?: string[];
     /** Keypoint connection. [start point index, end point index, ...] */
     lines?: number[];
+    /** mask */
+    maskRle?: number[];
   }
 
   export interface BaseImage {
@@ -192,8 +194,10 @@ export namespace DATA {
 
 export enum EnumModelType {
   Detection = 'ai_detection',
-  Segmentation = 'ai_segmentation',
+  SegmentByPolygon = 'ai_segmentation',
+  SegmentByMask = 'ai_segmentation_mask',
   Pose = 'ai_pose',
+  MaskEdgeStitching = 'ai_mask_edge_stitching',
 }
 
 // params type for 3 Ai api request
@@ -202,7 +206,7 @@ export interface FetchAIDetectionReq {
   text: string;
 }
 
-export interface FetchAISegmentationReq {
+export interface FetchAIPolygonSegmentReq {
   image: string;
   mask: string;
   polygons: number[][];
@@ -211,6 +215,32 @@ export interface FetchAISegmentationReq {
     position: number[];
   }[];
   rect?: number[];
+}
+
+export interface FetchAIMaskSegmentReq {
+  image?: string; // required when first request
+  imageId?: string;
+  maskId: string;
+  maskRle: number[];
+  prompt: {
+    type: string; // 'rect' | 'point' | 'stroke';
+    isPositive: boolean;
+    point?: number[]; // [x, y]
+    rect?: number[]; // [xmin, ymin, xmax, ymax];
+    stroke?: number[]; // [x1, y1, x2, y2];
+    radius?: number;
+  }[];
+}
+
+export interface FetchEdgeStitchingReq {
+  image?: string; // base64
+  imageId?: string;
+  rleList: {
+    maskRle: number[];
+    categoryName: string;
+  }[];
+  stroke: number[]; // [x1, y1, x2, y2];
+  radius: number;
 }
 
 export interface FetchAIPoseEstimationReq {
@@ -236,11 +266,22 @@ export interface FetchAIDetectionRsp {
   }>;
 }
 
-export interface FetchAISegmentationRsp {
+export interface FetchAIPolygonSegmentRsp {
   polygon: number[][];
   mask: string;
 }
 
+export interface FetchAIMaskSegmentRsp {
+  maskRle: number[]; // rle
+  maskId: string;
+  imageId: string;
+}
+export interface FetchEdgeStitchingRsp {
+  rleList: {
+    maskRle: number[];
+    categoryName: string;
+  }[];
+}
 export interface FetchAIPoseEstimationRsp {
   objects: Array<{
     categoryName: string;
@@ -260,8 +301,12 @@ export enum EnumTaskStatus {
 export type ModelParam<T extends EnumModelType> =
   T extends EnumModelType.Detection
     ? FetchAIDetectionReq
-    : T extends EnumModelType.Segmentation
-    ? FetchAISegmentationReq
+    : T extends EnumModelType.SegmentByPolygon
+    ? FetchAIPolygonSegmentReq
+    : T extends EnumModelType.SegmentByMask
+    ? FetchAIMaskSegmentReq
+    : T extends EnumModelType.MaskEdgeStitching
+    ? FetchEdgeStitchingReq
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationReq
     : never;
@@ -269,8 +314,12 @@ export type ModelParam<T extends EnumModelType> =
 export type ModelResult<T extends EnumModelType> =
   T extends EnumModelType.Detection
     ? FetchAIDetectionRsp
-    : T extends EnumModelType.Segmentation
-    ? FetchAISegmentationRsp
+    : T extends EnumModelType.SegmentByPolygon
+    ? FetchAIPolygonSegmentRsp
+    : T extends EnumModelType.SegmentByMask
+    ? FetchAIMaskSegmentRsp
+    : T extends EnumModelType.MaskEdgeStitching
+    ? FetchEdgeStitchingRsp
     : T extends EnumModelType.Pose
     ? FetchAIPoseEstimationRsp
     : never;

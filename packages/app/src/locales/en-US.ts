@@ -105,8 +105,9 @@ export default {
   'smartAnnotation.infoModal.action': 'Visit Our Website',
   'smartAnnotation.detection.name': 'Intelligent Object Detection',
   'smartAnnotation.detection.input': 'Select or enter categories',
-  'smartAnnotation.segmentation.name': 'Intelligent Segmentation',
+  'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
+  'smartAnnotation.mask.name': 'Intelligent Segmentation (Mask)',
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
@@ -150,6 +151,16 @@ export default {
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
   'editor.toolbar.aiAnno': 'Intelligent Annotate',
   'editor.toolbar.drag': 'Drag / Select Tool',
+  'editor.toolbar.mask': 'Mask',
+  'editor.subtoolbar.mask.penAdd': 'Pen Add',
+  'editor.subtoolbar.mask.penErase': 'Pen Erase',
+  'editor.subtoolbar.mask.brushAdd': 'Brush Add',
+  'editor.subtoolbar.mask.brushErase': 'Brush Erase',
+  'editor.subtoolbar.mask.box': 'Interactive Segmentation - Box Tool',
+  'editor.subtoolbar.mask.click': 'Interactive Segmentation - Click Tool',
+  'editor.subtoolbar.mask.stroke': 'Interactive Segmentation - Brush Tool',
+  'editor.subtoolbar.mask.sam': 'Segment Anything',
+  'editor.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
@@ -162,7 +173,9 @@ export default {
   'editor.toolbar.skeleton.desc':
     'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
   'editor.toolbar.aiAnno.desc':
-    'Activate this mode under any of Rectangle / Polygon / Skeleton tools for auto-generating corresponding annotations.',
+    'Activate this mode under any of Rectangle / Polygon / Skeleton / Mask tools for auto-generating corresponding annotations.',
+  'editor.toolbar.mask.desc':
+    'Use Pen or Brush tool to draw a pixel-level segmentation.',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
   'editor.annotsEditor.title': 'Annotation Editor',
@@ -179,6 +192,7 @@ export default {
   'editor.shortcuts.tools.polygon': 'Polygon Tool',
   'editor.shortcuts.tools.skeleton': 'Skeleton Tool',
   'editor.shortcuts.tools.drag': 'Drag / Select Tool',
+  'editor.shortcuts.tools.mask': 'Mask Tool',
   'editor.shortcuts.general': 'General Controls',
   'editor.shortcuts.general.smart':
     'Activate / Deactivate Intelligent Annotate',
@@ -212,6 +226,9 @@ export default {
   'editor.annotsList.point.notInImage': 'Not In Image',
   'editor.annotsList.point.notVisible': 'Not Visible',
   'editor.annotsList.point.visible': 'Visible',
+  'editor.anno.mask.emptyWarning':
+    'Please add at least one valid Mask annotation.',
+  'editor.anno.mask.translateToRleError': 'Error converting Mask format.',
 
   /** projects */
   'proj.title': 'Projects',
