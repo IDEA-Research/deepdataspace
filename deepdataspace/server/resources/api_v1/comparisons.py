@@ -6,16 +6,17 @@ The RESTful APIs of comparison of label set.
 import json
 
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelType
 from deepdataspace.model import DataSet
 from deepdataspace.model import Label
 from deepdataspace.model.image import Image
 from deepdataspace.server.resources.api_v1.images import concat_url
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 
 class ComparisonsView(BaseAPIView):
@@ -41,21 +42,22 @@ class ComparisonsView(BaseAPIView):
 
         dataset = DataSet.find_one({"id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"'dataset[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound, f"'dataset[{dataset_id}] not found")
 
         if dataset.detail_status.get("FNFPCalculator") != DatasetStatus.Ready:
-            raise_exception(404, f"dataset[{dataset_id}] is not calculated, try again later")
+            raise_exception(ErrCode.DatasetHasNoFNFPData, f"dataset[{dataset_id}] is not calculated, try again later")
 
         label = Label.find_one({"id": label_id})
         if label is None:
-            raise_exception(404, f"label[{label_id}] not found")
+            raise_exception(ErrCode.DatasetLabelNotFound, f"label[{label_id}] not found")
         threshold = None
         for thresh in label.compare_precisions:
             if precision == thresh["precision"]:
                 threshold = thresh
                 break
         if threshold is None:
-            raise_exception(404, f"label[{label_id}] has no comparison data in precision of {precision}")
+            raise_exception(ErrCode.DatasetFNFPPrecisionNotFound,
+                            f"label[{label_id}] has no comparison data in precision of {precision}")
 
         return dataset_id, label_id, precision, order_by, display_category_id, page_num, page_size,
 

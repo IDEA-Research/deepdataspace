@@ -4,18 +4,18 @@ deepdataspace.server.resources.api_v1.datasets
 The dataset RESTful APIs.
 """
 
-import importlib
 import logging
 
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelType
 from deepdataspace.model import Category
 from deepdataspace.model import DataSet
 from deepdataspace.model import Label
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 logger = logging.getLogger("django")
 
@@ -70,7 +70,8 @@ class DatasetView(BaseAPIView):
 
         dataset = DataSet.find_one({"id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"dataset_id[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound,
+                            f"dataset_id[{dataset_id}] not found")
 
         data = dataset.to_dict()
 
