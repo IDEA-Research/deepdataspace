@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useModel } from '@umijs/max';
 import { Button } from 'antd';
 import { ArrowLeftOutlined, FundViewOutlined } from '@ant-design/icons';
@@ -9,6 +9,8 @@ import LabelOptions from '@/components/LabelOptions';
 import DisplayOptions from '@/components/DisplayOptions';
 import ColumnSettings from '@/components/ColumnSettings';
 import { useLocale } from '@/locales/helper';
+import EditDatasetModal from '@/pages/DatasetList/components/EditDatasetModal';
+import ImportImgsModal from '@/pages/DatasetList/components/ImportImgsModal';
 import styles from './index.less';
 
 const Header: React.FC = () => {
@@ -31,6 +33,7 @@ const Header: React.FC = () => {
     onColumnCountChange,
   } = useModel('dataset.filters');
   const { openAnalysisModal } = useModel('dataset.comparisons');
+  const { withLoginCheck } = useModel('user');
 
   const { labels } = filters;
   const { selectedLabelIds } = filterValues;
@@ -38,6 +41,8 @@ const Header: React.FC = () => {
     filterValues.displayAnnotationType === AnnotationType.Matting;
   const showKeyPoints =
     filterValues.displayAnnotationType === AnnotationType.KeyPoints;
+  const [openEditModal, setEditModalOpen] = useState(false);
+  const [openImportModal, setImportModalOpen] = useState(false);
 
   return (
     <div className={styles.fixMenu} id="filterWrap">
@@ -48,6 +53,23 @@ const Header: React.FC = () => {
           className={styles.backBtn}
           onClick={() => backPath('/dataset')}
         />
+        <div className={styles.editGroup}>
+          <Button
+            onClick={withLoginCheck(() => {
+              setEditModalOpen(true);
+            })}
+          >
+            {localeText('dataset.edit.modal.title')}
+          </Button>
+
+          <Button
+            onClick={withLoginCheck(() => {
+              setImportModalOpen(true);
+            })}
+          >
+            {localeText('dataset.import.edit.modal.title')}
+          </Button>
+        </div>
         <CategoryFilter
           categoryId={filterValues.categoryId}
           categories={filters.categories}
@@ -97,6 +119,8 @@ const Header: React.FC = () => {
           />
         )}
       </div>
+      <EditDatasetModal open={openEditModal} setOpen={setEditModalOpen} />
+      <ImportImgsModal open={openImportModal} setOpen={setImportModalOpen} />
     </div>
   );
 };

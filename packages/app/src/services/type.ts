@@ -335,6 +335,8 @@ export namespace API {
     categoryList: Array<DATA.Category>;
     labelList: Array<DATA.Label>;
     objectTypes: Array<string>;
+    name: string;
+    description: string;
   }
 
   export interface FetchImgListRsp {
@@ -417,5 +419,15 @@ export namespace API {
     total: number;
     pageSize: number;
     pageNum: number;
+  }
+
+  export interface FetchNewDatasetRsp {
+    id: string;
+  }
+
+  export interface UpdateDataset {
+    id: number;
+    name: string;
+    description: string;
   }
 }

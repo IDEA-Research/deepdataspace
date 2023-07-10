@@ -97,6 +97,16 @@ export interface PageData {
   };
 }
 
+export interface DatasetInfo {
+  name: string;
+  description: string;
+}
+
+export const DEFAULT_DATASET_INFO_STATE = {
+  name: '',
+  description: '',
+};
+
 export const DEFALUE_PAGE_INNER_DATA = {
   imgList: [],
   total: 0,
