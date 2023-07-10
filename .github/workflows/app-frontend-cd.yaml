@@ -94,5 +94,6 @@ jobs:
 
       - name: Run New Docker Image
         run: |
+          PORT=${{ needs.build.outputs.PORT }}
           sleep 1
           docker run --restart=always -d -p ${PORT}:80 dds-app-frontend
