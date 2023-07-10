@@ -238,7 +238,6 @@ export async function createDataset(
   params: {
     name?: string;
     description?: string;
-    isPublic?: string;
   },
   options?: { [key: string]: any },
 ) {

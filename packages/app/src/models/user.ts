@@ -87,6 +87,16 @@ export default () => {
     }
   };
 
+  const withLoginCheck = (handler: (...args: any) => any) => {
+    return function (event: any) {
+      if (!user.isLogin) {
+        setShowLoginModal(true);
+      } else {
+        handler(event);
+      }
+    };
+  };
+
   return {
     user,
     setUser,
@@ -96,5 +106,6 @@ export default () => {
     showLoginModal,
     setShowLoginModal,
     limitLoginAction,
+    withLoginCheck,
   };
 };

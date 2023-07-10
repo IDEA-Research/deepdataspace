@@ -95,6 +95,7 @@ export default {
   'dataset.import.modal.label': '图片链接',
   'dataset.import.modal.placeholder': '请帖入图片Url',
   'dataset.import.modal.emptyImgs': '暂无图片',
+  'dataset.import.modal.imgsLimit': '每次添加数目限制(500)',
   'dataset.import.edit.modal.title': '导入图片',
   'dataset.import.modal.submit': '导入',
   'dataset.import.modal.reset': '重置',

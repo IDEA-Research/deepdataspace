@@ -11,7 +11,6 @@ import { createDataset, updateDataset, importImages } from '@/services/dataset';
 export interface newDatasetForm {
   name: string;
   description?: string;
-  isPublic: string;
 }
 
 export default () => {
@@ -90,7 +89,7 @@ export default () => {
   };
 
   const handleCreateDataset = async (values: newDatasetForm) => {
-    const { name, description, isPublic } = values;
+    const { name, description } = values;
 
     if (size(name) === 0) {
       message.warning(globalLocaleText('dataset.create.warn'));
@@ -98,7 +97,7 @@ export default () => {
     }
 
     try {
-      const { id } = await createDataset({ name, description, isPublic });
+      const { id } = await createDataset({ name, description });
 
       message.success(globalLocaleText('dataset.create.success'));
       setDatasetId(id);
@@ -109,7 +108,7 @@ export default () => {
   };
 
   const handleUpdateDataset = async (values: newDatasetForm) => {
-    const { name, description, isPublic } = values;
+    const { name, description } = values;
 
     if (!pageState?.datasetId) {
       message.warning(globalLocaleText('dataset.update.warn'));
@@ -117,7 +116,7 @@ export default () => {
     }
 
     try {
-      await updateDataset(pageState.datasetId, { name, description, isPublic });
+      await updateDataset(pageState.datasetId, { name, description });
       message.success(globalLocaleText('dataset.update.success'));
       loadDatasetInfo();
     } catch (error) {

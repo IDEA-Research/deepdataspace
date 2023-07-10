@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, List, Tooltip, Image } from 'antd';
+import { Card, List, Tooltip } from 'antd';
 import Icon from '@ant-design/icons';
 import { ReactComponent as DownloadIcon } from '@/assets/svg/download.svg';
 import { DATA } from '@/services/type';
@@ -33,13 +33,12 @@ const DatasetItem: React.FC<IProps> = (props) => {
       >
         <div className={styles.imgBox}>
           <div className={styles.imgWrap}>
-            <Image
+            <img
               src={data?.coverUrl ?? ''}
               alt="cover"
               onError={(e: any) => {
                 e.target.src = generateDefaultCover(data?.objectTypes);
               }}
-              preview={false}
             />
           </div>
           {data.objectTypes.length && (

@@ -288,7 +288,6 @@ export namespace API {
     objectTypes: Array<string>;
     name: string;
     description: string;
-    isPublic: boolean;
   }
 
   export interface FetchImgListRsp {
@@ -381,6 +380,5 @@ export namespace API {
     id: number;
     name: string;
     description: string;
-    isPublic: string;
   }
 }

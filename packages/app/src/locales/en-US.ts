@@ -98,6 +98,8 @@ export default {
   'dataset.import.modal.label': 'Image Url',
   'dataset.import.modal.placeholder': 'Please paste image Url',
   'dataset.import.modal.emptyImgs': 'No images',
+  'dataset.import.modal.imgsLimit':
+    'You can add no more than 500 images in every imports.',
   'dataset.import.edit.modal.title': 'Import images',
   'dataset.import.modal.submit': 'Import',
   'dataset.import.modal.reset': 'Reset',

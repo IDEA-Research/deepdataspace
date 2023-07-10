@@ -3,7 +3,6 @@ import {
   ProFormText,
   ProFormTextArea,
   StepsForm,
-  ProFormRadio,
 } from '@ant-design/pro-components';
 import { Button, Modal, Empty } from 'antd';
 import { useModel } from '@umijs/max';
@@ -88,29 +87,18 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
               tooltip={localeText('dataset.create.modal.name.tooltip')}
               placeholder={localeText('dataset.create.modal.name.placeholder')}
               rules={[{ required: true }]}
-              maxLength={64}
+              fieldProps={{
+                maxLength: 64,
+              }}
             />
             <ProFormTextArea
               name="description"
               label={localeText('dataset.create.modal.desc')}
               width="lg"
               placeholder={localeText('dataset.create.modal.desc.placeholder')}
-              maxLength={256}
-            />
-            <ProFormRadio.Group
-              label={localeText('dataset.create.modal.auth')}
-              name="isPublic"
-              initialValue="true"
-              options={[
-                {
-                  label: localeText('dataset.create.modal.auth.public'),
-                  value: 'true',
-                },
-                {
-                  label: localeText('dataset.create.modal.auth.private'),
-                  value: 'false',
-                },
-              ]}
+              fieldProps={{
+                maxLength: 256,
+              }}
             />
           </StepsForm.StepForm>
           <StepsForm.StepForm
@@ -122,6 +110,9 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
               label={localeText('dataset.import.modal.label')}
               width="lg"
               placeholder={localeText('dataset.import.modal.placeholder')}
+              fieldProps={{
+                rows: 10,
+              }}
               onBlur={(e: any) => {
                 const _imgs = [...imgList, ...e.target.value.split('\n')];
 

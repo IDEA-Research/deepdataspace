@@ -1,45 +1,34 @@
 import { useState } from 'react';
-import { ProFormTextArea, ModalForm } from '@ant-design/pro-components';
-import { Button, Empty } from 'antd';
+import { ProFormTextArea } from '@ant-design/pro-components';
+import { Empty, Modal } from 'antd';
 import { useModel } from '@umijs/max';
 import { useLocale } from '@/locales/helper';
-import { map } from 'lodash';
+import { compact, map, size } from 'lodash';
 import Masonry from 'react-masonry-component';
 import styles from './index.less';
 
-const ImportImgsModal = () => {
+interface IProps {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const ImportImgsModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
   const [imgList, setImgList] = useState<string[]>([]);
   const { handleImportImages, checkImageUrls } = useModel('DatasetList.model');
   const { onPageContentLoaded, pageState } = useModel('dataset.common');
   const { localeText } = useLocale();
 
   return (
-    <ModalForm
+    <Modal
       width={600}
-      modalProps={{
-        destroyOnClose: true,
-      }}
-      trigger={<Button>{localeText('dataset.import.edit.modal.title')}</Button>}
-      onFinish={() => {
+      open={open}
+      onOk={() => {
         handleImportImages(pageState?.datasetId, imgList);
         setImgList([]);
-        return true;
+        setOpen(false);
       }}
-      submitter={{
-        render: (props) => {
-          return [
-            <Button key="rest" onClick={() => props.form?.resetFields()}>
-              {localeText('dataset.import.modal.reset')}
-            </Button>,
-            <Button
-              type="primary"
-              key="submit"
-              onClick={() => props.form?.submit?.()}
-            >
-              {localeText('dataset.import.modal.submit')}
-            </Button>,
-          ];
-        },
+      onCancel={() => {
+        setOpen(false);
       }}
     >
       <div className={styles.container}>
@@ -50,13 +39,38 @@ const ImportImgsModal = () => {
           name="imageUrl"
           label={localeText('dataset.import.modal.label')}
           placeholder={localeText('dataset.import.modal.placeholder')}
+          fieldProps={{
+            rows: 10,
+          }}
           onBlur={(e: any) => {
+            console.log(imgList);
+            setImgList([]);
+
             const _imgs = [...imgList, ...e.target.value.split('\n')];
 
             checkImageUrls(_imgs).then((results) => {
               setImgList(results);
             });
           }}
+          rules={[
+            { required: true },
+            {
+              validator(rule, value, callback) {
+                console.log(
+                  'v: ',
+                  compact(value.split('\n')),
+                  size(compact(value.split('\n'))),
+                );
+                if (size(compact(value.split('\n'))) > 2) {
+                  callback(
+                    new Error(localeText('dataset.import.modal.imgsLimit')),
+                  );
+                } else {
+                  callback();
+                }
+              },
+            },
+          ]}
         />
         <div className={styles.imgContainer}>
           {imgList.length ? (
@@ -85,7 +99,7 @@ const ImportImgsModal = () => {
           )}
         </div>
       </div>
-    </ModalForm>
+    </Modal>
   );
 };
 

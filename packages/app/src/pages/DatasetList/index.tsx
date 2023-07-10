@@ -14,6 +14,7 @@ const HomePage: React.FC = () => {
     useModel('datasets');
   const { onInitPageState, onClickItem, onClickCopyLink, updateListFilter } =
     useModel('DatasetList.model');
+  const { withLoginCheck } = useModel('user');
   usePageModelLifeCycle({ onInitPageState, pageState: pagination });
   const [openModal, setModalOpen] = useState(false);
   const { localeText } = useLocale();
@@ -35,7 +36,7 @@ const HomePage: React.FC = () => {
         </div>
         <Tabs
           activeKey={pagination?.isPublic}
-          onChange={updateListFilter}
+          onChange={withLoginCheck(updateListFilter)}
           items={[
             {
               key: 'true',
@@ -47,7 +48,12 @@ const HomePage: React.FC = () => {
             },
           ]}
           tabBarExtraContent={
-            <Button type="primary" onClick={() => setModalOpen(true)}>
+            <Button
+              type="primary"
+              onClick={withLoginCheck(() => {
+                setModalOpen(true);
+              })}
+            >
               {localeText('dataset.filter.newDataset')}
             </Button>
           }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useModel } from '@umijs/max';
 import { Button } from 'antd';
 import { ArrowLeftOutlined, FundViewOutlined } from '@ant-design/icons';
@@ -33,6 +33,7 @@ const Header: React.FC = () => {
     onColumnCountChange,
   } = useModel('dataset.filters');
   const { openAnalysisModal } = useModel('dataset.comparisons');
+  const { withLoginCheck } = useModel('user');
 
   const { labels } = filters;
   const { selectedLabelIds } = filterValues;
@@ -40,6 +41,8 @@ const Header: React.FC = () => {
     filterValues.displayAnnotationType === AnnotationType.Matting;
   const showKeyPoints =
     filterValues.displayAnnotationType === AnnotationType.KeyPoints;
+  const [openEditModal, setEditModalOpen] = useState(false);
+  const [openImportModal, setImportModalOpen] = useState(false);
 
   return (
     <div className={styles.fixMenu} id="filterWrap">
@@ -51,8 +54,21 @@ const Header: React.FC = () => {
           onClick={() => backPath('/dataset')}
         />
         <div className={styles.editGroup}>
-          <EditDatasetModal />
-          <ImportImgsModal />
+          <Button
+            onClick={withLoginCheck(() => {
+              setEditModalOpen(true);
+            })}
+          >
+            {localeText('dataset.edit.modal.title')}
+          </Button>
+
+          <Button
+            onClick={withLoginCheck(() => {
+              setImportModalOpen(true);
+            })}
+          >
+            {localeText('dataset.import.edit.modal.title')}
+          </Button>
         </div>
         <CategoryFilter
           categoryId={filterValues.categoryId}
@@ -103,6 +119,8 @@ const Header: React.FC = () => {
           />
         )}
       </div>
+      <EditDatasetModal open={openEditModal} setOpen={setEditModalOpen} />
+      <ImportImgsModal open={openImportModal} setOpen={setImportModalOpen} />
     </div>
   );
 };
