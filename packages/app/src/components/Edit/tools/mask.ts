@@ -1,5 +1,4 @@
 // import { decode, encode } from '@thi.ng/rle-pack';
-import { mockRle } from './mockRle';
 import { hexToRgbArray, hexToRgba } from '@/utils/color';
 import { ICreatingMaskStep, ICreatingObject } from '../type';
 import { translatePointZoom, translatePolygonCoord } from '@/utils/compute';
@@ -15,11 +14,6 @@ import {
 } from '@/utils/draw';
 import { ESubToolItem, LABELS_STROKE_DASH } from '@/constants';
 import { ANNO_MASK_ALPHA, ANNO_STROKE_ALPHA } from '../constants/render';
-
-export const mockMaskAnnotation = {
-  categoryName: 'person',
-  maskRle: mockRle,
-};
 
 /**
  * only [0,1] array with rle decode
