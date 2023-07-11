@@ -261,7 +261,7 @@ const Edit: React.FC<EditProps> = (props) => {
     imgRef,
   });
 
-  const { onMouseDown, onMouseMove, onMouseUp } = useMouseEvents({
+  const { onMouseDown, onMouseMove, onMouseUp, isMousePress } = useMouseEvents({
     visible,
     mode,
     drawData,
@@ -288,6 +288,7 @@ const Edit: React.FC<EditProps> = (props) => {
 
   useShortcuts({
     visible,
+    isMousePress,
     mode,
     drawData,
     setDrawData,

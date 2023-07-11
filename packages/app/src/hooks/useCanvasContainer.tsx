@@ -66,9 +66,6 @@ export default function useCanvasContainer({
     | undefined
   >(undefined);
 
-  // Whether the mouse is moving
-  const movedRef = useRef<boolean>(false);
-
   const contentMouse = useMemo(() => {
     return {
       ...containerMouse,
@@ -220,7 +217,6 @@ export default function useCanvasContainer({
     'mousemove',
     () => {
       if (!visible) return;
-      movedRef.current = true;
       if (movingImgAnchor && allowMove) {
         const offsetX = contentMouse.elementX - movingImgAnchor.x;
         const offsetY = contentMouse.elementY - movingImgAnchor.y;

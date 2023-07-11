@@ -1,4 +1,4 @@
-import { MouseEventHandler } from 'react';
+import { MouseEventHandler, useState } from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
 import {
   DrawData,
@@ -1090,6 +1090,8 @@ const useMouseEvents = ({
     return false;
   };
 
+  const [isMousePress, setMousePress] = useState(false);
+
   // =================================================================================================================
   // Register Mouse Event
   // =================================================================================================================
@@ -1097,6 +1099,8 @@ const useMouseEvents = ({
   const onMouseDown: MouseEventHandler<HTMLDivElement> = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
   ) => {
+    setMousePress(true);
+
     if (!visible || editState.allowMove || editState.isRequiring) return;
 
     // 1. Edit object
@@ -1139,6 +1143,8 @@ const useMouseEvents = ({
   };
 
   const onMouseUp: MouseEventHandler<HTMLDivElement> = (event) => {
+    setMousePress(false);
+
     if (!visible || editState.isRequiring) return;
 
     if (editState.allowMove) {
@@ -1160,6 +1166,7 @@ const useMouseEvents = ({
     onMouseDown,
     onMouseMove,
     onMouseUp,
+    isMousePress,
   };
 };
 
