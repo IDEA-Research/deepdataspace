@@ -82,6 +82,7 @@ export interface PageData {
   imgList: DATA.DataSetImg[];
   total: number;
   screenLoading: string;
+  hasEmbedFile: boolean;
   // filters
   filters: {
     categories: DATA.Category[];
@@ -110,6 +111,7 @@ export const DEFALUE_PAGE_INNER_DATA = {
 export const DEFAULT_PAGE_DATA = {
   ...DEFALUE_PAGE_INNER_DATA,
   screenLoading: '',
+  hasEmbedFile: false,
   filters: {
     categories: [],
     annotationTypes: [],

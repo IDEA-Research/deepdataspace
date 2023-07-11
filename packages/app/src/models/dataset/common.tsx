@@ -5,7 +5,6 @@
 import { useMemo } from 'react';
 import { useImmer } from 'use-immer';
 import { useRequest } from 'ahooks';
-import { message } from 'antd';
 import {
   fetchDatasetDetail,
   fetchImgList,
@@ -65,13 +64,9 @@ export default () => {
     },
     {
       refreshDeps: [pageState.datasetId],
-      onSuccess: ({ categoryList, labelList, objectTypes }, params) => {
+      onSuccess: ({ categoryList, labelList, objectTypes, files }, params) => {
         const defaultLabelType =
           params.length > 0 ? params[0] : LABEL_SOURCE.gt;
-        if (!categoryList || !categoryList.length) {
-          message.warning('none category');
-          return;
-        }
         const types = objectTypes.filter(
           (item) => item !== AnnotationType.Classification,
         );
@@ -90,6 +85,10 @@ export default () => {
           s.filters.annotationTypes = types;
           s.filters.displayOptions = options;
 
+          // set embedding file flag based on dataset detail
+          if (files?.embedding) {
+            s.hasEmbedFile = true;
+          }
           // Auto load && there are no URL parameters => add default value
           if (!urlDisplayAnnotationType) {
             setPageState((p) => {
