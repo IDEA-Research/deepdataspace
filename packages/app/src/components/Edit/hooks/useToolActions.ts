@@ -44,6 +44,7 @@ const useToolActions = ({
     }
     setDrawData((s) => {
       s.creatingObject = undefined;
+      s.segmentationMask = undefined;
       s.prompt = undefined;
       s.activeObjectIndex = -1;
     });
