@@ -143,29 +143,21 @@ export default function useCanvasContainer({
         ? Math.min(MAX_SCALE, fixedFloatNum(s.scale + step, 2))
         : Math.max(MIN_SCALE, fixedFloatNum(s.scale - step, 2));
 
-      // Record the starting zoom scale ratio.
+      // update scale center
       if (
-        isZoomBtn ||
-        !contentMouse.elementX ||
-        !containerMouse.elementX ||
-        !clientSize.width
-      ) {
-        // Center zoom.
-        lastScalePosRef.current = undefined;
-      } else if (
         !lastScalePosRef.current ||
-        (movedRef.current &&
-          (containerMouse.elementX !== lastScalePosRef.current.mouseX ||
-            containerMouse.elementY !== lastScalePosRef.current.mouseY))
+        containerMouse.elementX !== lastScalePosRef.current.mouseX ||
+        containerMouse.elementY !== lastScalePosRef.current.mouseY
       ) {
-        // Focus zoom && Mouse move
-        lastScalePosRef.current = {
-          posRatioX: contentMouse.elementX / clientSize.width,
-          posRatioY: contentMouse.elementY / clientSize.height,
-          mouseX: containerMouse.elementX,
-          mouseY: containerMouse.elementY,
-        };
-        movedRef.current = false;
+        if (!isZoomBtn) {
+          const scalePos = {
+            posRatioX: contentMouse.elementX / clientSize.width,
+            posRatioY: contentMouse.elementY / clientSize.height,
+            mouseX: containerMouse.elementX,
+            mouseY: containerMouse.elementY,
+          };
+          lastScalePosRef.current = scalePos;
+        }
       }
 
       s.scale = scale;
