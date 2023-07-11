@@ -2263,6 +2263,15 @@ const Edit: React.FC<EditProps> = (props) => {
     return <></>;
   };
 
+  const isAnnotEditorVisible =
+    mode === EditorMode.Edit &&
+    !isAIPoseEstimation &&
+    !(
+      drawData.selectedTool === EBasicToolItem.Polygon &&
+      drawData.AIAnnotation &&
+      drawData.activeObjectIndex === -1
+    );
+
   if (visible) {
     return (
       <div className={styles.editor}>
@@ -2329,23 +2338,19 @@ const Edit: React.FC<EditProps> = (props) => {
                 </>
               ),
             })}
-            {mode === EditorMode.Edit &&
-              !(
-                drawData.selectedTool === EBasicToolItem.Skeleton &&
-                drawData.AIAnnotation
-              ) && (
-                <AnnotationEditor
-                  hideTitle={drawData.creatingObject?.type === EObjectType.Mask}
-                  allowAddCategory={isSeperate}
-                  latestLabel={editState.latestLabel}
-                  categories={categories}
-                  currEditObject={drawData.creatingObject}
-                  onCreateCategory={onCreateCategory}
-                  onDeleteCurrObject={onDeleteCurrObject}
-                  onFinishCurrCreate={onFinishCurrCreate}
-                  onCloseAnnotationEditor={onCloseAnnotationEditor}
-                />
-              )}
+            {isAnnotEditorVisible && (
+              <AnnotationEditor
+                hideTitle={drawData.creatingObject?.type === EObjectType.Mask}
+                allowAddCategory={isSeperate}
+                latestLabel={editState.latestLabel}
+                categories={categories}
+                currEditObject={drawData.creatingObject}
+                onCreateCategory={onCreateCategory}
+                onDeleteCurrObject={onDeleteCurrObject}
+                onFinishCurrCreate={onFinishCurrCreate}
+                onCloseAnnotationEditor={onCloseAnnotationEditor}
+              />
+            )}
             <SmartAnnotationControl
               drawData={drawData}
               aiLabels={aiLabels}
