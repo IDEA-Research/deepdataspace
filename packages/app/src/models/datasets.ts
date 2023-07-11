@@ -7,6 +7,7 @@ import { DATA } from '@/services/type';
 export interface PaginationState {
   page: number;
   pageSize: number;
+  isPublic: string;
 }
 
 export interface DatasetsData {
@@ -18,17 +19,20 @@ export default () => {
   const [pagination, setPagination] = useImmer<PaginationState>({
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
+    isPublic: 'true',
   });
   const [datasetsData, setDatasetsData] = useImmer<DatasetsData>({
     list: [],
     total: 0,
   });
+  const [datasetId, setDatasetId] = useImmer('');
 
   const { loading, run: loadDatasets } = useRequest(
-    (page?: number, pageSize?: number) => {
+    (page?: number, pageSize?: number, isPublic?: string) => {
       return fetchDatasetList({
         pageNum: page || pagination.page,
         pageSize: pageSize || pagination.pageSize,
+        isPublic: isPublic || pagination.isPublic,
       });
     },
     {
@@ -57,8 +61,10 @@ export default () => {
     loading,
     pagination,
     datasetsData,
+    datasetId,
     loadDatasets,
     setPagination,
     onPageChange,
+    setDatasetId,
   };
 };

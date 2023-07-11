@@ -1,7 +1,6 @@
 import { CloseOutlined } from '@ant-design/icons';
 import { Button, Card, Select } from 'antd';
 import classNames from 'classnames';
-import { DrawData, IAnnotationObject } from '../..';
 import styles from './index.less';
 import { FloatWrapper } from '@/components/FloatWrapper';
 import { useEffect, useState } from 'react';
@@ -10,10 +9,12 @@ import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from '@/locales/helper';
 import CategoryCreator from '../CategoryCreator';
 import { DATA } from '@/services/type';
+import { IAnnotationObject } from '../../type';
 
 interface IProps {
+  hideTitle: boolean;
   allowAddCategory: boolean;
-  drawData: DrawData;
+  latestLabel: string;
   categories: DATA.Category[];
   currEditObject: IAnnotationObject | undefined;
   onCreateCategory: (name: string) => void;
@@ -23,8 +24,9 @@ interface IProps {
 }
 
 const AnnotationEditor: React.FC<IProps> = ({
+  hideTitle,
   allowAddCategory,
-  drawData,
+  latestLabel,
   categories,
   currEditObject,
   onCreateCategory,
@@ -34,11 +36,11 @@ const AnnotationEditor: React.FC<IProps> = ({
 }) => {
   const { localeText } = useLocale();
 
-  const defaultObjectLabel = currEditObject?.label || drawData.latestLabel;
+  const defaultObjectLabel = currEditObject?.label || latestLabel;
   const [objLabel, setObjLabel] = useState(defaultObjectLabel);
 
   useEffect(() => {
-    setObjLabel(currEditObject?.label || drawData.latestLabel);
+    setObjLabel(currEditObject?.label || latestLabel);
   }, [currEditObject]);
 
   useKeyPress(
@@ -60,17 +62,19 @@ const AnnotationEditor: React.FC<IProps> = ({
           [styles.containedVisible]: currEditObject,
         })}
         title={
-          <div className={styles.title}>
-            {localeText('editor.annotsEditor.title')}
-            <Button
-              ghost
-              className={styles.btn}
-              icon={<CloseOutlined />}
-              shape="circle"
-              size="small"
-              onClick={onCloseAnnotationEditor}
-            ></Button>
-          </div>
+          hideTitle ? null : (
+            <div className={styles.title}>
+              {localeText('editor.annotsEditor.title')}
+              <Button
+                ghost
+                className={styles.btn}
+                icon={<CloseOutlined />}
+                shape="circle"
+                size="small"
+                onClick={onCloseAnnotationEditor}
+              ></Button>
+            </div>
+          )
         }
       >
         <div className={styles.content}>

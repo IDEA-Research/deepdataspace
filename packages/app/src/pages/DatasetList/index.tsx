@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { List, Pagination } from 'antd';
+import { Button, List, Pagination, Tabs } from 'antd';
 import { useModel } from '@umijs/max';
 import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
 import styles from './index.less';
 import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/constants';
-import { LocaleText } from '@/locales/helper';
+import { LocaleText, useLocale } from '@/locales/helper';
 import DatasetItem from '@/components/DatasetItem';
+import NewDatasetModal from './components/NewDatasetModal';
 
 const HomePage: React.FC = () => {
   const { loading, pagination, datasetsData, onPageChange } =
     useModel('datasets');
-  const { onInitPageState, onClickItem, onClickCopyLink } =
+  const { onInitPageState, onClickItem, onClickCopyLink, updateListFilter } =
     useModel('DatasetList.model');
+  const { withLoginCheck } = useModel('user');
   usePageModelLifeCycle({ onInitPageState, pageState: pagination });
+  const [openModal, setModalOpen] = useState(false);
+  const { localeText } = useLocale();
 
   return (
     <PageContainer
@@ -30,6 +34,30 @@ const HomePage: React.FC = () => {
         <div className={styles.listTitle}>
           <LocaleText id="datasets" />
         </div>
+        <Tabs
+          activeKey={pagination?.isPublic}
+          onChange={withLoginCheck(updateListFilter)}
+          items={[
+            {
+              key: 'true',
+              label: localeText('dataset.filter.public'),
+            },
+            {
+              key: 'false',
+              label: localeText('dataset.filter.private'),
+            },
+          ]}
+          tabBarExtraContent={
+            <Button
+              type="primary"
+              onClick={withLoginCheck(() => {
+                setModalOpen(true);
+              })}
+            >
+              {localeText('dataset.filter.newDataset')}
+            </Button>
+          }
+        />
         <List
           grid={{ gutter: 16, column: 4 }}
           loading={loading}
@@ -56,6 +84,7 @@ const HomePage: React.FC = () => {
           />
         </div>
       )}
+      <NewDatasetModal open={openModal} setOpen={setModalOpen} />
     </PageContainer>
   );
 };

@@ -67,6 +67,46 @@ export default {
   'dataset.onClickCopyLink.success': 'Copy link success!',
   'dataset.detail.overlay': 'Overlay',
 
+  'dataset.filter.newDataset': 'New dataset',
+  'dataset.filter.public': 'Public',
+  'dataset.filter.private': 'Private',
+  'dataset.create.modal.step.one': 'Create',
+  'dataset.create.modal.step.prev': '< Previous step',
+  'dataset.create.modal.step.finish': 'Finish',
+  'dataset.create.success': 'Successfully create new dataset.',
+  'dataset.create.error': 'Create datatset failed with error: {error}',
+  'dataset.create.warn': 'Dataset name is required, and can be repeated.',
+  'dataset.update.success': 'Successfully update dataset.',
+  'dataset.update.error': 'Update datatset failed with error: {error}',
+  'dataset.update.warn': 'Could not update dataset with invalid dataset ID.',
+  'dataset.import.success': 'Successfully import images into dataset.',
+  'dataset.import.warn':
+    'Could not import images into dataset with empty image list.',
+  'dataset.import.error': 'Import images failed with error: {error}',
+  'dataset.create.modal.title': 'Create dataset',
+  'dataset.create.modal.finish': 'Successfully import images into new dataset.',
+  'dataset.create.modal.required': 'This field is required.',
+  'dataset.create.modal.name': 'Name',
+  'dataset.create.modal.name.tooltip': 'The max length of dataset name is 64.',
+  'dataset.create.modal.name.placeholder': 'Please input dataset name',
+  'dataset.create.modal.desc': 'Description',
+  'dataset.create.modal.desc.placeholder': 'Please input dataset description',
+  'dataset.create.modal.auth': 'Authority',
+  'dataset.create.modal.auth.public': 'Public',
+  'dataset.create.modal.auth.private': 'Private',
+  'dataset.import.modal.title': 'Import images',
+  'dataset.import.modal.label': 'Image Url',
+  'dataset.import.modal.placeholder': 'Please paste image Url',
+  'dataset.import.modal.emptyImgs': 'No images',
+  'dataset.import.modal.imgsLimit':
+    'You can add no more than 500 images in every imports.',
+  'dataset.import.edit.modal.title': 'Import images',
+  'dataset.import.modal.submit': 'Import',
+  'dataset.import.modal.reset': 'Reset',
+  'dataset.edit.modal.title': 'Edit dataset',
+  'dataset.edit.modal.submit': 'Update',
+  'dataset.edit.modal.reset': 'Reset',
+
   /** Annotate */
   'annotate.quick': 'Quick Mode',
   'annotate.quick.desc':
@@ -105,8 +145,9 @@ export default {
   'smartAnnotation.infoModal.action': 'Visit Our Website',
   'smartAnnotation.detection.name': 'Intelligent Object Detection',
   'smartAnnotation.detection.input': 'Select or enter categories',
-  'smartAnnotation.segmentation.name': 'Intelligent Segmentation',
+  'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
+  'smartAnnotation.mask.name': 'Intelligent Segmentation (Mask)',
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
@@ -150,6 +191,16 @@ export default {
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
   'editor.toolbar.aiAnno': 'Intelligent Annotate',
   'editor.toolbar.drag': 'Drag / Select Tool',
+  'editor.toolbar.mask': 'Mask',
+  'editor.subtoolbar.mask.penAdd': 'Pen Add',
+  'editor.subtoolbar.mask.penErase': 'Pen Erase',
+  'editor.subtoolbar.mask.brushAdd': 'Brush Add',
+  'editor.subtoolbar.mask.brushErase': 'Brush Erase',
+  'editor.subtoolbar.mask.box': 'Interactive Segmentation - Box Tool',
+  'editor.subtoolbar.mask.click': 'Interactive Segmentation - Click Tool',
+  'editor.subtoolbar.mask.stroke': 'Interactive Segmentation - Brush Tool',
+  'editor.subtoolbar.mask.sam': 'Segment Anything',
+  'editor.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
@@ -162,7 +213,9 @@ export default {
   'editor.toolbar.skeleton.desc':
     'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
   'editor.toolbar.aiAnno.desc':
-    'Activate this mode under any of Rectangle / Polygon / Skeleton tools for auto-generating corresponding annotations.',
+    'Activate this mode under any of Rectangle / Polygon / Skeleton / Mask tools for auto-generating corresponding annotations.',
+  'editor.toolbar.mask.desc':
+    'Use Pen or Brush tool to draw a pixel-level segmentation.',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
   'editor.annotsEditor.title': 'Annotation Editor',
@@ -179,6 +232,7 @@ export default {
   'editor.shortcuts.tools.polygon': 'Polygon Tool',
   'editor.shortcuts.tools.skeleton': 'Skeleton Tool',
   'editor.shortcuts.tools.drag': 'Drag / Select Tool',
+  'editor.shortcuts.tools.mask': 'Mask Tool',
   'editor.shortcuts.general': 'General Controls',
   'editor.shortcuts.general.smart':
     'Activate / Deactivate Intelligent Annotate',
@@ -212,6 +266,9 @@ export default {
   'editor.annotsList.point.notInImage': 'Not In Image',
   'editor.annotsList.point.notVisible': 'Not Visible',
   'editor.annotsList.point.visible': 'Visible',
+  'editor.anno.mask.emptyWarning':
+    'Please add at least one valid Mask annotation.',
+  'editor.anno.mask.translateToRleError': 'Error converting Mask format.',
 
   /** projects */
   'proj.title': 'Projects',

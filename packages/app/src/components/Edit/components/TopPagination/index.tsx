@@ -2,7 +2,7 @@ import styles from './index.less';
 import { Button, Tooltip } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
-import { EditImageData } from '../..';
+import { EditImageData } from '../../type';
 import { useState } from 'react';
 import { useKeyPress } from 'ahooks';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';

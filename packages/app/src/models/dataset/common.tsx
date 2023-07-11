@@ -23,8 +23,10 @@ import {
   DEFALUE_PAGE_INNER_DATA,
   DEFAULT_PAGE_DATA,
   DEFAULT_PAGE_STATE,
+  DEFAULT_DATASET_INFO_STATE,
   PageData,
   PageState,
+  DatasetInfo,
   AnnotationImageRender,
 } from './type';
 import { API } from '@/services/type';
@@ -37,6 +39,10 @@ export default () => {
 
   const [pageData, setPageData] = useImmer<PageData>({
     ...DEFAULT_PAGE_DATA,
+  });
+
+  const [datasetInfo, setDatasetInfo] = useImmer<DatasetInfo>({
+    ...DEFAULT_DATASET_INFO_STATE,
   });
 
   const { filterValues, comparisons } = pageState;
@@ -64,9 +70,16 @@ export default () => {
     },
     {
       refreshDeps: [pageState.datasetId],
-      onSuccess: ({ categoryList, labelList, objectTypes, files }, params) => {
+      onSuccess: (
+        { categoryList, labelList, objectTypes, name, description, files }, 
+        params, 
+      ) => {
         const defaultLabelType =
           params.length > 0 ? params[0] : LABEL_SOURCE.gt;
+        setDatasetInfo((s) => {
+          s.name = name;
+          s.description = description;
+        });
         const types = objectTypes.filter(
           (item) => item !== AnnotationType.Classification,
         );
@@ -325,6 +338,8 @@ export default () => {
     setPageState,
     pageData,
     setPageData,
+    datasetInfo,
+    setDatasetInfo,
     onInitPageState,
     onPageContentLoaded,
     onPreviewIndexChange,
