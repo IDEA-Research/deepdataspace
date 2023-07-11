@@ -464,7 +464,7 @@ const useMouseEvents = ({
         if (!drawData.creatingPrompt?.stroke) break;
         const promptItem: PromptItem = {
           type: EMaskPromptType.Stroke,
-          isPositive: true,
+          isPositive: drawData.creatingPrompt.isPositive,
           stroke: drawData.creatingPrompt.stroke,
           radius: drawData.brushSize,
         };

@@ -23,7 +23,10 @@ import { ANNO_MASK_ALPHA, ANNO_STROKE_ALPHA } from '../constants/render';
 const decodeRle = (arr: number[], length: number) => {
   const result = new Array(length).fill(0);
   for (let i = 0; i < arr.length; i += 2) {
-    result.splice(arr[i], arr[i + 1], ...new Array(arr[i + 1]).fill(1));
+    const spliceLen = Math.min(arr[i + 1], length - arr[i]);
+    for (let j = 0; j < spliceLen; j++) {
+      result[arr[i] + j] = 1;
+    }
   }
   return result;
 };
