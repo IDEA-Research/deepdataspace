@@ -555,12 +555,12 @@ const useCanvasRender = ({
 
   const updateCreatingPromptRender = (theDrawData: DrawData) => {
     // draw creating prompt
-    if (theDrawData.creatingPrompt) {
+    if (theDrawData.prompt.creatingMask) {
       const strokeColor = ANNO_STROKE_COLOR.CREATING;
       const fillColor = ANNO_FILL_COLOR.CREATING;
-      switch (theDrawData.creatingPrompt.type) {
+      switch (theDrawData.prompt.creatingMask.type) {
         case EMaskPromptType.Rect: {
-          const { startPoint } = theDrawData.creatingPrompt;
+          const { startPoint } = theDrawData.prompt.creatingMask;
           const rect = getRectFromPoints(
             startPoint!,
             {
@@ -587,9 +587,9 @@ const useCanvasRender = ({
           break;
         }
         case EMaskPromptType.Point: {
-          if (!theDrawData.creatingPrompt.point) break;
+          if (!theDrawData.prompt.creatingMask.point) break;
           const canvasCoordPoint = translatePointCoord(
-            theDrawData.creatingPrompt.point,
+            theDrawData.prompt.creatingMask.point,
             {
               x: -imagePos.current.x,
               y: -imagePos.current.y,
@@ -599,7 +599,7 @@ const useCanvasRender = ({
             activeCanvasRef.current!,
             canvasCoordPoint,
             4,
-            theDrawData.creatingPrompt.isPositive
+            theDrawData.prompt.creatingMask.isPositive
               ? PROMPT_FILL_COLOR.POSITIVE
               : PROMPT_FILL_COLOR.NEGATIVE,
             2,
@@ -609,24 +609,24 @@ const useCanvasRender = ({
         case EMaskPromptType.EdgeStitch:
         case EMaskPromptType.Stroke: {
           if (
-            !theDrawData.creatingPrompt.stroke ||
-            !theDrawData.creatingPrompt.radius
+            !theDrawData.prompt.creatingMask.stroke ||
+            !theDrawData.prompt.creatingMask.radius
           )
             break;
           const canvasCoordStroke = translatePolygonCoord(
-            theDrawData.creatingPrompt.stroke,
+            theDrawData.prompt.creatingMask.stroke,
             {
               x: -imagePos.current.x,
               y: -imagePos.current.y,
             },
           );
           const radius =
-            (theDrawData.creatingPrompt.radius * clientSize.width) /
+            (theDrawData.prompt.creatingMask.radius * clientSize.width) /
             naturalSize.width;
           const color =
-            theDrawData.creatingPrompt.type === EMaskPromptType.EdgeStitch
+            theDrawData.prompt.creatingMask.type === EMaskPromptType.EdgeStitch
               ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
-              : theDrawData.creatingPrompt.isPositive
+              : theDrawData.prompt.creatingMask.isPositive
               ? PROMPT_FILL_COLOR.POSITIVE
               : PROMPT_FILL_COLOR.NEGATIVE;
           drawQuadraticPath(
@@ -643,8 +643,8 @@ const useCanvasRender = ({
     }
 
     // draw segmentation reference points
-    if (theDrawData.segmentationClicks) {
-      theDrawData.segmentationClicks.forEach((click) => {
+    if (theDrawData.prompt.segmentationClicks) {
+      theDrawData.prompt.segmentationClicks.forEach((click) => {
         const canvasCoordPoint = translatePointCoord(click.point, {
           x: -imagePos.current.x,
           y: -imagePos.current.y,
@@ -663,9 +663,9 @@ const useCanvasRender = ({
     }
 
     // draw active area while loading ai annotations
-    if (editState.isRequiring && theDrawData.activeRectWhileLoading) {
+    if (editState.isRequiring && theDrawData.prompt.activeRectWhileLoading) {
       const canvasCoordRect = translateRectCoord(
-        theDrawData.activeRectWhileLoading,
+        theDrawData.prompt.activeRectWhileLoading,
         {
           x: -imagePos.current.x,
           y: -imagePos.current.y,

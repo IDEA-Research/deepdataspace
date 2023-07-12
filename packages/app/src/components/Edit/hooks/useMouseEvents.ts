@@ -6,7 +6,7 @@ import {
   EditState,
   EditorMode,
   IAnnotationObject,
-  PromptItem,
+  MaskPromptItem,
 } from '../type';
 import {
   Direction,
@@ -39,6 +39,7 @@ import { cloneDeep } from 'lodash';
 import { Updater } from 'use-immer';
 import { HistoryItem } from './useHistory';
 import { DATA } from '@/services/type';
+import { OnAiAnnotationFunc } from './useActions';
 
 interface IProps {
   visible: boolean;
@@ -56,11 +57,7 @@ interface IProps {
   updateHistory: (item: HistoryItem) => void;
   categories: DATA.Category[];
   aiLabels: string[];
-  onAiAnnotation: (
-    drawData: DrawData,
-    aiLabels: string[],
-    bbox?: IBoundingBox,
-  ) => Promise<void>;
+  onAiAnnotation: OnAiAnnotationFunc;
   updateRender: (updateDrawData?: DrawData) => void;
   addObject: (object: IAnnotationObject, notActive?: boolean) => void;
   updateObject: (object: IAnnotationObject, index: number) => void;
@@ -239,17 +236,17 @@ const useMouseEvents = ({
                 },
                 tempMaskSteps: [],
               };
-              s.segmentationMask = undefined;
+              s.prompt.segmentationMask = undefined;
               break;
             case ESubToolItem.AutoSegmentByBox:
-              s.creatingPrompt = {
+              s.prompt.creatingMask = {
                 type: EMaskPromptType.Rect,
                 startPoint: point,
                 isPositive: true,
               };
               break;
             case ESubToolItem.AutoSegmentByClick:
-              s.creatingPrompt = {
+              s.prompt.creatingMask = {
                 type: EMaskPromptType.Point,
                 startPoint: point,
                 point: point,
@@ -257,7 +254,7 @@ const useMouseEvents = ({
               };
               break;
             case ESubToolItem.AutoSegmentByStroke:
-              s.creatingPrompt = {
+              s.prompt.creatingMask = {
                 type: EMaskPromptType.Stroke,
                 startPoint: point,
                 stroke: [point],
@@ -266,7 +263,7 @@ const useMouseEvents = ({
               };
               break;
             case ESubToolItem.AutoEdgeStitching:
-              s.creatingPrompt = {
+              s.prompt.creatingMask = {
                 type: EMaskPromptType.EdgeStitch,
                 startPoint: point,
                 stroke: [point],
@@ -338,17 +335,17 @@ const useMouseEvents = ({
               );
             }
           }
-          s.segmentationMask = undefined;
+          s.prompt.segmentationMask = undefined;
           break;
         case ESubToolItem.AutoSegmentByBox:
-          s.creatingPrompt = {
+          s.prompt.creatingMask = {
             type: EMaskPromptType.Rect,
             startPoint: mouse,
             isPositive: true,
           };
           break;
         case ESubToolItem.AutoSegmentByClick:
-          s.creatingPrompt = {
+          s.prompt.creatingMask = {
             type: EMaskPromptType.Point,
             startPoint: mouse,
             point: mouse,
@@ -356,7 +353,7 @@ const useMouseEvents = ({
           };
           break;
         case ESubToolItem.AutoSegmentByStroke:
-          s.creatingPrompt = {
+          s.prompt.creatingMask = {
             type: EMaskPromptType.Stroke,
             startPoint: mouse,
             stroke: [mouse],
@@ -365,7 +362,7 @@ const useMouseEvents = ({
           };
           break;
         case ESubToolItem.AutoEdgeStitching:
-          s.creatingPrompt = {
+          s.prompt.creatingMask = {
             type: EMaskPromptType.EdgeStitch,
             startPoint: mouse,
             stroke: [mouse],
@@ -379,7 +376,7 @@ const useMouseEvents = ({
   };
 
   const finishMaskCreatingOrEditingWhenMouseUp = async () => {
-    if (!drawData.creatingObject && !drawData.creatingPrompt) return;
+    if (!drawData.creatingObject && !drawData.prompt.creatingMask) return;
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -412,71 +409,72 @@ const useMouseEvents = ({
               s.creatingObject.maskStep = undefined;
             }
           }
-          s.segmentationMask = undefined;
+          s.prompt.segmentationMask = undefined;
         });
         break;
       }
       case ESubToolItem.AutoSegmentByBox: {
-        if (!drawData.creatingPrompt?.startPoint) break;
+        if (!drawData.prompt.creatingMask?.startPoint) break;
         if (
-          mouse.x === drawData.creatingPrompt.startPoint?.x ||
-          mouse.y === drawData.creatingPrompt.startPoint?.y
+          mouse.x === drawData.prompt.creatingMask.startPoint?.x ||
+          mouse.y === drawData.prompt.creatingMask.startPoint?.y
         ) {
-          setDrawData((s) => (s.creatingPrompt = undefined));
+          setDrawData((s) => (s.prompt.creatingMask = undefined));
           break;
         }
         const rect = getRectFromPoints(
-          drawData.creatingPrompt.startPoint as IPoint,
+          drawData.prompt.creatingMask.startPoint as IPoint,
           mouse,
           {
             width: contentMouse.elementW,
             height: contentMouse.elementH,
           },
         );
-        const promptItem: PromptItem = {
+        const promptItem: MaskPromptItem = {
           type: EMaskPromptType.Rect,
           isPositive: true,
           rect,
         };
-        const prompt = drawData.prompt
-          ? [...drawData.prompt, promptItem]
-          : [promptItem];
         setDrawDataWithHistory((s) => {
-          s.activeRectWhileLoading = rect;
+          s.prompt.activeRectWhileLoading = rect;
         });
-        onAiAnnotation({ ...drawData, prompt }, []);
+        const maskPrompts = drawData.prompt.maskPrompts
+          ? [...drawData.prompt.maskPrompts, promptItem]
+          : [promptItem];
+        onAiAnnotation({ drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoSegmentByClick: {
-        if (!isInCanvas(contentMouse) || !drawData.creatingPrompt?.point) break;
-        const promptItem: PromptItem = {
+        if (!isInCanvas(contentMouse) || !drawData.prompt.creatingMask?.point)
+          break;
+        const promptItem: MaskPromptItem = {
           type: EMaskPromptType.Point,
-          isPositive: drawData.creatingPrompt.isPositive,
-          point: drawData.creatingPrompt.point,
+          isPositive: drawData.prompt.creatingMask.isPositive,
+          point: drawData.prompt.creatingMask.point,
         };
-        const prompt = drawData.prompt
-          ? [...drawData.prompt, promptItem]
+        const maskPrompts = drawData.prompt.maskPrompts
+          ? [...drawData.prompt.maskPrompts, promptItem]
           : [promptItem];
-        onAiAnnotation({ ...drawData, prompt }, []);
+        onAiAnnotation({ drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoSegmentByStroke: {
-        if (!drawData.creatingPrompt?.stroke) break;
-        const promptItem: PromptItem = {
+        if (!drawData.prompt.creatingMask?.stroke) break;
+        const promptItem: MaskPromptItem = {
           type: EMaskPromptType.Stroke,
-          isPositive: drawData.creatingPrompt.isPositive,
-          stroke: drawData.creatingPrompt.stroke,
+          isPositive: drawData.prompt.creatingMask.isPositive,
+          stroke: drawData.prompt.creatingMask.stroke,
           radius: drawData.brushSize,
         };
-        const prompt = drawData.prompt
-          ? [...drawData.prompt, promptItem]
+        const maskPrompts = drawData.prompt.maskPrompts
+          ? [...drawData.prompt.maskPrompts, promptItem]
           : [promptItem];
-        onAiAnnotation({ ...drawData, prompt }, []);
+        onAiAnnotation({ drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoEdgeStitching: {
-        if (!drawData.creatingPrompt?.stroke) break;
-        onAiAnnotation({ ...drawData }, []);
+        if (!drawData.prompt.creatingMask?.stroke) break;
+        onAiAnnotation({ drawData });
         break;
       }
     }
@@ -547,7 +545,7 @@ const useMouseEvents = ({
   const updateCreatingWhenMouseMove = (
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
-    if (drawData.creatingObject || drawData.creatingPrompt) {
+    if (drawData.creatingObject || drawData.prompt.creatingMask) {
       const allowRecordMousePath =
         drawData.selectedTool === EBasicToolItem.Mask &&
         [
@@ -573,7 +571,7 @@ const useMouseEvents = ({
         ].includes(drawData.selectedSubTool);
         setDrawData((s) => {
           if (isCreatingPrompt) {
-            s.creatingPrompt?.stroke?.push(mouse);
+            s.prompt.creatingMask?.stroke?.push(mouse);
           } else {
             s.creatingObject?.maskStep?.points.push(mouse);
           }
@@ -637,17 +635,15 @@ const useMouseEvents = ({
               isPositive: getPromptBoolean(event),
               point: mouse,
             };
-            const existClicks = drawData.segmentationClicks || [];
+            const existClicks = drawData.prompt.segmentationClicks || [];
             setDrawData((s) => {
-              s.segmentationClicks = [...existClicks, click];
+              s.prompt.segmentationClicks = [...existClicks, click];
             });
-            onAiAnnotation(
-              {
-                ...drawData,
-                segmentationClicks: [...existClicks, click],
-              },
-              [drawData.creatingObject.label],
-            );
+            onAiAnnotation({
+              drawData,
+              segmentationClicks: [...existClicks, click],
+              aiLabels: [drawData.creatingObject.label],
+            });
           } else {
             // first click
             if (
@@ -661,12 +657,12 @@ const useMouseEvents = ({
                 point: mouse,
               };
               setDrawData((s) => {
-                s.segmentationClicks = [firstClick];
+                s.prompt.segmentationClicks = [firstClick];
               });
-              onAiAnnotation(
-                { ...drawData, segmentationClicks: [firstClick] },
-                [],
-              );
+              onAiAnnotation({
+                drawData,
+                segmentationClicks: [firstClick],
+              });
             } else {
               // draw bbox
               const rect = getRectFromPoints(
@@ -692,13 +688,9 @@ const useMouseEvents = ({
                 };
               });
               setDrawData((s) => {
-                s.segmentationClicks = [...clicks];
+                s.prompt.segmentationClicks = [...clicks];
               });
-              onAiAnnotation(
-                { ...drawData, segmentationClicks: clicks },
-                [],
-                bbox,
-              );
+              onAiAnnotation({ drawData, segmentationClicks: clicks, bbox });
             }
             setDrawData((s) => (s.creatingObject = undefined));
           }
@@ -1076,7 +1068,7 @@ const useMouseEvents = ({
             (editState.startElementMovePoint.mousePoint?.x !== mouse.x ||
               editState.startElementMovePoint.mousePoint?.y !== mouse.y)
           ) {
-            onAiAnnotation(drawData, aiLabels);
+            onAiAnnotation({ drawData, aiLabels });
           }
         }
 

@@ -112,10 +112,7 @@ const useShortcuts = ({
               s.activeObjectIndex = -1;
             }
             if (s.AIAnnotation) {
-              s.segmentationClicks = undefined;
-              s.segmentationMask = undefined;
-              s.activeRectWhileLoading = undefined;
-              s.prompt = undefined;
+              s.prompt = {};
             }
           });
         } else {

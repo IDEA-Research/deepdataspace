@@ -35,7 +35,7 @@ import {
   EditState,
   EditorMode,
   IAnnotationObject,
-  PromptItem,
+  MaskPromptItem,
 } from '../type';
 import { objectToRle, rleToCanvas } from '../tools/mask';
 import { EQaAction } from '@/pages/Project/constants';
@@ -58,6 +58,23 @@ interface IProps {
   onSave?: (imageId: string, annotations: DATA.BaseObject[]) => Promise<void>;
   onReviewResult?: (imageId: string, action: EQaAction) => Promise<void>;
 }
+
+export type OnAiAnnotationFunc = ({
+  drawData,
+  aiLabels,
+  bbox,
+  maskPrompts,
+  segmentationClicks,
+}: {
+  drawData: DrawData;
+  aiLabels?: string[];
+  bbox?: IBoundingBox;
+  maskPrompts?: MaskPromptItem[];
+  segmentationClicks?: {
+    point: IPoint;
+    isPositive: boolean;
+  }[];
+}) => Promise<void>;
 
 const useActions = ({
   mode,
@@ -139,6 +156,10 @@ const useActions = ({
     drawData: DrawData,
     source: string,
     bbox?: IBoundingBox,
+    segmentationClicks?: {
+      point: IPoint;
+      isPositive: boolean;
+    }[],
   ) => {
     const existPolygons =
       drawData.creatingObject?.polygon?.group.map((polygon) => {
@@ -153,7 +174,7 @@ const useActions = ({
       }) || [];
 
     const clicks =
-      drawData.segmentationClicks?.map((click) => {
+      segmentationClicks?.map((click) => {
         const { x, y } = getNaturalPoint(
           [click.point.x, click.point.y],
           naturalSize,
@@ -167,7 +188,7 @@ const useActions = ({
 
     const reqParams = {
       image: source,
-      mask: drawData.segmentationMask || '',
+      mask: drawData.prompt.segmentationMask || '',
       polygons: existPolygons,
       clicks: clicks,
     };
@@ -232,7 +253,7 @@ const useActions = ({
 
           setDrawDataWithHistory((s) => {
             s.creatingObject = creatingObj;
-            s.segmentationMask = mask;
+            s.prompt.segmentationMask = mask;
           });
         }
 
@@ -246,7 +267,7 @@ const useActions = ({
   };
 
   const convertPromptFormat = (
-    prompt: PromptItem[],
+    prompt: MaskPromptItem[],
   ): {
     type: string;
     isPositive: boolean;
@@ -310,8 +331,12 @@ const useActions = ({
     return newPromptArr;
   };
 
-  const requestAiSegmentByMask = async (drawData: DrawData, source: string) => {
-    if (!drawData.prompt) return;
+  const requestAiSegmentByMask = async (
+    drawData: DrawData,
+    source: string,
+    maskPrompts?: MaskPromptItem[],
+  ) => {
+    if (!maskPrompts) return;
 
     const currMask =
       drawData.creatingObject?.maskCanvasElement ||
@@ -326,8 +351,8 @@ const useActions = ({
 
     const reqParams: FetchAIMaskSegmentReq = {
       maskRle: currMask || [],
-      maskId: drawData.segmentationMask || '',
-      prompt: convertPromptFormat(drawData.prompt),
+      maskId: drawData.prompt.segmentationMask || '',
+      prompt: convertPromptFormat(maskPrompts || []),
     };
 
     if (editState.imageCacheId) {
@@ -354,9 +379,9 @@ const useActions = ({
         };
         setDrawDataWithHistory((s) => {
           s.creatingObject = creatingObj;
-          s.prompt = drawData.prompt;
-          s.segmentationMask = maskId;
-          s.creatingPrompt = undefined;
+          s.prompt.maskPrompts = maskPrompts;
+          s.prompt.segmentationMask = maskId;
+          s.prompt.creatingMask = undefined;
         });
         setEditState((s) => {
           s.imageCacheId = imageId;
@@ -367,7 +392,7 @@ const useActions = ({
       console.error(error.message);
       message.error(`Request Failed: ${error.message}, Please retry later.`);
       setDrawDataWithHistory((s) => {
-        s.creatingPrompt = undefined;
+        s.prompt.creatingMask = undefined;
       });
     } finally {
       setLoading(false);
@@ -484,10 +509,13 @@ const useActions = ({
     drawData: DrawData,
     source: string,
   ) => {
-    if (!drawData.creatingPrompt?.stroke || !drawData.creatingPrompt?.radius)
+    if (
+      !drawData.prompt.creatingMask?.stroke ||
+      !drawData.prompt.creatingMask?.radius
+    )
       return;
 
-    const { stroke, radius } = drawData.creatingPrompt;
+    const { stroke, radius } = drawData.prompt.creatingMask;
 
     const maskObjects = drawData.objectList.filter(
       (item) => item.type === EObjectType.Mask,
@@ -497,7 +525,9 @@ const useActions = ({
       message.error(
         'To ensure valid results when using intelligent edge stitching, make sure to use at least 2 mask objects.',
       );
-      setDrawData((s) => (s.creatingPrompt = undefined));
+      setDrawData((s) => {
+        s.prompt.creatingMask = undefined;
+      });
       return;
     }
 
@@ -562,16 +592,18 @@ const useActions = ({
     } finally {
       setLoading(false);
       setDrawData((s) => {
-        s.creatingPrompt = undefined;
+        s.prompt.creatingMask = undefined;
       });
     }
   };
 
-  const onAiAnnotation = async (
-    drawData: DrawData,
-    aiLabels: string[],
-    bbox?: IBoundingBox,
-  ) => {
+  const onAiAnnotation: OnAiAnnotationFunc = async ({
+    drawData,
+    aiLabels = [],
+    bbox,
+    maskPrompts,
+    segmentationClicks,
+  }) => {
     if (isRequiring) return;
 
     if (
@@ -614,14 +646,19 @@ const useActions = ({
           break;
         }
         case EBasicToolItem.Polygon: {
-          await requestAiSegmentByPolygon(drawData, imgSrc, bbox);
+          await requestAiSegmentByPolygon(
+            drawData,
+            imgSrc,
+            bbox,
+            segmentationClicks,
+          );
           break;
         }
         case EBasicToolItem.Mask: {
           if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
             await requestEdgeStitchingForMask(drawData, imgSrc);
           } else {
-            await requestAiSegmentByMask(drawData, imgSrc);
+            await requestAiSegmentByMask(drawData, imgSrc, maskPrompts);
           }
           break;
         }
@@ -634,7 +671,7 @@ const useActions = ({
     } finally {
       setIsRequiring(false);
       setDrawData((s) => {
-        s.activeRectWhileLoading = undefined;
+        s.prompt.activeRectWhileLoading = undefined;
       });
       hide();
     }

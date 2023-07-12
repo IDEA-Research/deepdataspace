@@ -44,8 +44,7 @@ const useToolActions = ({
     }
     setDrawData((s) => {
       s.creatingObject = undefined;
-      s.segmentationMask = undefined;
-      s.prompt = undefined;
+      s.prompt = {};
       s.activeObjectIndex = -1;
     });
   };
@@ -90,9 +89,7 @@ const useToolActions = ({
     }
     setDrawData((s) => {
       s.creatingObject = undefined;
-      s.prompt = undefined;
-      s.segmentationMask = undefined;
-      s.segmentationClicks = undefined;
+      s.prompt = {};
       s.activeObjectIndex = -1;
     });
     setEditState((s) => {

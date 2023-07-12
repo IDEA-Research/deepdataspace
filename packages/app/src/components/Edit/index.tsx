@@ -555,9 +555,7 @@ const Edit: React.FC<EditProps> = (props) => {
                 setDrawData((s) => {
                   s.AIAnnotation = false;
                   s.creatingObject = undefined;
-                  s.segmentationClicks = undefined;
-                  s.segmentationMask = undefined;
-                  s.prompt = undefined;
+                  s.prompt = {};
                 });
               }}
               onAiAnnotation={() => onAiAnnotation(drawData, aiLabels)}
@@ -570,18 +568,14 @@ const Edit: React.FC<EditProps> = (props) => {
                 });
                 setDrawData((s) => {
                   s.activeObjectIndex = s.objectList.length - 1;
-                  s.segmentationClicks = undefined;
-                  s.segmentationMask = undefined;
-                  s.prompt = undefined;
+                  s.prompt = {};
                 });
               }}
               onCancelCurrCreate={() => {
                 setDrawData((s) => {
                   s.creatingObject = undefined;
                   s.activeObjectIndex = -1;
-                  s.segmentationClicks = undefined;
-                  s.segmentationMask = undefined;
-                  s.prompt = undefined;
+                  s.prompt = {};
                 });
               }}
               onChangeConfidenceRange={(range) => {
