@@ -335,6 +335,9 @@ export namespace API {
     categoryList: Array<DATA.Category>;
     labelList: Array<DATA.Label>;
     objectTypes: Array<string>;
+    files: {
+      [propName: string]: string;
+    };
     name: string;
     description: string;
   }

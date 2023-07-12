@@ -476,6 +476,7 @@ export default {
   'lab.toolsBar.selectInvert': 'Select invert',
   'lab.toolsBar.filter': 'Filter',
   'lab.toolsBar.saveAs': 'Save selected items as',
+  'lab.toolsBar.genEmbed': 'Generate Embedding',
   'lab.toolsBar.updateOrder': 'Update Order',
 
   'lab.displayOption.showAnnotations': 'Display annotation of selected type',

@@ -8,6 +8,8 @@ import { useKeyPress, useRequest } from 'ahooks';
 import {
   queryAsyncTaskStatus,
   rerankByFlags,
+  queryGenEmbedStatus,
+  genDatasetEmbed,
   saveFlagReq,
 } from '@/services/dataset';
 import { IMG_FLAG } from '@/constants';
@@ -250,6 +252,53 @@ export default () => {
     }
   };
 
+  const { run: queryGenEmbedTask, cancel: cancelQueryGenEmbedTask } =
+    useRequest(
+      (params) => {
+        return queryGenEmbedStatus(params);
+      },
+      {
+        manual: true,
+        pollingInterval: 1000,
+        pollingWhenHidden: true,
+        onSuccess: ({ status }) => {
+          if (status === 'success') {
+            cancelQueryGenEmbedTask();
+            message.success('Generated embedding success!');
+            setPageData((s) => {
+              s.screenLoading = '';
+            });
+          } else if (status === 'fail') {
+            cancelQueryGenEmbedTask();
+            message.error('Query generate embed task fail, Please retry!');
+            setPageData((s) => {
+              s.screenLoading = '';
+            });
+          }
+        },
+      },
+    );
+
+  const genEmbed = async () => {
+    try {
+      reportEvent('dataset_flagtools_generate_embedding');
+      setPageData((s) => {
+        s.screenLoading = 'Generating embedding...';
+      });
+      // Trigger the backend task.
+      const { id, name } = await genDatasetEmbed({
+        datasetId: pageState.datasetId,
+      });
+      // Poll for task results.
+      queryGenEmbedTask({ id, name });
+    } catch (error) {
+      console.error('error', error);
+      setPageData((s) => {
+        s.screenLoading = '';
+      });
+    }
+  };
+
   useKeyPress(
     ['Shift'],
     (e: KeyboardEvent) => {
@@ -294,5 +343,6 @@ export default () => {
     limitNoSaveChangePage,
     saveFlag,
     updateOrder,
+    genEmbed,
   };
 };

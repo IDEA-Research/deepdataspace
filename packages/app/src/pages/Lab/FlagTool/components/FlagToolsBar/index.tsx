@@ -1,7 +1,7 @@
 import React from 'react';
 import { useModel } from '@umijs/max';
 import { Button, Tooltip, Checkbox } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import { ReactComponent as FlagIcon } from '@/assets/svg/flag.svg';
 import {
   IMG_FLAG,
@@ -14,12 +14,13 @@ import styles from './index.less';
 import DropdownSelector from '@/components/DropdownSelector';
 
 const FlagToolsBar: React.FC = () => {
-  const { flagTools, flagStatus, pageSize } = useModel(
+  const { flagTools, flagStatus, pageSize, pageData } = useModel(
     'dataset.common',
     (model) => ({
       pageSize: model.pageState.pageSize,
       flagStatus: model.pageState.flagTools?.flagStatus,
       flagTools: model.pageState.flagTools && model.pageData.flagTools,
+      pageData: model.pageData,
     }),
   );
   const {
@@ -28,6 +29,7 @@ const FlagToolsBar: React.FC = () => {
     antiSelect,
     saveFlag,
     updateOrder,
+    genEmbed,
   } = useModel('dataset.flag');
 
   if (!flagTools) return null;
@@ -86,7 +88,11 @@ const FlagToolsBar: React.FC = () => {
         ))}
       </div>
       <div className={styles.rightContent}>
-        <Button onClick={updateOrder}>
+        <Button onClick={genEmbed}>
+          <PlusOutlined />
+          <LocaleText id="lab.toolsBar.genEmbed" />
+        </Button>
+        <Button onClick={updateOrder} disabled={!pageData?.hasEmbedFile}>
           <SyncOutlined />
           <LocaleText id="lab.toolsBar.updateOrder" />
         </Button>

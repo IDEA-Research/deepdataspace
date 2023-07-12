@@ -104,6 +104,37 @@ export async function queryAsyncTaskStatus(
   );
 }
 
+export async function genDatasetEmbed(
+  params: {
+    datasetId: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<API.AsyncTaskRsp>(`/api/v1/tasks/gen_dataset_embd`, {
+    method: 'POST',
+    data: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
+export async function queryGenEmbedStatus(
+  params: {
+    name: string;
+    id: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<API.AsyncTaskRsp>(
+    `/api/v1/tasks/${params.name}/${params.id}`,
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
 export async function saveAnnotationsReq(
   params: {
     datasetId: string;

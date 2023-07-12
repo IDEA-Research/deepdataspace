@@ -439,6 +439,7 @@ export default {
   'lab.toolsBar.selectInvert': '反选',
   'lab.toolsBar.filter': '过滤',
   'lab.toolsBar.saveAs': '将已选项目保存为',
+  'lab.toolsBar.genEmbed': '生成 Embedding',
   'lab.toolsBar.updateOrder': '更新顺序',
 
   'lab.displayOption.showAnnotations': '显示选定类型的标注',
