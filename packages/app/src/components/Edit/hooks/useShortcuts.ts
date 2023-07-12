@@ -6,6 +6,7 @@ import { DrawData, EditState, EditorMode } from '../type';
 
 interface IProps {
   visible: boolean;
+  isMousePress: boolean;
   mode: EditorMode;
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
@@ -20,6 +21,7 @@ interface IProps {
 
 const useShortcuts = ({
   visible,
+  isMousePress,
   mode,
   drawData,
   setDrawData,
@@ -75,7 +77,7 @@ const useShortcuts = ({
     (event: KeyboardEvent) => {
       if (!visible) return;
       event.preventDefault();
-      if (event.type === 'keydown') {
+      if (event.type === 'keydown' && !isMousePress) {
         setEditState((s) => {
           s.allowMove = true;
         });
@@ -110,10 +112,7 @@ const useShortcuts = ({
               s.activeObjectIndex = -1;
             }
             if (s.AIAnnotation) {
-              s.segmentationClicks = undefined;
-              s.segmentationMask = undefined;
-              s.activeRectWhileLoading = undefined;
-              s.prompt = undefined;
+              s.prompt = {};
             }
           });
         } else {

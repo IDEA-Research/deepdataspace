@@ -50,7 +50,7 @@ export enum EMaskPromptType {
   EdgeStitch = 'edgeStitch',
 }
 
-export type PromptItem = {
+export type MaskPromptItem = {
   type: EMaskPromptType;
   isPositive: boolean;
   startPoint?: IPoint;
@@ -59,6 +59,17 @@ export type PromptItem = {
   stroke?: IPoint[];
   radius?: number;
 };
+
+export interface Prompt {
+  creatingMask?: MaskPromptItem;
+  maskPrompts?: MaskPromptItem[];
+  segmentationClicks?: {
+    point: IPoint;
+    isPositive: boolean;
+  }[];
+  segmentationMask?: string;
+  activeRectWhileLoading?: IRect;
+}
 
 /**
  * Need to be saved in history
@@ -74,19 +85,14 @@ export interface DrawData {
 
   /** drawed */
   objectList: IAnnotationObject[];
+
+  /** drawing */
   activeClassName: string;
   activeObjectIndex: number;
   creatingObject?: ICreatingObject; // - editing / creating
 
   /** prompt actions */
-  creatingPrompt?: PromptItem;
-  prompt?: PromptItem[];
-  activeRectWhileLoading?: IRect;
-  segmentationClicks?: {
-    point: IPoint;
-    isPositive: boolean;
-  }[];
-  segmentationMask?: string;
+  prompt: Prompt;
 }
 
 export interface EditState {
@@ -133,10 +139,8 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   activeObjectIndex: -1,
   activeClassName: '',
   creatingObject: undefined,
-  segmentationClicks: undefined,
-  segmentationMask: undefined,
   brushSize: 20,
-  prompt: undefined,
+  prompt: {},
 };
 
 export const DEFAULT_EDIT_STATE: EditState = {

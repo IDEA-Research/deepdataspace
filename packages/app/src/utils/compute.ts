@@ -1,5 +1,9 @@
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
-import { DrawData, IAnnotationObject } from '@/components/Edit/type';
+import {
+  DrawData,
+  IAnnotationObject,
+  MaskPromptItem,
+} from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
 import {
@@ -1326,6 +1330,38 @@ export const scaleObject = (
   return newObj;
 };
 
+const scalePromptItem = (
+  promptItem: MaskPromptItem,
+  preSize: ISize,
+  curSize: ISize,
+): MaskPromptItem => {
+  const { point, startPoint, rect, stroke } = promptItem;
+  const scaledPromptItem = { ...promptItem };
+  if (point) {
+    Object.assign(scaledPromptItem, {
+      point: translatePointZoom(point, preSize, curSize),
+    });
+  }
+  if (startPoint) {
+    Object.assign(scaledPromptItem, {
+      startPoint: translatePointZoom(startPoint, preSize, curSize),
+    });
+  }
+  if (rect) {
+    Object.assign(scaledPromptItem, {
+      rect: translateRectZoom(rect, preSize, curSize),
+    });
+  }
+  if (stroke) {
+    Object.assign(scaledPromptItem, {
+      stroke: stroke.map((point) => {
+        return translatePointZoom(point, preSize, curSize);
+      }),
+    });
+  }
+  return scaledPromptItem;
+};
+
 /**
  * Scale draw data
  * @param preSize
@@ -1379,9 +1415,9 @@ export const scaleDrawData = (
     }
   }
 
-  if (updateDrawData.segmentationClicks) {
-    updateDrawData.segmentationClicks = updateDrawData.segmentationClicks.map(
-      (click) => {
+  if (updateDrawData.prompt.segmentationClicks) {
+    updateDrawData.prompt.segmentationClicks =
+      updateDrawData.prompt.segmentationClicks.map((click) => {
         if (click.point) {
           const newPoint = translatePointZoom(click.point, preSize, curSize);
           return {
@@ -1390,7 +1426,30 @@ export const scaleDrawData = (
           };
         }
         return click;
+      });
+  }
+
+  if (updateDrawData.prompt.creatingMask) {
+    updateDrawData.prompt.creatingMask = scalePromptItem(
+      updateDrawData.prompt.creatingMask,
+      preSize,
+      curSize,
+    );
+  }
+
+  if (updateDrawData.prompt.maskPrompts) {
+    updateDrawData.prompt.maskPrompts = updateDrawData.prompt.maskPrompts?.map(
+      (item) => {
+        return scalePromptItem(item, preSize, curSize);
       },
+    );
+  }
+
+  if (updateDrawData.prompt.activeRectWhileLoading) {
+    updateDrawData.prompt.activeRectWhileLoading = translateRectZoom(
+      updateDrawData.prompt.activeRectWhileLoading,
+      preSize,
+      curSize,
     );
   }
 

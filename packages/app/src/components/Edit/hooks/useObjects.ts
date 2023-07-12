@@ -14,7 +14,7 @@ import {
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
 import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
-import { rleToCanvas } from '../tools/mask';
+import { rleToCanvas } from '../tools/useMask';
 
 interface IProps {
   objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];

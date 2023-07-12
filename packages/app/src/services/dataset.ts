@@ -247,10 +247,12 @@ export async function pollTaskResults<T extends EnumModelType>(
   let attempts = 0;
 
   while (attempts < maxAttempts) {
-    const fetchTaskResultsRequest =
-      type === EnumModelType.SegmentByMask
-        ? fetchMaskTaskResults
-        : fetchTaskResults;
+    const fetchTaskResultsRequest = [
+      EnumModelType.SegmentByMask,
+      EnumModelType.MaskEdgeStitching,
+    ].includes(type)
+      ? fetchMaskTaskResults
+      : fetchTaskResults;
     const results = await fetchTaskResultsRequest<T>(taskUuid);
 
     if (results.status === EnumTaskStatus.Success) {

@@ -1,25 +1,39 @@
-// import { decode, encode } from '@thi.ng/rle-pack';
-import { mockRle } from './mockRle';
-import { hexToRgbArray, hexToRgba } from '@/utils/color';
-import { ICreatingMaskStep, ICreatingObject } from '../type';
-import { translatePointZoom, translatePolygonCoord } from '@/utils/compute';
 import {
   clearCanvas,
+  drawBooleanBrush,
   drawBooleanPolygon,
   drawCircleWithFill,
   drawImage,
   drawLine,
-  drawBooleanBrush,
   drawPath,
   drawQuadraticPath,
+  drawRect,
+  shadeEverythingButRect,
 } from '@/utils/draw';
 import { ESubToolItem, LABELS_STROKE_DASH } from '@/constants';
-import { ANNO_MASK_ALPHA, ANNO_STROKE_ALPHA } from '../constants/render';
-
-export const mockMaskAnnotation = {
-  categoryName: 'person',
-  maskRle: mockRle,
-};
+import {
+  getRectFromPoints,
+  translatePointCoord,
+  translatePointZoom,
+  translatePolygonCoord,
+  translateRectCoord,
+} from '@/utils/compute';
+import {
+  ToolInstanceHook,
+  RenderObjectFunc,
+  RenderCreatingObjectFunc,
+  RenderEditingObjectFunc,
+  RenderPromptFunc,
+} from './base';
+import {
+  ANNO_FILL_COLOR,
+  ANNO_MASK_ALPHA,
+  ANNO_STROKE_ALPHA,
+  ANNO_STROKE_COLOR,
+  PROMPT_FILL_COLOR,
+} from '../constants/render';
+import { EMaskPromptType, ICreatingMaskStep, ICreatingObject } from '../type';
+import { hexToRgbArray, hexToRgba } from '@/utils/color';
 
 /**
  * only [0,1] array with rle decode
@@ -29,7 +43,10 @@ export const mockMaskAnnotation = {
 const decodeRle = (arr: number[], length: number) => {
   const result = new Array(length).fill(0);
   for (let i = 0; i < arr.length; i += 2) {
-    result.splice(arr[i], arr[i + 1], ...new Array(arr[i + 1]).fill(1));
+    const spliceLen = Math.min(arr[i + 1], length - arr[i]);
+    for (let j = 0; j < spliceLen; j++) {
+      result[arr[i] + j] = 1;
+    }
   }
   return result;
 };
@@ -364,3 +381,168 @@ export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
 
   return canvas;
 };
+
+const useMask: ToolInstanceHook = ({
+  editState,
+  clientSize,
+  naturalSize,
+  contentMouse,
+  imagePos,
+  containerMouse,
+  canvasRef,
+  activeCanvasRef,
+}) => {
+  const renderObject: RenderObjectFunc = ({ object, maskAlpha }) => {
+    const { maskCanvasElement } = object;
+    const ctx = canvasRef.current!.getContext('2d') as CanvasRenderingContext2D;
+    const tempAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = ctx.globalAlpha * maskAlpha;
+    drawImage(canvasRef.current!, maskCanvasElement, {
+      x: imagePos.current.x,
+      y: imagePos.current.y,
+      width: clientSize.width,
+      height: clientSize.height,
+    });
+    // restore
+    ctx.globalAlpha = tempAlpha;
+  };
+
+  const renderCreatingObject: RenderCreatingObjectFunc = ({
+    object,
+    color,
+  }) => {
+    renderMask(
+      activeCanvasRef.current!,
+      object,
+      imagePos.current,
+      color,
+      {
+        x: containerMouse.elementX,
+        y: containerMouse.elementY,
+      },
+      clientSize,
+      naturalSize,
+    );
+  };
+
+  const renderEditingObject: RenderEditingObjectFunc = ({ object, color }) => {
+    renderMask(
+      activeCanvasRef.current!,
+      object,
+      imagePos.current,
+      color,
+      {
+        x: containerMouse.elementX,
+        y: containerMouse.elementY,
+      },
+      clientSize,
+      naturalSize,
+    );
+  };
+
+  const renderPrompt: RenderPromptFunc = ({ prompt }) => {
+    // draw creating prompt
+    if (prompt.creatingMask) {
+      const strokeColor = ANNO_STROKE_COLOR.CREATING;
+      const fillColor = ANNO_FILL_COLOR.CREATING;
+      switch (prompt.creatingMask.type) {
+        case EMaskPromptType.Rect: {
+          const { startPoint } = prompt.creatingMask;
+          const rect = getRectFromPoints(
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
+              width: contentMouse.elementW,
+              height: contentMouse.elementH,
+            },
+          );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawRect(
+            activeCanvasRef.current,
+            canvasCoordRect,
+            strokeColor,
+            2,
+            LABELS_STROKE_DASH[0],
+            fillColor,
+          );
+          break;
+        }
+        case EMaskPromptType.Point: {
+          if (!prompt.creatingMask.point) break;
+          const canvasCoordPoint = translatePointCoord(
+            prompt.creatingMask.point,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            4,
+            prompt.creatingMask.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE,
+            2,
+            '#fff',
+          );
+        }
+        case EMaskPromptType.EdgeStitch:
+        case EMaskPromptType.Stroke: {
+          if (!prompt.creatingMask.stroke || !prompt.creatingMask.radius) break;
+          const canvasCoordStroke = translatePolygonCoord(
+            prompt.creatingMask.stroke,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          const radius =
+            (prompt.creatingMask.radius * clientSize.width) / naturalSize.width;
+          const color =
+            prompt.creatingMask.type === EMaskPromptType.EdgeStitch
+              ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
+              : prompt.creatingMask.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE;
+          drawQuadraticPath(
+            activeCanvasRef.current!,
+            canvasCoordStroke,
+            color,
+            radius,
+          );
+          break;
+        }
+        default:
+          break;
+      }
+
+      // draw active area while loading ai annotations
+      if (editState.isRequiring && prompt.activeRectWhileLoading) {
+        const canvasCoordRect = translateRectCoord(
+          prompt.activeRectWhileLoading,
+          {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          },
+        );
+        shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+      }
+    }
+  };
+
+  return {
+    renderObject,
+    renderCreatingObject,
+    renderEditingObject,
+    renderPrompt,
+  };
+};
+
+export default useMask;
