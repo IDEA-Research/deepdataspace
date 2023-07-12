@@ -2,7 +2,7 @@ import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import {
   DrawData,
   IAnnotationObject,
-  PromptItem,
+  MaskPromptItem,
 } from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
@@ -1331,10 +1331,10 @@ export const scaleObject = (
 };
 
 const scalePromptItem = (
-  promptItem: PromptItem,
+  promptItem: MaskPromptItem,
   preSize: ISize,
   curSize: ISize,
-): PromptItem => {
+): MaskPromptItem => {
   const { point, startPoint, rect, stroke } = promptItem;
   const scaledPromptItem = { ...promptItem };
   if (point) {
@@ -1415,9 +1415,9 @@ export const scaleDrawData = (
     }
   }
 
-  if (updateDrawData.segmentationClicks) {
-    updateDrawData.segmentationClicks = updateDrawData.segmentationClicks.map(
-      (click) => {
+  if (updateDrawData.prompt.segmentationClicks) {
+    updateDrawData.prompt.segmentationClicks =
+      updateDrawData.prompt.segmentationClicks.map((click) => {
         if (click.point) {
           const newPoint = translatePointZoom(click.point, preSize, curSize);
           return {
@@ -1426,27 +1426,28 @@ export const scaleDrawData = (
           };
         }
         return click;
-      },
-    );
+      });
   }
 
-  if (updateDrawData.creatingPrompt) {
-    updateDrawData.creatingPrompt = scalePromptItem(
-      updateDrawData.creatingPrompt,
+  if (updateDrawData.prompt.creatingMask) {
+    updateDrawData.prompt.creatingMask = scalePromptItem(
+      updateDrawData.prompt.creatingMask,
       preSize,
       curSize,
     );
   }
 
-  if (updateDrawData.prompt) {
-    updateDrawData.prompt = updateDrawData.prompt.map((item) => {
-      return scalePromptItem(item, preSize, curSize);
-    });
+  if (updateDrawData.prompt.maskPrompts) {
+    updateDrawData.prompt.maskPrompts = updateDrawData.prompt.maskPrompts?.map(
+      (item) => {
+        return scalePromptItem(item, preSize, curSize);
+      },
+    );
   }
 
-  if (updateDrawData.activeRectWhileLoading) {
-    updateDrawData.activeRectWhileLoading = translateRectZoom(
-      updateDrawData.activeRectWhileLoading,
+  if (updateDrawData.prompt.activeRectWhileLoading) {
+    updateDrawData.prompt.activeRectWhileLoading = translateRectZoom(
+      updateDrawData.prompt.activeRectWhileLoading,
       preSize,
       curSize,
     );

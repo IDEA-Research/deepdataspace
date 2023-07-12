@@ -38,6 +38,11 @@ import useShortcuts from './hooks/useShortcuts';
 import useToolActions from './hooks/useToolActions';
 import useMouseEvents from './hooks/useMouseEvents';
 import useCanvasRender from './hooks/useCanvasRender';
+import useRectangle from './tools/useRectangle';
+import usePolygon from './tools/usePolygon';
+import useSkeleton from './tools/useSkeleton';
+import useMask from './tools/useMask';
+import { ToolInstanceHookReturn } from './tools/base';
 
 export interface EditProps {
   isSeperate: boolean;
@@ -246,19 +251,41 @@ const Edit: React.FC<EditProps> = (props) => {
     updateObject,
   });
 
+  const toolInstanceHookprops = {
+    editState,
+    clientSize,
+    naturalSize,
+    contentMouse,
+    imagePos,
+    containerMouse,
+    canvasRef,
+    activeCanvasRef,
+  };
+  const rectangleHooks = useRectangle(toolInstanceHookprops);
+  const polygenHooks = usePolygon(toolInstanceHookprops);
+  const skeletonHooks = useSkeleton(toolInstanceHookprops);
+  const maskHooks = useMask(toolInstanceHookprops);
+
+  const objectHooksMap: Record<EObjectType, ToolInstanceHookReturn> = {
+    [EObjectType.Rectangle]: rectangleHooks,
+    [EObjectType.Polygon]: polygenHooks,
+    [EObjectType.Skeleton]: skeletonHooks,
+    [EObjectType.Mask]: maskHooks,
+    [EObjectType.Custom]: rectangleHooks, // todo
+  };
+
   const { updateRender } = useCanvasRender({
     visible,
     drawData,
     editState,
     clientSize,
-    naturalSize,
-    contentMouse,
     labelColors,
     imagePos,
     containerMouse,
     canvasRef,
     activeCanvasRef,
     imgRef,
+    objectHooksMap,
   });
 
   const { onMouseDown, onMouseMove, onMouseUp, isMousePress } = useMouseEvents({

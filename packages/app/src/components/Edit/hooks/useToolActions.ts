@@ -3,7 +3,7 @@ import { Updater } from 'use-immer';
 import { Modal, message } from 'antd';
 import { EBasicToolItem, EObjectType, ESubToolItem } from '@/constants';
 import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
-import { objectToRle, rleToCanvas } from '../tools/mask';
+import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { useLocale } from '@/locales/helper';
 
 interface IProps {

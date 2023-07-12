@@ -60,6 +60,17 @@ export type MaskPromptItem = {
   radius?: number;
 };
 
+export interface Prompt {
+  creatingMask?: MaskPromptItem;
+  maskPrompts?: MaskPromptItem[];
+  segmentationClicks?: {
+    point: IPoint;
+    isPositive: boolean;
+  }[];
+  segmentationMask?: string;
+  activeRectWhileLoading?: IRect;
+}
+
 /**
  * Need to be saved in history
  */
@@ -81,16 +92,7 @@ export interface DrawData {
   creatingObject?: ICreatingObject; // - editing / creating
 
   /** prompt actions */
-  prompt: {
-    creatingMask?: MaskPromptItem;
-    maskPrompts?: MaskPromptItem[];
-    segmentationClicks?: {
-      point: IPoint;
-      isPositive: boolean;
-    }[];
-    segmentationMask?: string;
-    activeRectWhileLoading?: IRect;
-  };
+  prompt: Prompt;
 }
 
 export interface EditState {

@@ -37,7 +37,7 @@ import {
   IAnnotationObject,
   MaskPromptItem,
 } from '../type';
-import { objectToRle, rleToCanvas } from '../tools/mask';
+import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { EQaAction } from '@/pages/Project/constants';
 
 interface IProps {
