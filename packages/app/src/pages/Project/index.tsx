@@ -55,7 +55,7 @@ const ProjectList: React.FC = () => {
       actions.push(
         <Popconfirm
           key="reject"
-          title="Are you sure to reject this project?"
+          title={localeText('proj.table.action.reject.tips')}
           onConfirm={() => onChangeProjectResult(record, EQaAction.Reject)}
         >
           <a key="reject" style={{ color: 'red' }}>
