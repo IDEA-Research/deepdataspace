@@ -13,6 +13,7 @@ jobs:
     runs-on: self-hosted
     outputs:
       PORT: ${{ steps.check_env_vars.outputs.PORT }}
+      NAMESPACE: ${{ steps.check_env_vars.outputs.NAMESPACE }}
     steps:
       - name: Checkout deepdataspace
         uses: actions/checkout@v3
@@ -50,7 +51,9 @@ jobs:
         id: check_env_vars
         run: |
           echo env.PORT=${{ env.PORT }}
+          echo env.NAMESPACE=${{ env.NAMESPACE }}
           echo "PORT=${{ env.PORT }}" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=${{ env.NAMESPACE }}" >> $GITHUB_OUTPUT
 
       - name: Checkout deepdataspace-app-env
         uses: actions/checkout@v2
@@ -62,11 +65,9 @@ jobs:
 
       - name: Copy Frontend Build Env File
         run: |
-          if [[ "${{ env.NAMESPACE }}" == 'dev' ]]; then  
-            cp deepdataspace-app-env/.env.dev packages/app/.env.local
-          fi  
+          NAMESPACE=${{ env.NAMESPACE }}
+          cp deepdataspace-app-env/app/.env.${NAMESPACE} packages/app/.env.local 
           echo "TAG_VERSION=${{ env.GIT_TAG }}" >> packages/app/.env.local
-          echo "UMI_ENV=${{ env.NAMESPACE }}" >> packages/app/.env.local
 
           cp deepdataspace-app-env/app/Dockerfile packages/app
           cp deepdataspace-app-env/app/nginx.conf packages/app
@@ -74,10 +75,11 @@ jobs:
 
       - name: Build Docker Image
         run: |
+          NAMESPACE=${{ env.NAMESPACE }}
           pnpm i --frozen-lockfile
           cd packages/app
           pnpm run build
-          docker image build -f ./Dockerfile -t dds-app-frontend:latest .
+          docker image build -f ./Dockerfile -t dds-app-${NAMESPACE}-frontend:latest .
 
   deploy:
     if: github.repository_owner == 'deepdataspace'
@@ -95,5 +97,6 @@ jobs:
       - name: Run New Docker Image
         run: |
           PORT=${{ needs.build.outputs.PORT }}
+          NAMESPACE=${{ needs.build.outputs.NAMESPACE }}
           sleep 1
-          docker run --restart=always -d -p ${PORT}:80 dds-app-frontend
+          docker run --restart=always -d -p ${PORT}:80 dds-app-${NAMESPACE}-frontend
