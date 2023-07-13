@@ -7,6 +7,7 @@ The RESTful API of Annotations.
 import logging
 import time
 
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import LabelName
@@ -16,11 +17,11 @@ from deepdataspace.model import DataSet
 from deepdataspace.model import Label
 from deepdataspace.model.image import Image
 from deepdataspace.model.object import Object
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 from deepdataspace.utils.string import get_str_md5
 
 logger = logging.getLogger("django")
@@ -42,29 +43,34 @@ class AnnotationsView(BaseAPIView):
 
         dataset = DataSet.find_one({"id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"dataset[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound,
+                            f"dataset[{dataset_id}] not found")
 
         image = Image(dataset_id).find_one({"id": image_id})
         if image is None:
-            raise_exception(404, f"image[{image_id}] not found")
+            raise_exception(ErrCode.DatasetImageNotFound, f"image[{image_id}] not found")
 
         status = dataset.status
         if status in DatasetStatus.DontRead_:
-            raise_exception(404, f"dataset[{dataset_id}] is in status[{status}] now, try again later")
+            raise_exception(ErrCode.DatasetNotReadable,
+                            f"dataset[{dataset_id}] is in status[{status}] now, try again later")
 
         for idx, annotation in enumerate(annotations):
             if not isinstance(annotation, dict):
-                raise_exception(400, f"annotations[{idx}] must be a list of object, got '{annotation}'")
+                raise_exception(ErrCode.AnnotationNotListOfObj,
+                                f"annotations[{idx}] must be a list of object, got '{annotation}'")
 
             try:
                 annotation["category_name"] = str(annotation["category_name"])
             except KeyError:
-                raise_exception(400, f"field annotations[{idx}] must have key 'category_name'")
+                raise_exception(ErrCode.AnnotationMissingCatName,
+                                f"field annotations[{idx}] must have key 'category_name'")
 
             try:
                 bbox = annotation["bounding_box"]
             except KeyError:
-                raise_exception(400, f"field annotations[{idx}] must have key 'bounding_box'")
+                raise_exception(ErrCode.AnnotationMissingBBox,
+                                f"field annotations[{idx}] must have key 'bounding_box'")
 
             try:
                 bbox["xmin"] = float(bbox["xmin"])
@@ -72,7 +78,7 @@ class AnnotationsView(BaseAPIView):
                 bbox["xmax"] = float(bbox["xmax"])
                 bbox["ymax"] = float(bbox["ymax"])
             except (KeyError, ValueError, TypeError):
-                raise_exception(400,
+                raise_exception(ErrCode.AnnotationBBoxFormatError,
                                 f"field annotations[{idx}].bounding_box must have key xmin/xmax/ymin/ymax of float value")
 
         return dataset, image, annotations
@@ -107,7 +113,7 @@ class AnnotationsView(BaseAPIView):
                 obj = Object.from_dict(obj)
             except Exception as err:
                 logger.warning(f"object data structure mismatch: err={str(err)}")
-                raise_exception(400, f"object data structure mismatch")
+                raise_exception(ErrCode.AnnotationFormatError, ErrCode.AnnotationFormatErrorMsg)
             else:
                 cur_objs.append(obj)
 

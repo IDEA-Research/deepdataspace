@@ -7,10 +7,10 @@ RESTful APIs on lints.
 from deepdataspace.model.dataset import DataSet
 from deepdataspace.model.label_task import LabelProject
 from deepdataspace.model.user import User
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import AuthenticatedAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import AuthenticatedAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
 
 
 class UserNameLintsView(AuthenticatedAPIView):
