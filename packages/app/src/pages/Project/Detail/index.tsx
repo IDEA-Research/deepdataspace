@@ -138,7 +138,7 @@ const TaskList: React.FC = () => {
         actions.push(
           <Popconfirm
             key="reject"
-            title="Are you sure to reject this task?"
+            title={localeText('proj.table.detail.action.reject.tips')}
             onConfirm={() => onChangeTaskResult(record, EQaAction.Reject)}
           >
             <a key="reject" style={{ color: 'red' }}>
