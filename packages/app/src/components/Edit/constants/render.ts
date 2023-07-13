@@ -27,6 +27,7 @@ export const ANNO_STROKE_COLOR = {
 
 export const ANNO_FILL_COLOR = {
   CREATING: 'transparent',
+  CREATING_MASK: '#a5b7ef',
 };
 
 export const PROMPT_FILL_COLOR = {

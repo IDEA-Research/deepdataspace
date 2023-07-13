@@ -39,6 +39,7 @@ import {
 } from '../type';
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { EQaAction } from '@/pages/Project/constants';
+import { ANNO_FILL_COLOR } from '../constants/render';
 
 interface IProps {
   mode: EditorMode;
@@ -369,12 +370,13 @@ const useActions = ({
       );
       if (result) {
         const { maskId, maskRle, imageId } = result;
+        const color = labelColors[latestLabel] || ANNO_FILL_COLOR.CREATING_MASK;
         const creatingObj = {
           type: EObjectType.Mask,
           hidden: false,
           label: latestLabel,
           currIndex: -1,
-          maskCanvasElement: rleToCanvas(maskRle, naturalSize, '#fff'),
+          maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
           maskRle,
         };
         setDrawDataWithHistory((s) => {
