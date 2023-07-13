@@ -585,7 +585,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.prompt = {};
                 });
               }}
-              onAiAnnotation={() => onAiAnnotation(drawData, aiLabels)}
+              onAiAnnotation={() => onAiAnnotation({ drawData, aiLabels })}
               onSaveCurrCreate={() => {
                 addObject({
                   type: EObjectType.Polygon,

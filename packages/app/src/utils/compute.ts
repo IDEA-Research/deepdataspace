@@ -12,6 +12,7 @@ import {
   getSegmentationPoints,
 } from './annotation';
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
+import { cloneDeep } from 'lodash';
 
 /**
  * translate points to rect
@@ -1372,7 +1373,7 @@ export const scaleDrawData = (
   preSize: ISize,
   curSize: ISize,
 ) => {
-  const updateDrawData = { ...theDrawData };
+  const updateDrawData = cloneDeep(theDrawData);
   updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
     return scaleObject(obj, preSize, curSize);
   });
