@@ -95,6 +95,7 @@ export default defineConfig({
     'process.env.TAG_VERSION': process.env.TAG_VERSION || '0.0.1',
     'process.env.API_PATH': process.env.API_PATH,
     'process.env.MODEL_API_PATH': process.env.MODEL_API_PATH,
+    'process.env.MODEL_API_TOKEN': process.env.MODEL_API_TOKEN,
     'process.env.SENTRY_DSN': process.env.SENTRY_DSN,
     'process.env.GA_KEY': process.env.GA_KEY,
     'process.env.BAIDU_KEY': process.env.BAIDU_KEY,
