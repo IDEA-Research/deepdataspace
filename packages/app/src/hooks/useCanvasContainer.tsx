@@ -246,6 +246,11 @@ export default function useCanvasContainer({
   useEffect(() => {
     if (!allowMove) {
       setMovingImgAnchor(null);
+    } else {
+      setMovingImgAnchor({
+        x: contentMouse.elementX,
+        y: contentMouse.elementY,
+      });
     }
   }, [allowMove]);
 
