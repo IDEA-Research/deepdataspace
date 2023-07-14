@@ -154,6 +154,7 @@ const useObjects = ({
     if (mode !== EditorMode.Edit) return;
     setDrawDataWithHistory((s) => {
       s.objectList = [];
+      s.creatingObject = undefined;
     });
     setEditState((s) => {
       s.focusObjectIndex = -1;
