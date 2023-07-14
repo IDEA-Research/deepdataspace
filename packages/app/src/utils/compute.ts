@@ -1456,3 +1456,57 @@ export const scaleDrawData = (
 
   return updateDrawData;
 };
+
+export const getVisibleAreaForImage = (
+  imagePos: IPoint,
+  clientSize: ISize,
+  containerMouse: CursorState,
+) => {
+  const { x: imageX, y: imageY } = imagePos;
+  const { width: imageWidth, height: imageHeight } = clientSize;
+  const { elementW: containerWidth, elementH: containerHeight } =
+    containerMouse;
+
+  if (
+    imageX > containerWidth ||
+    imageY > containerHeight ||
+    imageX + imageWidth <= 0 ||
+    imageY + imageHeight <= 0
+  ) {
+    return {
+      xmin: 0,
+      ymin: 0,
+      xmax: 0,
+      ymax: 0,
+    };
+  }
+
+  const leftTopPoint = {
+    x: Math.max(0, imageX),
+    y: Math.max(0, imageY),
+  };
+  const rightBottonPoint = {
+    x: Math.min(imageX + imageWidth, containerWidth),
+    y: Math.min(imageY + imageHeight, containerHeight),
+  };
+
+  const newCoordOrigin = {
+    x: imagePos.x,
+    y: imagePos.y,
+  };
+  const { x: xmin, y: ymin } = translatePointCoord(
+    leftTopPoint,
+    newCoordOrigin,
+  );
+  const { x: xmax, y: ymax } = translatePointCoord(
+    rightBottonPoint,
+    newCoordOrigin,
+  );
+
+  return {
+    xmin,
+    ymin,
+    xmax,
+    ymax,
+  };
+};

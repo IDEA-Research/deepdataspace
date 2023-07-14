@@ -1,10 +1,12 @@
 import { reportEvent } from '@/logs';
 import { fetchModelResults } from '@/services/dataset';
 import {
+  getVisibleAreaForImage,
   isEqualRect,
   translateBoundingBoxToRect,
   translateObjectsToAnnotations,
   translatePointsToPointObjs,
+  translatePointZoom,
   translateRectToAbsBbox,
 } from '@/utils/compute';
 import { message, Modal } from 'antd';
@@ -40,6 +42,7 @@ import {
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { EQaAction } from '@/pages/Project/constants';
 import { ANNO_FILL_COLOR } from '../constants/render';
+import { CursorState } from 'ahooks/lib/useMouse';
 
 interface IProps {
   mode: EditorMode;
@@ -51,6 +54,8 @@ interface IProps {
   setEditState: Updater<EditState>;
   naturalSize: ISize;
   clientSize: ISize;
+  containerMouse: CursorState;
+  imagePos: React.MutableRefObject<IPoint>;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
   hadChangeRecord: boolean;
   latestLabel: string;
@@ -87,6 +92,8 @@ const useActions = ({
   setEditState,
   naturalSize,
   clientSize,
+  imagePos,
+  containerMouse,
   updateAllObject,
   hadChangeRecord,
   latestLabel,
@@ -350,10 +357,38 @@ const useActions = ({
           )
         : [];
 
+    // record visible area currently for model
+    const { xmin, ymin, xmax, ymax } = getVisibleAreaForImage(
+      imagePos.current,
+      clientSize,
+      containerMouse,
+    );
+    let area = [0, 0, naturalSize.width, naturalSize.height];
+    if (xmax > 0 && ymax > 0) {
+      const { x: x1, y: y1 } = translatePointZoom(
+        {
+          x: xmin,
+          y: ymin,
+        },
+        clientSize,
+        naturalSize,
+      );
+      const { x: x2, y: y2 } = translatePointZoom(
+        {
+          x: xmax,
+          y: ymax,
+        },
+        clientSize,
+        naturalSize,
+      );
+      area = [x1, y1, x2, y2];
+    }
+
     const reqParams: FetchAIMaskSegmentReq = {
       maskRle: currMask || [],
       maskId: drawData.prompt.segmentationMask || '',
       prompt: convertPromptFormat(maskPrompts || []),
+      area,
     };
 
     if (editState.imageCacheId) {

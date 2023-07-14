@@ -214,6 +214,8 @@ const Edit: React.FC<EditProps> = (props) => {
     setEditState,
     naturalSize,
     clientSize,
+    imagePos,
+    containerMouse,
     onCancel,
     onSave,
     updateAllObject,

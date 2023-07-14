@@ -230,6 +230,7 @@ export interface FetchAIMaskSegmentReq {
     stroke?: number[]; // [x1, y1, x2, y2];
     radius?: number;
   }[];
+  area: number[]; // [xmin, ymin, xmax, ymax];
 }
 
 export interface FetchEdgeStitchingReq {
