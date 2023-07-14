@@ -24,11 +24,13 @@ type TToolItem<T> = {
   shortcut?: TShortcutItem;
   icon: JSX.Element;
   description?: string;
+  available: boolean;
 };
 
 interface IProps {
   selectedSubTool: ESubToolItem;
   isAIAnnotationActive: boolean;
+  isSegEverythingAvailable: boolean;
   brushSize: number;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
@@ -38,6 +40,7 @@ interface IProps {
 export const SubToolBar: React.FC<IProps> = ({
   selectedSubTool,
   isAIAnnotationActive,
+  isSegEverythingAvailable,
   onChangeSubTool,
   onChangeBrushSize,
   brushSize,
@@ -49,51 +52,65 @@ export const SubToolBar: React.FC<IProps> = ({
       key: ESubToolItem.PenAdd,
       name: localeText('editor.subtoolbar.mask.penAdd'),
       icon: <Icon component={PenAddIcon} />,
+      available: true,
     },
     {
       key: ESubToolItem.PenErase,
       name: localeText('editor.subtoolbar.mask.penErase'),
       icon: <Icon component={PenEraseIcon} />,
+      available: true,
     },
     {
       key: ESubToolItem.BrushAdd,
       name: localeText('editor.subtoolbar.mask.brushAdd'),
       icon: <Icon component={BrushAddIcon} />,
+      available: true,
     },
     {
       key: ESubToolItem.BrushErase,
       name: localeText('editor.subtoolbar.mask.brushErase'),
       icon: <Icon component={BrushEraseIcon} />,
+      available: true,
     },
   ];
 
-  const smartMaskTools: TToolItem<ESubToolItem>[] = [
-    {
-      key: ESubToolItem.AutoSegmentByBox,
-      name: localeText('editor.subtoolbar.mask.box'),
-      icon: <Icon component={DashBoxIcon} />,
-    },
-    {
-      key: ESubToolItem.AutoSegmentByClick,
-      name: localeText('editor.subtoolbar.mask.click'),
-      icon: <Icon component={ClickIcon} />,
-    },
-    {
-      key: ESubToolItem.AutoSegmentByStroke,
-      name: localeText('editor.subtoolbar.mask.stroke'),
-      icon: <Icon component={StrokeIcon} />,
-    },
-    {
-      key: ESubToolItem.AutoSegmentAnything,
-      name: localeText('editor.subtoolbar.mask.sam'),
-      icon: <Icon component={MagicIcon} />,
-    },
-    {
-      key: ESubToolItem.AutoEdgeStitching,
-      name: localeText('editor.subtoolbar.mask.edgeStitch'),
-      icon: <Icon component={MagicBrushIcon} />,
-    },
-  ];
+  const smartMaskTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+    return [
+      {
+        key: ESubToolItem.AutoSegmentByBox,
+        name: localeText('editor.subtoolbar.mask.box'),
+        icon: <Icon component={DashBoxIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByClick,
+        name: localeText('editor.subtoolbar.mask.click'),
+        icon: <Icon component={ClickIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByStroke,
+        name: localeText('editor.subtoolbar.mask.stroke'),
+        icon: <Icon component={StrokeIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoEdgeStitching,
+        name: localeText('editor.subtoolbar.mask.edgeStitch'),
+        icon: <Icon component={MagicBrushIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentEverything,
+        name: localeText('editor.subtoolbar.mask.sam'),
+        icon: <Icon component={MagicIcon} />,
+        available: isSegEverythingAvailable,
+        description: isSegEverythingAvailable
+          ? localeText('editor.subtoolbar.mask.sam.desc')
+          : localeText('editor.subtoolbar.mask.sam.notAllow'),
+      },
+    ];
+  }, [isSegEverythingAvailable]);
 
   const toolsWithBrushSize = [
     ESubToolItem.BrushAdd,
@@ -120,7 +137,7 @@ export const SubToolBar: React.FC<IProps> = ({
       const tool = allSubTools.find((_, index) => {
         return (index + 1).toString() === event.key;
       });
-      if (tool) {
+      if (tool && tool.available) {
         if (
           smartMaskTools.find((item) => tool.key === item.key) &&
           !isAIAnnotationActive
@@ -150,48 +167,51 @@ export const SubToolBar: React.FC<IProps> = ({
     const shortcut = allSubTools.findIndex((tool) => tool.key === item.key) + 1;
     return (
       <div className={styles['popover-container']}>
-        <span className={styles.title}>{item.name}</span>
-        {shortcut && <span className={styles.key}>{shortcut}</span>}
+        <div>
+          <span className={styles.title}>{item.name}</span>
+          {shortcut && <span className={styles.key}>{shortcut}</span>}
+        </div>
+        {item.description && (
+          <>
+            <div className={styles.divider}></div>
+            <div className={styles.description}>{item.description}</div>
+          </>
+        )}
       </div>
+    );
+  };
+
+  const onBtnClick = (type: ESubToolItem) => {
+    const tool = allSubTools.find((item) => item.key === type);
+    if (tool && tool.available) {
+      onChangeSubTool(type);
+    }
+  };
+
+  const ToolItemBtn = (item: TToolItem<ESubToolItem>) => {
+    return (
+      <Popover placement="bottom" content={popoverContent(item)} key={item.key}>
+        <Button
+          className={classNames(styles.btn, {
+            [styles.btnActive]: selectedSubTool === item.key && item.available,
+            [styles.btnLimited]: item.available,
+          })}
+          style={{ cursor: item.available ? 'pointer' : 'not-allowed' }}
+          icon={item.icon}
+          onClick={() => onBtnClick(item.key)}
+        />
+      </Popover>
     );
   };
 
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
       <div className={styles.container}>
-        {basicMaskTools.map((item) => (
-          <Popover
-            placement="bottom"
-            content={popoverContent(item)}
-            key={item.key}
-          >
-            <Button
-              className={classNames(styles.btn, {
-                [styles.btnActive]: selectedSubTool === item.key,
-              })}
-              icon={item.icon}
-              onClick={() => onChangeSubTool(item.key)}
-            />
-          </Popover>
-        ))}
+        {basicMaskTools.map((item) => ToolItemBtn(item))}
         {isAIAnnotationActive && (
           <>
             <div className={styles.divider}></div>
-            {smartMaskTools.map((item) => (
-              <Popover
-                placement="bottom"
-                content={popoverContent(item)}
-                key={item.key}
-              >
-                <Button
-                  className={classNames(styles.btn, {
-                    [styles.btnActive]: selectedSubTool === item.key,
-                  })}
-                  icon={item.icon}
-                  onClick={() => onChangeSubTool(item.key)}
-                />
-              </Popover>
-            ))}
+            {smartMaskTools.map((item) => ToolItemBtn(item))}
           </>
         )}
         {toolsWithBrushSize.includes(selectedSubTool) && (

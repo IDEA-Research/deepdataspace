@@ -225,7 +225,7 @@ export enum ESubToolItem {
   AutoSegmentByBox = 'AutoSegmentByBox',
   AutoSegmentByClick = 'AutoSegmentByClick',
   AutoSegmentByStroke = 'AutoSegmentByStroke',
-  AutoSegmentAnything = 'AutoSegmentAnything',
+  AutoSegmentEverything = 'AutoSegmentEverything',
   AutoEdgeStitching = 'AutoEdgeStitching',
 }
 

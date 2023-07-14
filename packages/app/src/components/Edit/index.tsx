@@ -669,6 +669,10 @@ const Edit: React.FC<EditProps> = (props) => {
                   <SubToolBar
                     selectedSubTool={drawData.selectedSubTool}
                     isAIAnnotationActive={drawData.AIAnnotation}
+                    isSegEverythingAvailable={
+                      drawData.objectList.length === 0 &&
+                      !drawData.creatingObject
+                    }
                     brushSize={drawData.brushSize}
                     onChangeSubTool={(type) => {
                       selectSubTool(type);
