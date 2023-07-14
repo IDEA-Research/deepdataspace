@@ -6,6 +6,7 @@ RESTful APIs of label tasks.
 
 import copy
 
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelImageQAActions
 from deepdataspace.constants import LabelProjectQAActions
 from deepdataspace.constants import LabelProjectRoles
@@ -22,11 +23,11 @@ from deepdataspace.model.label_task import LabelTaskImage
 from deepdataspace.model.label_task import ProjectRole
 from deepdataspace.model.label_task import TaskRole
 from deepdataspace.model.user import User
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import AuthenticatedAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import AuthenticatedAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 
 def _validate_users(user_ids):
@@ -38,11 +39,11 @@ def _validate_users(user_ids):
     user_map = {m.id: m for m in users}
     for user_id in user_ids:
         if user_id not in user_map:
-            raise_exception(400, f"user[id={user_id}] is not found")
+            raise_exception(ErrCode.UserNotFoundForLabelProject, f"user[id={user_id}] is not found")
 
         user = user_map[user_id]
         if user.status != UserStatus.Active:
-            raise_exception(400, f"user[{user.name}@{user_id}] is not active")
+            raise_exception(ErrCode.UserNotActiveForLabelProject, f"user[{user.name}@{user_id}] is not active")
         validated_users.append(user)
     return validated_users
 
@@ -57,7 +58,7 @@ def _validate_dataset_ids(dataset_ids):
     dataset_map = {d.id: d for d in datasets}
     for dataset_id in dataset_ids:
         if dataset_id not in dataset_map:
-            raise_exception(400, f"dataset[id={dataset_id}] is not found")
+            raise_exception(ErrCode.DatasetNotFoundForLabelProject, f"dataset[id={dataset_id}] is not found")
         validated_datasets.append(dataset_map[dataset_id])
     return validated_datasets
 
@@ -72,7 +73,7 @@ def _validate_task_ids(task_ids):
     task_map = {t.id: t for t in tasks}
     for task_id in task_ids:
         if task_id not in task_map:
-            raise_exception(400, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelTaskNotFoundForLabelProject, f"task[id={task_id}] is not found")
         validated_tasks.append(task_map[task_id])
     return validated_tasks
 
@@ -95,16 +96,18 @@ def _get_view_role(user: User, task, role_id: str = None):
     if role_id is not None:
         view_role = TaskRole.find_one({"id": role_id, "is_active": True})
         if view_role is None:
-            raise_exception(404, f"role[id={role_id}] is not found")
+            raise_exception(ErrCode.LabelProjectRoleNotFound, f"role[id={role_id}] is not found")
     else:
         view_role = max_view_role
         if view_role is None:
-            raise_exception(403, f"user[id={user.id}] is not permitted to view data of task[id={task.id}]")
+            raise_exception(ErrCode.UserCantViewLabelProjectTask,
+                            f"user[id={user.id}] is not permitted to view data of task[id={task.id}]")
 
     user_role_level = LabelProjectRoles.Levels_[max_view_role.role]
     target_role_level = LabelProjectRoles.Levels_[view_role.role]
     if user_role_level > target_role_level:
-        raise_exception(403, f"user[id={user.id}] is not permitted to view data of role[name={view_role.role}]")
+        raise_exception(ErrCode.UserCantViewLabelProjectRole,
+                        f"user[id={user.id}] is not permitted to view data of role[name={view_role.role}]")
 
     return view_role
 
@@ -170,7 +173,8 @@ class ProjectsView(AuthenticatedAPIView):
 
     def _parse_post_data(self, request):
         if not ProjectRole.can_create_project(request.user):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to create project")
+            raise_exception(ErrCode.UserCantCreateLabelProject,
+                            f"user[{request.user.id}] is not allowed to create project")
 
         name, desc, dataset_ids, manager_ids, categories, pre_label = parse_arguments(request, self.post_data)
         managers = _validate_users(manager_ids)
@@ -186,14 +190,11 @@ class ProjectsView(AuthenticatedAPIView):
         """
         name, desc, owner, datasets, managers, categories, pre_label = self._parse_post_data(request)
 
-        try:
-            project = LabelProject.create_project(name, request.user, datasets, managers, categories,
-                                                  description=desc, pre_label=pre_label)
-        except LabelProjectError as e:
-            raise_exception(400, str(e))
-        else:
-            data = project.to_dict()
-            return format_response(data)
+        project = LabelProject.create_project(name, request.user, datasets, managers, categories,
+                                              description=desc, pre_label=pre_label)
+
+        data = project.to_dict()
+        return format_response(data)
 
 
 class ProjectView(AuthenticatedAPIView):
@@ -215,11 +216,13 @@ class ProjectView(AuthenticatedAPIView):
         """
 
         if not ProjectRole.can_view_project(request.user, project_id):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to view project[{project_id}]")
+            raise_exception(ErrCode.UserCantViewLabelProject,
+                            f"user[{request.user.id}] is not allowed to view project[{project_id}]")
 
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound,
+                            f"project[id={project_id}] is not found")
 
         data = project.to_dict()
         if not ProjectRole.can_view_project_progress(request.user, project_id):
@@ -234,20 +237,18 @@ class ProjectView(AuthenticatedAPIView):
         """
 
         if not ProjectRole.can_edit_project(request.user, project_id):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to edit project[{project_id}]")
+            raise_exception(ErrCode.UserCantEditLabelProject,
+                            f"user[{request.user.id}] is not allowed to edit project[{project_id}]")
 
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound,
+                            f"project[id={project_id}] is not found")
 
         desc, manager_ids = parse_arguments(request, self.post_data)
         managers = _validate_users(manager_ids)
 
-        try:
-            project.edit_project(desc, managers)
-        except LabelProjectError as err:
-            raise_exception(400, str(err))
-
+        project.edit_project(desc, managers)
         data = project.to_dict()
         return format_response(data)
 
@@ -271,20 +272,15 @@ class ProjectConfigView(AuthenticatedAPIView):
         """
 
         if not ProjectRole.can_init_project(request.user, project_id):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to init project[{project_id}]")
+            raise_exception(ErrCode.UserCantInitLabelProject,
+                            f"user[{request.user.id}] is not allowed to init project[{project_id}]")
 
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
-        if project.status != LabelProjectStatus.Waiting:
-            raise_exception(400, f"project[id={project_id}] is not in '{LabelProjectStatus.Waiting}' status")
+            raise_exception(ErrCode.LabelProjectNotFound, f"project[id={project_id}] is not found")
 
         batch_size, label_times, review_times = parse_arguments(request, self.post_data)
-        try:
-            project.init_project(batch_size, label_times, review_times)
-        except LabelProjectError as err:
-            raise_exception(400, str(err))
-
+        project.init_project(batch_size, label_times, review_times)
         data = project.to_dict()
         return format_response(data)
 
@@ -310,16 +306,13 @@ class ProjectQAView(AuthenticatedAPIView):
 
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound, f"project[id={project_id}] is not found")
 
         if not ProjectRole.can_qa_project(user, project_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to qa project[{project_id}]")
+            raise_exception(ErrCode.UserCantQALabelProject,
+                            f"user[{user.id}] is not allowed to qa project[{project_id}]")
 
-        try:
-            project.qa_project(action)
-        except LabelProjectError as err:
-            raise_exception(400, str(err))
-
+        project.qa_project(action)
         return format_response({})
 
 
@@ -344,16 +337,13 @@ class ProjectExportView(AuthenticatedAPIView):
 
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound, f"project[id={project_id}] is not found")
 
         if not ProjectRole.can_export_project(user, project_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to export project[{project_id}]")
+            raise_exception(ErrCode.UserCantExportLabelProject,
+                            f"user[{user.id}] is not allowed to export project[{project_id}]")
 
-        try:
-            project.export_project(label_name)
-        except LabelProjectError as err:
-            raise_exception(400, str(err))
-
+        project.export_project(label_name)
         return format_response({})
 
 
@@ -449,10 +439,11 @@ class TasksView(AuthenticatedAPIView):
         project_id, page_num, page_size = parse_arguments(request, self.get_args)
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound, f"project[id={project_id}] is not found")
 
         if not ProjectRole.can_view_project(request.user, project_id):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to view project[{project_id}]")
+            raise_exception(ErrCode.UserCantViewLabelProject,
+                            f"user[{request.user.id}] is not allowed to view project[{project_id}]")
 
         is_supper = ProjectRole.can_view_all_tasks(request.user, project_id)
         total, tasks = self._query_tasks(request, project_id, page_num, page_size)
@@ -489,16 +480,17 @@ class TaskConfigView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         role = _get_view_role(request.user, task, )
         if role is None:
-            raise_exception(403, f"user[{request.user.id}] is not allowed to view task[{task_id}]")
+            raise_exception(ErrCode.UserCantViewLabelProjectTask,
+                            f"user[{request.user.id}] is not allowed to view task[{task_id}]")
 
         project_id = task.project_id
         project = LabelProject.find_one({"id": project_id})
         if project is None:
-            raise_exception(404, f"project[id={project_id}] is not found")
+            raise_exception(ErrCode.LabelProjectNotFound, f"project[id={project_id}] is not found")
 
         category_list = project.categories.split(",")
         category_list = [{"name": cat, "id": cat} for cat in category_list if cat]
@@ -528,22 +520,25 @@ class TaskLeadersView(AuthenticatedAPIView):
 
         project_id, task_ids, label_leader_id, review_leader_id = parse_arguments(request, self.post_args)
         if not ProjectRole.can_assign_leader(request.user, project_id):
-            raise_exception(403, f"user[{request.user.id}] is not allowed to assign leader for project[{project_id}]")
+            raise_exception(ErrCode.UserCantAssignLabelTaskLeader,
+                            f"user[{request.user.id}] is not allowed to assign leader for project[{project_id}]")
 
         if not label_leader_id and not review_leader_id:
-            raise_exception(400, "labeler_leader_id and reviewer_leader_id can not be empty at the same time")
+            raise_exception(ErrCode.LeaderIDIsRequired, ErrCode.LeaderIDIsRequiredMsg)
 
         labeler_leader = None
         if label_leader_id:
             labeler_leader = User.find_one({"id": label_leader_id})
             if labeler_leader is None:
-                raise_exception(404, f"user[id={label_leader_id}] is not found")
+                raise_exception(ErrCode.UserNotFoundForLabelProject,
+                                f"user[id={label_leader_id}] is not found")
 
         reviewer_leader = None
         if review_leader_id:
             reviewer_leader = User.find_one({"id": review_leader_id})
             if reviewer_leader is None:
-                raise_exception(404, f"user[id={review_leader_id}] is not found")
+                raise_exception(ErrCode.UserNotFoundForLabelProject,
+                                f"user[id={review_leader_id}] is not found")
 
         failed = {}
         tasks = _validate_task_ids(task_ids)
@@ -563,7 +558,9 @@ class TaskLeadersView(AuthenticatedAPIView):
                     failed.setdefault("review_leader", []).append(err_data)
 
         if failed:
-            return format_response({"failed": failed}, status=200, code=200001, msg="partial success")
+            return format_response({"failed": failed},
+                                   code=ErrCode.PartialSuccessBatchAssignLeaders,
+                                   msg=ErrCode.PartialSuccessBatchAssignLeadersMsg)
         return format_response({})
 
 
@@ -589,18 +586,21 @@ class TaskWorkerView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         if not labeler_ids and not reviewer_ids:
-            raise_exception(400, "labeler_ids and reviewer_ids can not be empty at the same time")
+            raise_exception(ErrCode.LabelerIDIsRequired,
+                            ErrCode.LabelerIDIsRequiredMsg)
 
         labelers = _validate_users(labeler_ids)
         if labelers and not TaskRole.can_init_label_worker(request.user, task_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to assign label worker for task[{task_id}]")
+            raise_exception(ErrCode.UserCantAssignLabelTaskWorker,
+                            f"user[{user.id}] is not allowed to assign label worker for task[{task_id}]")
 
         reviewers = _validate_users(reviewer_ids)
         if reviewers and not TaskRole.can_init_review_worker(request.user, task_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to assign review worker for task[{task_id}]")
+            raise_exception(ErrCode.UserCantAssignLabelTaskWorker,
+                            f"user[{user.id}] is not allowed to assign review worker for task[{task_id}]")
 
         failed = {}
         if labelers:
@@ -622,7 +622,9 @@ class TaskWorkerView(AuthenticatedAPIView):
                 }
 
         if failed:
-            return format_response({"failed": failed}, status=200, code=200001, msg="partial success")
+            return format_response({"failed": failed},
+                                   code=ErrCode.PartialSuccessBatchAssignWorkers,
+                                   msg=ErrCode.PartialSuccessBatchAssignWorkersMsg)
 
         return format_response({})
 
@@ -650,25 +652,23 @@ class TaskReassignView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         user_ids = [old_worker_id, new_worker_id]
         old_user, new_user = _validate_users(user_ids)
 
         if role == LabelProjectRoles.Labeler and not TaskRole.can_replace_label_worker(user, task_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to replace label worker for task[{task_id}]")
+            raise_exception(ErrCode.UserCantAssignLabelTaskWorker,
+                            f"user[{user.id}] is not allowed to replace label worker for task[{task_id}]")
         if role == LabelProjectRoles.Reviewer and not TaskRole.can_replace_review_worker(user, task_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to replace review worker for task[{task_id}]")
+            raise_exception(ErrCode.UserCantAssignLabelTaskWorker,
+                            f"user[{user.id}] is not allowed to replace review worker for task[{task_id}]")
 
-        try:
-            old_role, new_role = task.replace_worker(old_user, new_user, role)
-        except LabelTaskError as err:
-            raise_exception(400, str(err))
-        else:
-            data = task.to_dict()
-            data["old_worker"] = old_role.to_dict()
-            data["new_worker"] = new_role.to_dict()
-            return format_response(data)
+        old_role, new_role = task.replace_worker(old_user, new_user, role)
+        data = task.to_dict()
+        data["old_worker"] = old_role.to_dict()
+        data["new_worker"] = new_role.to_dict()
+        return format_response(data)
 
 
 class TaskReStartView(AuthenticatedAPIView):
@@ -686,16 +686,13 @@ class TaskReStartView(AuthenticatedAPIView):
         user = request.user
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         if not TaskRole.can_restart_task(user, task_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to restart task[{task_id}]")
+            raise_exception(ErrCode.UserCantRestartLabelTask,
+                            f"user[{user.id}] is not allowed to restart task[{task_id}]")
 
-        try:
-            task.restart_task()
-        except LabelTaskError as err:
-            raise_exception(400, str(err))
-
+        task.restart_task()
         return format_response({})
 
 
@@ -720,17 +717,14 @@ class TaskQAView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         project_id = task.project_id
         if not TaskRole.can_qa_task(user, project_id):
-            raise_exception(403, f"user[{user.id}] is not allowed to qa task[{project_id}]")
+            raise_exception(ErrCode.UserCantQALabelTask,
+                            f"user[{user.id}] is not allowed to qa task[{project_id}]")
 
-        try:
-            task.qa_task(action)
-        except LabelTaskError as err:
-            raise_exception(400, str(err))
-
+        task.qa_task(action)
         return format_response({})
 
 
@@ -750,7 +744,7 @@ class TaskRolesView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         if TaskRole.can_view_all_roles(user, task.project_id):
             filters = {"task_id": task_id, "is_active": True}
@@ -910,7 +904,7 @@ class TaskImagesView(AuthenticatedAPIView):
 
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"task[id={task_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"task[id={task_id}] is not found")
 
         view_role = _get_view_role(user, task, role_id)
         total, image_list = self._get_task_images_for_role(task, view_role, status, page_size, page_num)
@@ -947,7 +941,7 @@ class TaskImageLabelView(AuthenticatedAPIView):
                 assert "xmax" in anno["bounding_box"]
                 assert "ymax" in anno["bounding_box"]
             except AssertionError:
-                raise_exception(400, f"annotations[{idx}] missing field(s)")
+                raise_exception(ErrCode.LabelAnnotationMissingFields, f"annotations[{idx}] missing field(s)")
 
             try:
                 bbox = anno["bounding_box"]
@@ -955,7 +949,8 @@ class TaskImageLabelView(AuthenticatedAPIView):
                 xmin, ymin = float(bbox["xmin"]), float(bbox["ymin"])
                 xmax, ymax = float(bbox["xmax"]), float(bbox["ymax"])
             except Exception:
-                raise_exception(400, f"annotations[{idx}] field data type is wrong")
+                raise_exception(ErrCode.LabelAnnotationFieldValueInvalid,
+                                f"annotations[{idx}] field data type is wrong")
             else:
                 valid_anno = {
                     "category_name": cat_name,
@@ -981,19 +976,21 @@ class TaskImageLabelView(AuthenticatedAPIView):
         task_id = task_image_id.split("_")[0]
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"label_image[id={task_image_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound,
+                            f"label_task[id={task_id}] is not found")
 
         LTIModel = LabelTaskImage(task.dataset_id)
         label_image = LTIModel.find_one({"id": task_image_id})
         if label_image is None:
-            raise_exception(404, f"label_image[id={task_image_id}] is not found")
+            raise_exception(ErrCode.LabelTaskImageNotFound,
+                            f"label_image[id={task_image_id}] is not found")
 
         user = request.user
         if not TaskRole.can_label_image(user, label_image.task_id):
-            raise_exception(403, f"user[id={user.id}] is not permitted to label image[id={task_image_id}]")
+            raise_exception(ErrCode.UserCantLabelTaskImage,
+                            f"user[id={user.id}] is not permitted to label image[id={task_image_id}]")
 
-        if not label_image.can_set_label(task, user):
-            raise_exception(400, f"image[id={task_image_id}] cannot be labeled now.")
+        assert label_image.can_set_label(task, user)
 
         annotations = self._parse_annotations(request)
         label_data = label_image.set_label(task, user, annotations)
@@ -1021,20 +1018,21 @@ class TaskImageReviewView(AuthenticatedAPIView):
         task_id = task_image_id.split("_")[0]
         task = LabelTask.find_one({"id": task_id})
         if task is None:
-            raise_exception(404, f"label_image[id={task_image_id}] is not found")
+            raise_exception(ErrCode.LabelProjectTaskNotFound, f"label_task[id={task_id}] is not found")
 
         LTIModel = LabelTaskImage(task.dataset_id)
         label_image = LTIModel.find_one({"id": task_image_id})
         if label_image is None:
-            raise_exception(404, f"label_image[id={task_image_id}] is not found")
+            raise_exception(ErrCode.LabelTaskImageNotFound,
+                            f"label_image[id={task_image_id}] is not found")
 
         user = request.user
         if not TaskRole.can_review_image(user, label_image.task_id):
-            raise_exception(403, f"user[id={user.id}] is not permitted to review image[id={task_image_id}]")
+            raise_exception(ErrCode.UserCantReviewTaskImage,
+                            f"user[id={user.id}] is not permitted to review image[id={task_image_id}]")
 
         label_id, action = parse_arguments(request, self.post_args)
-        if not label_image.can_set_review(task, user, label_id):
-            raise_exception(400, f"image[id={task_image_id}] cannot be reviewed now.")
+        assert label_image.ensure_status_for_reviewing(task, user, label_id)
 
         review_data = label_image.set_review(task, user, label_id, action)
         return format_response(review_data)

@@ -8,6 +8,7 @@ import logging
 import time
 
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
 from deepdataspace.globals import MongoDB
@@ -15,11 +16,11 @@ from deepdataspace.model import DataSet
 from deepdataspace.model import Label
 from deepdataspace.model import Object
 from deepdataspace.model.image import Image
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 from deepdataspace.utils.string import get_str_md5
 
 logger = logging.getLogger("django")
@@ -39,7 +40,8 @@ class LabelCloneView(BaseAPIView):
     @staticmethod
     def gen_unique_clone_name(dataset_id, src_label_name, dst_label_name):
         if dst_label_name in [LabelName.GroundTruth, LabelName.UserAnnotation]:
-            raise_exception(400, f"dst_label_name[{dst_label_name}] is forbidden, please try another name")
+            raise_exception(ErrCode.LabelSetNameInvalid,
+                            f"dst_label_name[{dst_label_name}] is forbidden, please try another name")
 
         current_labels = Label.find_many({"dataset_id": dataset_id})
         current_names = {l.name: 1 for l in current_labels}
@@ -53,7 +55,8 @@ class LabelCloneView(BaseAPIView):
                 name_suffix += 1
             return dst_label_name
         elif current_names.get(dst_label_name, None) == 1:
-            raise_exception(400, f"dst_label_name[{dst_label_name}] already exists, please try another name")
+            raise_exception(ErrCode.LabelSetNameConflicts,
+                            f"dst_label_name[{dst_label_name}] already exists, please try another name")
         else:
             return dst_label_name
 
@@ -86,14 +89,14 @@ class LabelCloneView(BaseAPIView):
             except Exception as err:
                 logger.warning(f"Failed to clone label set, err={str(err)}")
                 Image(target_dataset_id).get_collection().drop()
-                raise_exception(500, "Failed to clone label set")
+                raise_exception(ErrCode.FailedToCloneLabelSet, ErrCode.FailedToCloneLabelSetMsg)
 
         try:
             Image(target_dataset_id).finish_batch_save()
         except Exception as err:
             logger.warning(f"Failed to clone label set, err={str(err)}")
             Image(target_dataset_id).get_collection().drop()
-            raise_exception(500, "Failed to clone label set")
+            raise_exception(ErrCode.FailedToCloneLabelSet, ErrCode.FailedToCloneLabelSetMsg)
 
     @staticmethod
     def swap_images_collection(dataset_id, target_dataset_id):
@@ -105,14 +108,14 @@ class LabelCloneView(BaseAPIView):
             MongoDB[src_name].rename(tmp_name, dropTarget=True)
         except Exception as err:
             logger.warning(f"Failed to swap images collection, cannot rename src to tmp, err={str(err)}")
-            raise_exception(500, "Failed to clone label set")
+            raise_exception(ErrCode.FailedToCloneLabelSet, ErrCode.FailedToCloneLabelSetMsg)
 
         try:
             MongoDB[dst_name].rename(src_name, dropTarget=True)
         except Exception as err:
             logger.warning(f"Failed to swap images collection, cannot rename dst to src, err={str(err)}")
             MongoDB[tmp_name].rename(src_name, dropTarget=True)
-            raise_exception(500, "Failed to clone label set")
+            raise_exception(ErrCode.FailedToCloneLabelSet, ErrCode.FailedToCloneLabelSetMsg)
 
         try:
             MongoDB[tmp_name].drop()
@@ -137,14 +140,16 @@ class LabelCloneView(BaseAPIView):
         # prefight checks
         src_label = Label.find_one({"id": src_label_id})
         if src_label is None or src_label.dataset_id != dataset_id:
-            raise_exception(404, f"src_label_id[{src_label_id}] not found")
+            raise_exception(ErrCode.DatasetLabelNotFound, f"src_label_id[{src_label_id}] not found")
 
         dataset = DataSet.find_one({"id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"dataset_id[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound,
+                            f"dataset_id[{dataset_id}] not found")
 
         if dataset.status in DatasetStatus.DontRead_:
-            raise_exception(404, f"dataset_id[{dataset_id}] is in status [{dataset.status}] now, try again later")
+            raise_exception(ErrCode.DatasetNotReadable,
+                            f"dataset_id[{dataset_id}] is in status [{dataset.status}] now, try again later")
 
         dst_label_name = self.gen_unique_clone_name(dataset_id, src_label.name, dst_label_name)
 

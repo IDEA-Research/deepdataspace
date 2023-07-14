@@ -143,7 +143,7 @@ if is_local:
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES"    : [],
-    "EXCEPTION_HANDLER"             : "deepdataspace.server.resources.common.handle_api_exception",
+    "EXCEPTION_HANDLER"             : "deepdataspace.utils.http.handle_api_exception",
     "DEFAULT_RENDERER_CLASSES"      : ["rest_framework.renderers.JSONRenderer", ],
     "DEFAULT_PARSER_CLASSES"        : ["rest_framework.parsers.JSONParser", ]
 }
