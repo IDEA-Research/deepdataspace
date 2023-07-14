@@ -13,10 +13,7 @@ import {
 } from '@/utils/compute';
 import {
   ToolInstanceHook,
-  RenderObjectFunc,
-  RenderCreatingObjectFunc,
-  RenderEditingObjectFunc,
-  RenderPromptFunc,
+  ToolHooksFunc,
   renderRect,
   renderActiveRect,
 } from './base';
@@ -74,7 +71,7 @@ const useSkeleton: ToolInstanceHook = ({
   canvasRef,
   activeCanvasRef,
 }) => {
-  const renderObject: RenderObjectFunc = ({
+  const renderObject: ToolHooksFunc.RenderObject = ({
     object,
     color,
     strokeAlpha,
@@ -89,7 +86,7 @@ const useSkeleton: ToolInstanceHook = ({
     }
   };
 
-  const renderCreatingObject: RenderCreatingObjectFunc = ({
+  const renderCreatingObject: ToolHooksFunc.RenderCreatingObject = ({
     object,
     strokeColor,
   }) => {
@@ -151,7 +148,7 @@ const useSkeleton: ToolInstanceHook = ({
     }
   };
 
-  const renderEditingObject: RenderEditingObjectFunc = ({
+  const renderEditingObject: ToolHooksFunc.RenderEditingObject = ({
     object,
     color,
     strokeAlpha,
@@ -189,7 +186,7 @@ const useSkeleton: ToolInstanceHook = ({
     }
   };
 
-  const renderPrompt: RenderPromptFunc = () => {
+  const renderPrompt: ToolHooksFunc.RenderPrompt = () => {
     // nothing in skeleton
   };
 

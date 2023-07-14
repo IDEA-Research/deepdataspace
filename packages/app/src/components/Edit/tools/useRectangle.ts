@@ -3,10 +3,7 @@ import { LABELS_STROKE_DASH } from '@/constants';
 import { getRectFromPoints, translateRectCoord } from '@/utils/compute';
 import {
   ToolInstanceHook,
-  RenderObjectFunc,
-  RenderCreatingObjectFunc,
-  RenderEditingObjectFunc,
-  RenderPromptFunc,
+  ToolHooksFunc,
   renderRect,
   renderActiveRect,
 } from './base';
@@ -17,7 +14,7 @@ const useRectangle: ToolInstanceHook = ({
   canvasRef,
   activeCanvasRef,
 }) => {
-  const renderObject: RenderObjectFunc = ({
+  const renderObject: ToolHooksFunc.RenderObject = ({
     object,
     color,
     strokeAlpha,
@@ -29,7 +26,7 @@ const useRectangle: ToolInstanceHook = ({
     }
   };
 
-  const renderCreatingObject: RenderCreatingObjectFunc = ({
+  const renderCreatingObject: ToolHooksFunc.RenderCreatingObject = ({
     object,
     strokeColor,
     fillColor,
@@ -63,7 +60,7 @@ const useRectangle: ToolInstanceHook = ({
     }
   };
 
-  const renderEditingObject: RenderEditingObjectFunc = ({
+  const renderEditingObject: ToolHooksFunc.RenderEditingObject = ({
     object,
     color,
     strokeAlpha,
@@ -76,7 +73,7 @@ const useRectangle: ToolInstanceHook = ({
     }
   };
 
-  const renderPrompt: RenderPromptFunc = () => {
+  const renderPrompt: ToolHooksFunc.RenderPrompt = () => {
     // nothing in rect
   };
 

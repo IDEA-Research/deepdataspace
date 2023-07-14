@@ -18,13 +18,7 @@ import {
   translatePolygonCoord,
   translateRectCoord,
 } from '@/utils/compute';
-import {
-  ToolInstanceHook,
-  RenderObjectFunc,
-  RenderCreatingObjectFunc,
-  RenderEditingObjectFunc,
-  RenderPromptFunc,
-} from './base';
+import { ToolInstanceHook, ToolHooksFunc } from './base';
 import {
   ANNO_FILL_COLOR,
   ANNO_MASK_ALPHA,
@@ -392,7 +386,7 @@ const useMask: ToolInstanceHook = ({
   canvasRef,
   activeCanvasRef,
 }) => {
-  const renderObject: RenderObjectFunc = ({ object, maskAlpha }) => {
+  const renderObject: ToolHooksFunc.RenderObject = ({ object, maskAlpha }) => {
     const { maskCanvasElement } = object;
     const ctx = canvasRef.current!.getContext('2d') as CanvasRenderingContext2D;
     const tempAlpha = ctx.globalAlpha;
@@ -407,7 +401,7 @@ const useMask: ToolInstanceHook = ({
     ctx.globalAlpha = tempAlpha;
   };
 
-  const renderCreatingObject: RenderCreatingObjectFunc = ({
+  const renderCreatingObject: ToolHooksFunc.RenderCreatingObject = ({
     object,
     color,
   }) => {
@@ -425,7 +419,10 @@ const useMask: ToolInstanceHook = ({
     );
   };
 
-  const renderEditingObject: RenderEditingObjectFunc = ({ object, color }) => {
+  const renderEditingObject: ToolHooksFunc.RenderEditingObject = ({
+    object,
+    color,
+  }) => {
     renderMask(
       activeCanvasRef.current!,
       object,
@@ -440,7 +437,7 @@ const useMask: ToolInstanceHook = ({
     );
   };
 
-  const renderPrompt: RenderPromptFunc = ({ prompt }) => {
+  const renderPrompt: ToolHooksFunc.RenderPrompt = ({ prompt }) => {
     // draw creating prompt
     if (prompt.creatingMask) {
       const strokeColor = ANNO_STROKE_COLOR.CREATING;

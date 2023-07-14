@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import { drawRect } from '@/utils/draw';
 import { hexToRgba } from '@/utils/color';
 import { LABELS_STROKE_DASH } from '@/constants';
@@ -9,36 +10,66 @@ import {
 import { EditState, IAnnotationObject, ICreatingObject, Prompt } from '../type';
 import { CursorState } from 'ahooks/lib/useMouse';
 
-export type RenderObjectFunc = (params: {
-  object: IAnnotationObject;
-  color: string;
-  strokeAlpha: number;
-  fillAlpha: number;
-  maskAlpha: number;
-}) => void;
+export namespace ToolHooksFunc {
+  export type RenderObject = (params: {
+    object: IAnnotationObject;
+    color: string;
+    strokeAlpha: number;
+    fillAlpha: number;
+    maskAlpha: number;
+  }) => void;
 
-export type RenderCreatingObjectFunc = (params: {
-  object: ICreatingObject;
-  color: string;
-  strokeColor: string;
-  fillColor: string;
-}) => void;
+  export type RenderCreatingObject = (params: {
+    object: ICreatingObject;
+    color: string;
+    strokeColor: string;
+    fillColor: string;
+  }) => void;
 
-export type RenderEditingObjectFunc = (params: {
-  object: ICreatingObject;
-  color: string;
-  strokeAlpha: number;
-  fillAlpha: number;
-  isFocus: boolean;
-}) => void;
+  export type RenderEditingObject = (params: {
+    object: ICreatingObject;
+    color: string;
+    strokeAlpha: number;
+    fillAlpha: number;
+    isFocus: boolean;
+  }) => void;
 
-export type RenderPromptFunc = (params: { prompt: Prompt }) => void;
+  export type RenderPrompt = (params: { prompt: Prompt }) => void;
+
+  export type startCreateWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type updateCreatingWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type updateCreatingWhenMouseMove = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type finishCreatingWhenMouseUp = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type startEditWhenMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type updateEditingWhenMouseMove = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+
+  export type finishEditingWhenMouseUp = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => void;
+}
 
 export type ToolInstanceHookReturn = {
-  renderObject: RenderObjectFunc;
-  renderCreatingObject: RenderCreatingObjectFunc;
-  renderEditingObject: RenderEditingObjectFunc;
-  renderPrompt: RenderPromptFunc;
+  renderObject: ToolHooksFunc.RenderObject;
+  renderCreatingObject: ToolHooksFunc.RenderCreatingObject;
+  renderEditingObject: ToolHooksFunc.RenderEditingObject;
+  renderPrompt: ToolHooksFunc.RenderPrompt;
 };
 
 export type ToolInstanceHook = (props: {

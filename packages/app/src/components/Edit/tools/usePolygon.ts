@@ -11,13 +11,7 @@ import {
   translateAnnotCoord,
   translatePointCoord,
 } from '@/utils/compute';
-import {
-  ToolInstanceHook,
-  RenderObjectFunc,
-  RenderCreatingObjectFunc,
-  RenderEditingObjectFunc,
-  RenderPromptFunc,
-} from './base';
+import { ToolInstanceHook, ToolHooksFunc } from './base';
 import { hexToRgba } from '@/utils/color';
 import { ANNO_STROKE_ALPHA, PROMPT_FILL_COLOR } from '../constants/render';
 
@@ -49,7 +43,7 @@ const usePolygon: ToolInstanceHook = ({
   canvasRef,
   activeCanvasRef,
 }) => {
-  const renderObject: RenderObjectFunc = ({
+  const renderObject: ToolHooksFunc.RenderObject = ({
     object,
     color,
     strokeAlpha,
@@ -61,7 +55,7 @@ const usePolygon: ToolInstanceHook = ({
     }
   };
 
-  const renderCreatingObject: RenderCreatingObjectFunc = ({
+  const renderCreatingObject: ToolHooksFunc.RenderCreatingObject = ({
     object,
     strokeColor,
   }) => {
@@ -137,7 +131,7 @@ const usePolygon: ToolInstanceHook = ({
     }
   };
 
-  const renderEditingObject: RenderEditingObjectFunc = ({
+  const renderEditingObject: ToolHooksFunc.RenderEditingObject = ({
     object,
     color,
     strokeAlpha,
@@ -229,7 +223,7 @@ const usePolygon: ToolInstanceHook = ({
     }
   };
 
-  const renderPrompt: RenderPromptFunc = ({ prompt }) => {
+  const renderPrompt: ToolHooksFunc.RenderPrompt = ({ prompt }) => {
     // draw segmentation reference points
     if (prompt.segmentationClicks) {
       prompt.segmentationClicks.forEach((click) => {
