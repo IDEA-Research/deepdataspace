@@ -146,6 +146,7 @@ export default {
   'editor.annotsList.convertToSmartMode': 'Convert To Intelligent Segmentation',
   'editor.toolbar.undo': 'Undo',
   'editor.toolbar.redo': 'Redo',
+  'editor.toolbar.deleteAll': 'Mark Null',
   'editor.toolbar.rectangle': 'Rectangle',
   'editor.toolbar.polygon': 'Polygon',
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
@@ -180,6 +181,7 @@ export default {
     'Use Pen or Brush tool to draw a pixel-level segmentation.',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
+  'editor.toolbar.deleteAll.desc': 'Remove all objects of present image',
   'editor.annotsEditor.title': 'Annotation Editor',
   'editor.annotsEditor.delete': 'Delete',
   'editor.annotsEditor.finish': 'Finish',
@@ -200,6 +202,7 @@ export default {
     'Activate / Deactivate Intelligent Annotate',
   'editor.shortcuts.general.undo': 'Undo',
   'editor.shortcuts.general.redo': 'Redo',
+  'editor.shortcuts.general.deleteAll': 'Remove all objects of cureent image',
   'editor.shortcuts.general.next': 'Next Image',
   'editor.shortcuts.general.prev': 'Previous Image',
   'editor.shortcuts.general.save': 'Save',

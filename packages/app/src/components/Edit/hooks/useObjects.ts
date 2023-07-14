@@ -150,6 +150,18 @@ const useObjects = ({
     });
   };
 
+  const removeAllObjects = () => {
+    if (mode !== EditorMode.Edit) return;
+    setDrawDataWithHistory((s) => {
+      s.objectList = [];
+    });
+    setEditState((s) => {
+      s.focusObjectIndex = -1;
+      s.focusEleIndex = -1;
+      s.focusEleType = EElementType.Rect;
+    });
+  };
+
   const updateObject = (object: IAnnotationObject, index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setDrawDataWithHistory((s) => {
@@ -200,6 +212,7 @@ const useObjects = ({
     initObjectList,
     addObject,
     removeObject,
+    removeAllObjects,
     updateObject,
     updateAllObject,
     setCurrSelectedObject,

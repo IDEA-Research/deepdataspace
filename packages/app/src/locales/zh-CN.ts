@@ -139,6 +139,7 @@ export default {
   'editor.annotsList.convertToSmartMode': '转换至交互式智能分割',
   'editor.toolbar.undo': '撤销',
   'editor.toolbar.redo': '重做',
+  'editor.toolbar.deleteAll': '移除全部',
   'editor.toolbar.rectangle': '矩形',
   'editor.toolbar.polygon': '多边形',
   'editor.toolbar.skeleton': '骨骼（人体）',
@@ -150,6 +151,7 @@ export default {
   'editor.zoomOut': '缩小',
   'editor.toolbar.undo.desc': '撤销上一步操作',
   'editor.toolbar.redo.desc': '恢复上一步撤销的操作',
+  'editor.toolbar.deleteAll.desc': '一键清除当前图片中所有实例',
   'editor.toolbar.rectangle.desc':
     '单击确定起始点，拖动鼠标以创建围绕目标的矩形标注。',
   'editor.toolbar.polygon.desc': '围绕目标单击添加顶点，创建闭合的多边形标注。',
@@ -189,6 +191,7 @@ export default {
   'editor.shortcuts.general.smart': '开启/关闭智能标注模式',
   'editor.shortcuts.general.undo': '撤销',
   'editor.shortcuts.general.redo': '重做',
+  'editor.shortcuts.general.deleteAll': '移除全部实例',
   'editor.shortcuts.general.next': '下一张',
   'editor.shortcuts.general.prev': '上一张',
   'editor.shortcuts.general.save': '保存',

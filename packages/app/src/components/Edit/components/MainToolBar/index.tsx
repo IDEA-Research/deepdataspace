@@ -37,6 +37,7 @@ interface IProps {
   onActiveAIAnnotation: (active: boolean) => void;
   undo: () => void;
   redo: () => void;
+  deleteAll: () => void;
 }
 
 export const MainToolBar: React.FC<IProps> = ({
@@ -46,6 +47,7 @@ export const MainToolBar: React.FC<IProps> = ({
   onActiveAIAnnotation,
   undo,
   redo,
+  deleteAll,
 }) => {
   const { localeText } = useLocale();
 
@@ -116,6 +118,14 @@ export const MainToolBar: React.FC<IProps> = ({
       handler: redo,
       description: localeText('editor.toolbar.redo.desc'),
     },
+    {
+      key: EActionToolItem.DeleteAll,
+      name: localeText('editor.toolbar.deleteAll'),
+      icon: <Icon component={EDITOR_TOOL_ICON[EActionToolItem.DeleteAll]} />,
+      shortcut: EDITOR_SHORTCUTS[EShortcuts.DeleteAll],
+      handler: deleteAll,
+      description: localeText('editor.toolbar.deleteAll.desc'),
+    },
   ];
 
   const basicToolKeys: string[] = useMemo(() => {
@@ -180,6 +190,18 @@ export const MainToolBar: React.FC<IProps> = ({
     (event: KeyboardEvent) => {
       event.preventDefault();
       redo();
+    },
+    {
+      exactMatch: true,
+    },
+  );
+
+  /** Delete All */
+  useKeyPress(
+    EDITOR_SHORTCUTS[EShortcuts.DeleteAll].shortcut,
+    (event: KeyboardEvent) => {
+      event.preventDefault();
+      deleteAll();
     },
     {
       exactMatch: true,

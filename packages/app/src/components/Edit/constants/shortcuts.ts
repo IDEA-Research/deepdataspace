@@ -23,6 +23,7 @@ export enum EShortcuts {
   SmartAnnotation,
   Undo,
   Redo,
+  DeleteAll,
   NextImage,
   PreviousImage,
   Save,
@@ -90,6 +91,12 @@ export const EDITOR_SHORTCUTS: Record<EShortcuts, TShortcutItem> = {
     type: EShortcutType.GeneralAction,
     shortcut: ['ctrl.shift.z', 'meta.shift.z'],
     descTextKey: 'editor.shortcuts.general.redo',
+  },
+  [EShortcuts.DeleteAll]: {
+    name: 'DeleteAll',
+    type: EShortcutType.GeneralAction,
+    shortcut: ['ctrl.shift.d', 'meta.shift.d'],
+    descTextKey: 'editor.shortcuts.general.deleteAll',
   },
   [EShortcuts.Save]: {
     name: 'Save',

@@ -159,6 +159,7 @@ const Edit: React.FC<EditProps> = (props) => {
   const {
     addObject,
     removeObject,
+    removeAllObjects,
     initObjectList,
     updateAllObject,
     updateObject,
@@ -664,6 +665,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   onActiveAIAnnotation={activeAIAnnotation}
                   undo={undo}
                   redo={redo}
+                  deleteAll={removeAllObjects}
                 />
                 {drawData.selectedTool === EBasicToolItem.Mask && (
                   <SubToolBar

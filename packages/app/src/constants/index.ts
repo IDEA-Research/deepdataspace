@@ -11,6 +11,7 @@ import { ReactComponent as DetectIcon } from '@/assets/svg/datasetDetection.svg'
 import { ReactComponent as SegmentIcon } from '@/assets/svg/datasetSegment.svg';
 import { ReactComponent as MattingIcon } from '@/assets/svg/datasetMatting.svg';
 import { ReactComponent as KeypointIcon } from '@/assets/svg/datasetKeypoint.svg';
+import { ReactComponent as DeleteAllIcon } from '@/assets/svg/delete_all.svg';
 
 export const DEFAULT_NAME = 'Deep Data Space';
 
@@ -233,6 +234,7 @@ export enum EActionToolItem {
   SmartAnnotation = 'SmartAnnotation',
   Undo = 'Undo',
   Redo = 'Redo',
+  DeleteAll = 'DeleteAll',
 }
 
 export type EToolType = EBasicToolItem;
@@ -255,6 +257,7 @@ export const EDITOR_TOOL_ICON: Record<
   [EActionToolItem.SmartAnnotation]: MagicIcon,
   [EActionToolItem.Undo]: UndoIcon,
   [EActionToolItem.Redo]: RedoIcon,
+  [EActionToolItem.DeleteAll]: DeleteAllIcon,
 };
 
 export enum DRAW_TYPE {
