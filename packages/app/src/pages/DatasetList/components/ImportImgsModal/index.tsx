@@ -42,11 +42,8 @@ const ImportImgsModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
           fieldProps={{
             rows: 10,
           }}
-          onBlur={(e: any) => {
-            console.log(imgList);
-            setImgList([]);
-
-            const _imgs = [...imgList, ...e.target.value.split('\n')];
+          onChange={(e: any) => {
+            const _imgs = e.target.value.split('\n');
 
             checkImageUrls(_imgs).then((results) => {
               setImgList(results);
