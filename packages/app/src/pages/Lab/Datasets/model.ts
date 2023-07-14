@@ -43,11 +43,12 @@ export default () => {
         {
           page: 1,
           pageSize: DEFAULT_PAGE_SIZE,
+          isPublic: 'false', // Only private datasets are avaliable in flag tool
         },
         urlPageState,
       );
     });
-    loadDatasets();
+    loadDatasets(1, DEFAULT_PAGE_SIZE, 'false'); // Force to fetch private dataset for flag tool
   };
 
   return {
