@@ -201,6 +201,7 @@ export enum EElementType {
   Rect = 'rect',
   Circle = 'circle',
   Polygon = 'polygon',
+  None = 'none',
 }
 
 export enum EBasicToolItem {

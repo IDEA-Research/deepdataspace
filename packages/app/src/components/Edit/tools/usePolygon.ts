@@ -3,17 +3,23 @@ import {
   drawLine,
   drawPolygonWithFill,
 } from '@/utils/draw';
-import { EElementType, LABELS_STROKE_DASH } from '@/constants';
+import { EElementType, EObjectType, LABELS_STROKE_DASH } from '@/constants';
 import {
   getInnerPolygonIndexFromGroup,
   getLinesFromPolygon,
   getMidPointFromTwoPoints,
+  isPointOnPoint,
   translateAnnotCoord,
   translatePointCoord,
 } from '@/utils/compute';
-import { ToolInstanceHook, ToolHooksFunc } from './base';
+import {
+  ToolInstanceHook,
+  ToolHooksFunc,
+  editBaseElementWhenMouseDown,
+} from './base';
 import { hexToRgba } from '@/utils/color';
 import { ANNO_STROKE_ALPHA, PROMPT_FILL_COLOR } from '../constants/render';
+import { cloneDeep } from 'lodash';
 
 const renderPolygon = (
   canvas: HTMLCanvasElement,
@@ -38,10 +44,15 @@ const renderPolygon = (
 
 const usePolygon: ToolInstanceHook = ({
   editState,
+  clientSize,
   imagePos,
   containerMouse,
   canvasRef,
   activeCanvasRef,
+  contentMouse,
+  setEditState,
+  setDrawData,
+  updateHistory,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -245,11 +256,93 @@ const usePolygon: ToolInstanceHook = ({
     }
   };
 
+  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
+    ({ point, basic }) => {
+      setDrawData((s) => {
+        if (!s.creatingObject || s.activeObjectIndex > -1) {
+          s.activeObjectIndex = -1;
+          if (s.AIAnnotation) {
+            // by drawing rectangle under AI mode
+            s.creatingObject = {
+              type: EObjectType.Rectangle,
+              startPoint: point,
+              ...basic,
+            };
+          } else {
+            // create a new polygon manually
+            s.creatingObject = {
+              type: EObjectType.Polygon,
+              polygon: {
+                visible: true,
+                group: [[point]],
+              },
+              currIndex: 0,
+              ...basic,
+            };
+            updateHistory(
+              cloneDeep({
+                drawData: s,
+                clientSize,
+              }),
+            );
+          }
+        } else {
+          if (!s.AIAnnotation) {
+            const currIndex = s.creatingObject.currIndex as number;
+            const polygon = s.creatingObject.polygon as IElement<IPolygonGroup>;
+            if (currIndex > -1) {
+              const startPoint = polygon.group[currIndex][0];
+              // finish creating polygon when click on startpoint
+              if (isPointOnPoint(startPoint, contentMouse)) {
+                s.creatingObject.currIndex = -1;
+              } else if (s.creatingObject.polygon) {
+                polygon.group[currIndex].push(point);
+                updateHistory(
+                  cloneDeep({
+                    drawData: s,
+                    clientSize,
+                  }),
+                );
+              }
+            } else {
+              polygon.group.push([point]);
+              s.creatingObject.currIndex = polygon.group.length - 1;
+              updateHistory(
+                cloneDeep({
+                  drawData: s,
+                  clientSize,
+                }),
+              );
+            }
+          }
+        }
+      });
+      return true;
+    };
+
+  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+    object,
+  }) => {
+    if (
+      editBaseElementWhenMouseDown({
+        object,
+        contentMouse,
+        setEditState,
+        setDrawData,
+      })
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
+    startCreatingWhenMouseDown,
+    startEditingWhenMouseDown,
   };
 };
 

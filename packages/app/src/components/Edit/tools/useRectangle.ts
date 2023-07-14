@@ -1,11 +1,12 @@
 import { drawRect } from '@/utils/draw';
-import { LABELS_STROKE_DASH } from '@/constants';
+import { EObjectType, LABELS_STROKE_DASH } from '@/constants';
 import { getRectFromPoints, translateRectCoord } from '@/utils/compute';
 import {
   ToolInstanceHook,
   ToolHooksFunc,
   renderRect,
   renderActiveRect,
+  editBaseElementWhenMouseDown,
 } from './base';
 
 const useRectangle: ToolInstanceHook = ({
@@ -13,6 +14,8 @@ const useRectangle: ToolInstanceHook = ({
   imagePos,
   canvasRef,
   activeCanvasRef,
+  setEditState,
+  setDrawData,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -77,11 +80,42 @@ const useRectangle: ToolInstanceHook = ({
     // nothing in rect
   };
 
+  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
+    ({ point, basic }) => {
+      setDrawData((s) => {
+        s.activeObjectIndex = -1;
+        s.creatingObject = {
+          type: EObjectType.Rectangle,
+          startPoint: point,
+          ...basic,
+        };
+      });
+      return true;
+    };
+
+  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+    object,
+  }) => {
+    if (
+      editBaseElementWhenMouseDown({
+        object,
+        contentMouse,
+        setEditState,
+        setDrawData,
+      })
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
+    startCreatingWhenMouseDown,
+    startEditingWhenMouseDown,
   };
 };
 

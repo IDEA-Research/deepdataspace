@@ -60,7 +60,7 @@ export type MaskPromptItem = {
   radius?: number;
 };
 
-export interface Prompt {
+export interface IPrompt {
   creatingMask?: MaskPromptItem;
   maskPrompts?: MaskPromptItem[];
   segmentationClicks?: {
@@ -92,7 +92,7 @@ export interface DrawData {
   creatingObject?: ICreatingObject; // - editing / creating
 
   /** prompt actions */
-  prompt: Prompt;
+  prompt: IPrompt;
 }
 
 export interface EditState {

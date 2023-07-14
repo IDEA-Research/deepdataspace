@@ -263,6 +263,10 @@ const Edit: React.FC<EditProps> = (props) => {
     containerMouse,
     canvasRef,
     activeCanvasRef,
+    setEditState,
+    setDrawData,
+    setDrawDataWithHistory,
+    updateHistory,
   };
   const rectangleHooks = useRectangle(toolInstanceHookprops);
   const polygenHooks = usePolygon(toolInstanceHookprops);
@@ -304,7 +308,6 @@ const Edit: React.FC<EditProps> = (props) => {
     contentMouse,
     isDragToolActive,
     isAIPoseEstimation,
-    updateHistory,
     categories,
     aiLabels,
     onAiAnnotation,
@@ -314,6 +317,7 @@ const Edit: React.FC<EditProps> = (props) => {
     updateMouseCursor,
     updateMouseCursorWhenMouseMove,
     setCurrSelectedObject,
+    objectHooksMap,
   });
 
   useShortcuts({

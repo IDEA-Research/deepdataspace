@@ -431,7 +431,7 @@ export const judgeFocusOnElement = (
   focusEleIndex: number;
   focusEleType: EElementType;
 } => {
-  let focusEleType = EElementType.Rect;
+  let focusEleType = EElementType.None;
   let focusEleIndex = -1;
 
   if (!isInCanvas(mouse) || object.hidden) {

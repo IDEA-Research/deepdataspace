@@ -2,6 +2,7 @@ import { drawCircleWithFill, drawLine, drawRect } from '@/utils/draw';
 import {
   BODY_TEMPLATE,
   EElementType,
+  EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
   LABELS_STROKE_DASH,
 } from '@/constants';
@@ -16,6 +17,7 @@ import {
   ToolHooksFunc,
   renderRect,
   renderActiveRect,
+  editBaseElementWhenMouseDown,
 } from './base';
 import { changeRgbaOpacity, hexToRgba } from '@/utils/color';
 
@@ -70,6 +72,8 @@ const useSkeleton: ToolInstanceHook = ({
   imagePos,
   canvasRef,
   activeCanvasRef,
+  setEditState,
+  setDrawData,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -190,11 +194,42 @@ const useSkeleton: ToolInstanceHook = ({
     // nothing in skeleton
   };
 
+  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
+    ({ point, basic }) => {
+      setDrawData((s) => {
+        s.activeObjectIndex = -1;
+        s.creatingObject = {
+          type: EObjectType.Skeleton,
+          startPoint: point,
+          ...basic,
+        };
+      });
+      return true;
+    };
+
+  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+    object,
+  }) => {
+    if (
+      editBaseElementWhenMouseDown({
+        object,
+        contentMouse,
+        setEditState,
+        setDrawData,
+      })
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
+    startCreatingWhenMouseDown,
+    startEditingWhenMouseDown,
   };
 };
 
