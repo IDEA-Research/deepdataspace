@@ -75,8 +75,13 @@ const useSkeleton: ToolInstanceHook = ({
   canvasRef,
   activeCanvasRef,
   setEditState,
+  drawData,
   setDrawData,
   updateMouseCursor,
+  addObject,
+  updateObject,
+  aiLabels,
+  onAiAnnotation,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -269,6 +274,78 @@ const useSkeleton: ToolInstanceHook = ({
       return false;
     };
 
+  const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({
+    object,
+  }) => {
+    const isResizingOrMoving =
+      editState.startRectResizeAnchor || editState.startElementMovePoint;
+    if (isResizingOrMoving) {
+      updateObject(object, drawData.activeObjectIndex);
+    }
+
+    if (drawData.AIAnnotation) {
+      if (
+        editState.startElementMovePoint &&
+        (editState.startElementMovePoint.mousePoint?.x !==
+          contentMouse.elementX ||
+          editState.startElementMovePoint.mousePoint?.y !==
+            contentMouse.elementY)
+      ) {
+        onAiAnnotation({ drawData, aiLabels });
+      }
+    }
+
+    setEditState((s) => {
+      s.startRectResizeAnchor = undefined;
+      s.startElementMovePoint = undefined;
+    });
+    return true;
+  };
+
+  const finishCreatingWhenMouseUp: ToolHooksFunc.FinishCreatingWhenMouseUp = ({
+    object,
+  }) => {
+    if (!object || !object.startPoint) return false;
+    // Need to check if it can form a rectangle
+    if (
+      contentMouse.elementX === object.startPoint?.x ||
+      contentMouse.elementY === object.startPoint?.y
+    ) {
+      setDrawData((s) => (s.creatingObject = undefined));
+      return true;
+    }
+    const newRect = getRectFromPoints(
+      object.startPoint,
+      { x: contentMouse.elementX, y: contentMouse.elementY },
+      {
+        width: contentMouse.elementW,
+        height: contentMouse.elementH,
+      },
+    );
+    const { points, lines, pointColors, pointNames } = BODY_TEMPLATE;
+    const pointObjs = translatePointsToPointObjs(
+      points,
+      pointNames,
+      pointColors,
+      naturalSize,
+      clientSize,
+    );
+    const updatedObjs = getKeypointsFromRect(pointObjs, newRect);
+    const newObject = {
+      type: EObjectType.Skeleton,
+      label: object.label,
+      hidden: false,
+      rect: { visible: true, ...newRect },
+      keypoints: {
+        points: updatedObjs,
+        lines: lines,
+      },
+      conf: 1,
+    };
+    addObject(newObject);
+    return true;
+  };
+
   return {
     renderObject,
     renderCreatingObject,
@@ -278,6 +355,8 @@ const useSkeleton: ToolInstanceHook = ({
     startCreatingWhenMouseDown,
     updateEditingWhenMouseMove,
     updateCreatingWhenMouseMove,
+    finishEditingWhenMouseUp,
+    finishCreatingWhenMouseUp,
   };
 };
 

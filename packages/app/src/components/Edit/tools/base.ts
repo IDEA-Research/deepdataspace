@@ -25,6 +25,7 @@ import {
 import { CursorState } from 'ahooks/lib/useMouse';
 import { Updater } from 'use-immer';
 import { HistoryItem } from '../hooks/useHistory';
+import { OnAiAnnotationFunc } from '../hooks/useActions';
 
 export namespace ToolHooksFunc {
   export type RenderObject = (params: {
@@ -100,6 +101,8 @@ export type ToolInstanceHookReturn = {
   startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown;
   updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove;
   updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove;
+  finishCreatingWhenMouseUp: ToolHooksFunc.FinishCreatingWhenMouseUp;
+  finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp;
 };
 
 export type ToolInstanceHook = (props: {
@@ -109,6 +112,8 @@ export type ToolInstanceHook = (props: {
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
   updateHistory: (item: HistoryItem) => void;
+  updateObject: (object: IAnnotationObject, index: number) => void;
+  addObject: (object: IAnnotationObject, notActive?: boolean) => void;
   clientSize: ISize;
   naturalSize: ISize;
   contentMouse: CursorState;
@@ -117,6 +122,8 @@ export type ToolInstanceHook = (props: {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
   updateMouseCursor: (value: string, position?: Direction) => void;
+  aiLabels: string[];
+  onAiAnnotation: OnAiAnnotationFunc;
 }) => ToolInstanceHookReturn;
 
 export const renderRect = (

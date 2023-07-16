@@ -8,6 +8,9 @@ import {
   getInnerPolygonIndexFromGroup,
   getLinesFromPolygon,
   getMidPointFromTwoPoints,
+  getRectFromPoints,
+  getReferencePointsFromRect,
+  isInCanvas,
   isPointOnPoint,
   movePoint,
   movePolygon,
@@ -18,6 +21,7 @@ import {
   ToolInstanceHook,
   ToolHooksFunc,
   editBaseElementWhenMouseDown,
+  getPromptBoolean,
 } from './base';
 import { hexToRgba } from '@/utils/color';
 import { ANNO_STROKE_ALPHA, PROMPT_FILL_COLOR } from '../constants/render';
@@ -53,9 +57,13 @@ const usePolygon: ToolInstanceHook = ({
   activeCanvasRef,
   contentMouse,
   setEditState,
+  drawData,
   setDrawData,
   updateHistory,
   updateMouseCursor,
+  updateObject,
+  addObject,
+  onAiAnnotation,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -406,6 +414,129 @@ const usePolygon: ToolInstanceHook = ({
       return false;
     };
 
+  const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({
+    object,
+  }) => {
+    const isResizingOrMoving =
+      editState.startRectResizeAnchor || editState.startElementMovePoint;
+
+    const isMouseStand =
+      editState.startElementMovePoint &&
+      editState.startElementMovePoint.initPoint?.x === contentMouse.elementX &&
+      editState.startElementMovePoint.initPoint?.y === contentMouse.elementY;
+
+    const isRemovePolygonPoints =
+      isMouseStand &&
+      editState.focusPolygonInfo.index > -1 &&
+      editState.focusPolygonInfo.pointIndex > -1;
+
+    if (isRemovePolygonPoints) {
+      const copyObject = cloneDeep(object);
+      const { index, pointIndex } = editState.focusPolygonInfo;
+      const polygon = copyObject.polygon?.group[index];
+      if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
+        polygon.splice(pointIndex, 1);
+      }
+      updateObject(copyObject, drawData.activeObjectIndex);
+    } else if (isResizingOrMoving) {
+      updateObject(object, drawData.activeObjectIndex);
+    }
+
+    setEditState((s) => {
+      s.startRectResizeAnchor = undefined;
+      s.startElementMovePoint = undefined;
+    });
+    return true;
+  };
+
+  const finishCreatingWhenMouseUp: ToolHooksFunc.FinishCreatingWhenMouseUp = ({
+    event,
+    object,
+  }) => {
+    if (!object) return false;
+
+    const mouse = {
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    };
+    if (drawData.AIAnnotation) {
+      if (object.type === EObjectType.Polygon) {
+        if (!isInCanvas(contentMouse)) return false;
+        // add reference points
+        const click = {
+          isPositive: getPromptBoolean(event),
+          point: mouse,
+        };
+        const existClicks = drawData.prompt.segmentationClicks || [];
+        setDrawData((s) => {
+          s.prompt.segmentationClicks = [...existClicks, click];
+        });
+        onAiAnnotation({
+          drawData,
+          segmentationClicks: [...existClicks, click],
+          aiLabels: [object.label],
+        });
+      } else {
+        // first click
+        if (
+          contentMouse.elementX === object.startPoint?.x &&
+          contentMouse.elementY === object.startPoint?.y
+        ) {
+          if (!isInCanvas(contentMouse)) return false;
+          // draw point
+          const firstClick = {
+            isPositive: true,
+            point: mouse,
+          };
+          setDrawData((s) => {
+            s.prompt.segmentationClicks = [firstClick];
+          });
+          onAiAnnotation({
+            drawData,
+            segmentationClicks: [firstClick],
+          });
+        } else {
+          // draw bbox
+          const rect = getRectFromPoints(object.startPoint as IPoint, mouse, {
+            width: contentMouse.elementW,
+            height: contentMouse.elementH,
+          });
+          const points = getReferencePointsFromRect(rect);
+          const bbox = {
+            xmin: rect.x,
+            ymin: rect.y,
+            xmax: rect.x + rect.width,
+            ymax: rect.y + rect.height,
+          };
+          const clicks = points.map((point, index) => {
+            return {
+              // Only the center point is positive
+              isPositive: index === points.length - 1 ? true : false,
+              point,
+            };
+          });
+          setDrawData((s) => {
+            s.prompt.segmentationClicks = [...clicks];
+          });
+          onAiAnnotation({ drawData, segmentationClicks: clicks, bbox });
+        }
+        setDrawData((s) => (s.creatingObject = undefined));
+      }
+    } else {
+      if (object.currIndex === -1) {
+        const { polygon, type, hidden, label } = object;
+        const newObject = {
+          polygon,
+          type,
+          hidden,
+          label,
+        };
+        addObject(newObject);
+      }
+    }
+    return true;
+  };
+
   return {
     renderObject,
     renderCreatingObject,
@@ -415,6 +546,8 @@ const usePolygon: ToolInstanceHook = ({
     startCreatingWhenMouseDown,
     updateEditingWhenMouseMove,
     updateCreatingWhenMouseMove,
+    finishEditingWhenMouseUp,
+    finishCreatingWhenMouseUp,
   };
 };
 
