@@ -387,6 +387,7 @@ const useMask: ToolInstanceHook = ({
   containerMouse,
   canvasRef,
   activeCanvasRef,
+  drawData,
   setDrawData,
   updateHistory,
 }) => {
@@ -633,6 +634,13 @@ const useMask: ToolInstanceHook = ({
     });
   };
 
+  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+    event,
+  }) => {
+    updateMaskWhenMouseDown(event);
+    return true;
+  };
+
   const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
     ({ event, object, point, basic }) => {
       if (!object) {
@@ -702,20 +710,74 @@ const useMask: ToolInstanceHook = ({
       return true;
     };
 
-  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+  const updateMaskWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove = ({
     event,
+    object,
+    prompt,
   }) => {
-    updateMaskWhenMouseDown(event);
-    return true;
+    if (object || prompt.creatingMask) {
+      const allowRecordMousePath = [
+        ESubToolItem.BrushAdd,
+        ESubToolItem.BrushErase,
+        ESubToolItem.PenAdd,
+        ESubToolItem.PenErase,
+        ESubToolItem.AutoSegmentByStroke,
+        ESubToolItem.AutoEdgeStitching,
+      ].includes(drawData.selectedSubTool);
+
+      // Left/Right button is pressed while mousemove
+      const isMousePress = event.buttons === 1 || event.buttons === 2;
+
+      if (allowRecordMousePath && isMousePress) {
+        const mouse = {
+          x: contentMouse.elementX,
+          y: contentMouse.elementY,
+        };
+        const isCreatingPrompt = [
+          ESubToolItem.AutoSegmentByStroke,
+          ESubToolItem.AutoEdgeStitching,
+        ].includes(drawData.selectedSubTool);
+        setDrawData((s) => {
+          if (isCreatingPrompt) {
+            s.prompt.creatingMask?.stroke?.push(mouse);
+          } else {
+            s.creatingObject?.maskStep?.points.push(mouse);
+          }
+        });
+        // updateRender();
+        return true;
+      }
+    }
+    return false;
   };
+
+  const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
+    ({ object, prompt, event }) => {
+      return updateMaskWhenMouseMove({
+        object,
+        prompt,
+        event,
+      });
+    };
+
+  const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
+    ({ object, prompt, event }) => {
+      return updateMaskWhenMouseMove({
+        object,
+        prompt,
+        event,
+      });
+    };
 
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
-    startCreatingWhenMouseDown,
     startEditingWhenMouseDown,
+    startCreatingWhenMouseDown,
+    updateEditingWhenMouseMove,
+    updateCreatingWhenMouseMove,
   };
 };
 

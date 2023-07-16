@@ -3,6 +3,7 @@ import { drawRect } from '@/utils/draw';
 import { hexToRgba } from '@/utils/color';
 import { EElementType, LABELS_STROKE_DASH } from '@/constants';
 import {
+  Direction,
   getAnchorFixRectPoint,
   getAnchorUnderMouseByRect,
   getLinesFromPolygon,
@@ -10,6 +11,8 @@ import {
   getRectWithCenterAndSize,
   judgeFocusOnElement,
   mapRectToAnchors,
+  moveRect,
+  resizeRect,
   setRectBetweenPixels,
 } from '@/utils/compute';
 import {
@@ -95,11 +98,14 @@ export type ToolInstanceHookReturn = {
   renderPrompt: ToolHooksFunc.RenderPrompt;
   startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown;
   startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown;
+  updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove;
+  updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove;
 };
 
 export type ToolInstanceHook = (props: {
   editState: EditState;
   setEditState: Updater<EditState>;
+  drawData: DrawData;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
   updateHistory: (item: HistoryItem) => void;
@@ -110,6 +116,7 @@ export type ToolInstanceHook = (props: {
   containerMouse: CursorState;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
+  updateMouseCursor: (value: string, position?: Direction) => void;
 }) => ToolInstanceHookReturn;
 
 export const renderRect = (
@@ -258,4 +265,61 @@ export const editBaseElementWhenMouseDown = ({
     }
   });
   return true;
+};
+
+export const updateEditingRectWhenMouseMove = ({
+  editState,
+  contentMouse,
+  setDrawData,
+  updateMouseCursor,
+}: {
+  editState: EditState;
+  contentMouse: CursorState;
+  setDrawData: Updater<DrawData>;
+  updateMouseCursor: (value: string, position?: Direction) => void;
+}) => {
+  const { focusEleIndex, focusEleType, startRectResizeAnchor } = editState;
+  if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
+    // resize rectangle
+    if (startRectResizeAnchor) {
+      updateMouseCursor('resize', startRectResizeAnchor.type);
+      setDrawData((s) => {
+        if (
+          s.activeObjectIndex > -1 &&
+          editState.startRectResizeAnchor &&
+          s.creatingObject &&
+          s.creatingObject.rect
+        ) {
+          const newRect = resizeRect(
+            s.creatingObject.rect,
+            editState.startRectResizeAnchor,
+            contentMouse,
+          );
+          s.creatingObject.rect = { ...s.creatingObject.rect, ...newRect };
+        }
+      });
+      return true;
+    }
+    // move rectangle
+    if (editState.startElementMovePoint) {
+      updateMouseCursor('move');
+      setDrawData((s) => {
+        if (
+          s.activeObjectIndex > -1 &&
+          editState.startElementMovePoint &&
+          s.creatingObject &&
+          s.creatingObject.rect
+        ) {
+          const newRect = moveRect(
+            s.creatingObject.rect,
+            editState.startElementMovePoint,
+            contentMouse,
+          );
+          s.creatingObject.rect = { ...s.creatingObject.rect, ...newRect };
+        }
+      });
+      return true;
+    }
+  }
+  return false;
 };

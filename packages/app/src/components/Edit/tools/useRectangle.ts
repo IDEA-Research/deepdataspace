@@ -7,6 +7,7 @@ import {
   renderRect,
   renderActiveRect,
   editBaseElementWhenMouseDown,
+  updateEditingRectWhenMouseMove,
 } from './base';
 
 const useRectangle: ToolInstanceHook = ({
@@ -14,8 +15,10 @@ const useRectangle: ToolInstanceHook = ({
   imagePos,
   canvasRef,
   activeCanvasRef,
+  editState,
   setEditState,
   setDrawData,
+  updateMouseCursor,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -80,19 +83,6 @@ const useRectangle: ToolInstanceHook = ({
     // nothing in rect
   };
 
-  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
-    ({ point, basic }) => {
-      setDrawData((s) => {
-        s.activeObjectIndex = -1;
-        s.creatingObject = {
-          type: EObjectType.Rectangle,
-          startPoint: point,
-          ...basic,
-        };
-      });
-      return true;
-    };
-
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
   }) => {
@@ -109,13 +99,43 @@ const useRectangle: ToolInstanceHook = ({
     return false;
   };
 
+  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
+    ({ point, basic }) => {
+      setDrawData((s) => {
+        s.activeObjectIndex = -1;
+        s.creatingObject = {
+          type: EObjectType.Rectangle,
+          startPoint: point,
+          ...basic,
+        };
+      });
+      return true;
+    };
+
+  const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
+    () => {
+      return updateEditingRectWhenMouseMove({
+        editState,
+        contentMouse,
+        setDrawData,
+        updateMouseCursor,
+      });
+    };
+
+  const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
+    () => {
+      return false;
+    };
+
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
-    startCreatingWhenMouseDown,
     startEditingWhenMouseDown,
+    startCreatingWhenMouseDown,
+    updateEditingWhenMouseMove,
+    updateCreatingWhenMouseMove,
   };
 };
 

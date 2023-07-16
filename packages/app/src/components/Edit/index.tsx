@@ -264,9 +264,11 @@ const Edit: React.FC<EditProps> = (props) => {
     canvasRef,
     activeCanvasRef,
     setEditState,
+    drawData,
     setDrawData,
     setDrawDataWithHistory,
     updateHistory,
+    updateMouseCursor,
   };
   const rectangleHooks = useRectangle(toolInstanceHookprops);
   const polygenHooks = usePolygon(toolInstanceHookprops);

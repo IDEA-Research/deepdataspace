@@ -9,6 +9,8 @@ import {
   getLinesFromPolygon,
   getMidPointFromTwoPoints,
   isPointOnPoint,
+  movePoint,
+  movePolygon,
   translateAnnotCoord,
   translatePointCoord,
 } from '@/utils/compute';
@@ -53,6 +55,7 @@ const usePolygon: ToolInstanceHook = ({
   setEditState,
   setDrawData,
   updateHistory,
+  updateMouseCursor,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -256,6 +259,22 @@ const usePolygon: ToolInstanceHook = ({
     }
   };
 
+  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
+    object,
+  }) => {
+    if (
+      editBaseElementWhenMouseDown({
+        object,
+        contentMouse,
+        setEditState,
+        setDrawData,
+      })
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
     ({ point, basic }) => {
       setDrawData((s) => {
@@ -320,29 +339,82 @@ const usePolygon: ToolInstanceHook = ({
       return true;
     };
 
-  const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
-    object,
-  }) => {
-    if (
-      editBaseElementWhenMouseDown({
-        object,
-        contentMouse,
-        setEditState,
-        setDrawData,
-      })
-    ) {
-      return true;
-    }
-    return false;
-  };
+  const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
+    () => {
+      const { focusEleType, focusEleIndex } = editState;
+      if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
+        const { index, pointIndex } = editState.focusPolygonInfo;
+        if (editState.startElementMovePoint && index > -1) {
+          updateMouseCursor('move');
+          if (pointIndex > -1) {
+            // move single point
+            setDrawData((s) => {
+              if (
+                s.activeObjectIndex > -1 &&
+                editState.focusEleIndex > -1 &&
+                editState.startElementMovePoint &&
+                s.creatingObject?.polygon?.group[index]
+              ) {
+                const polygon = s.creatingObject?.polygon?.group[index];
+                polygon[pointIndex] = movePoint(contentMouse);
+              }
+            });
+            return true;
+          } else {
+            // move polygon
+            setDrawData((s) => {
+              if (
+                s.activeObjectIndex > -1 &&
+                editState.focusEleIndex > -1 &&
+                editState.startElementMovePoint &&
+                s.creatingObject?.polygon?.group[index]
+              ) {
+                const polygon = s.creatingObject?.polygon?.group[index];
+                const newPolygon = movePolygon(
+                  polygon,
+                  editState.startElementMovePoint,
+                  contentMouse,
+                );
+                s.creatingObject.polygon.group[index] = newPolygon;
+                // TODO: fix move offset
+                // console.log(
+                //   '>>> move polygon',
+                //   editState.startElementMovePoint.mousePoint,
+                //   'to', {
+                //     x: contentMouse.elementX,
+                //     y: contentMouse.elementY,
+                //   }
+                // );
+                setEditState((s) => {
+                  if (s.startElementMovePoint)
+                    s.startElementMovePoint.mousePoint = {
+                      x: contentMouse.elementX,
+                      y: contentMouse.elementY,
+                    };
+                });
+              }
+            });
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+  const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
+    () => {
+      return false;
+    };
 
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
-    startCreatingWhenMouseDown,
     startEditingWhenMouseDown,
+    startCreatingWhenMouseDown,
+    updateEditingWhenMouseMove,
+    updateCreatingWhenMouseMove,
   };
 };
 

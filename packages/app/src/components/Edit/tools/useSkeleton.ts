@@ -9,6 +9,7 @@ import {
 import {
   getKeypointsFromRect,
   getRectFromPoints,
+  movePoint,
   translatePointsToPointObjs,
   translateRectCoord,
 } from '@/utils/compute';
@@ -18,6 +19,7 @@ import {
   renderRect,
   renderActiveRect,
   editBaseElementWhenMouseDown,
+  updateEditingRectWhenMouseMove,
 } from './base';
 import { changeRgbaOpacity, hexToRgba } from '@/utils/color';
 
@@ -74,6 +76,7 @@ const useSkeleton: ToolInstanceHook = ({
   activeCanvasRef,
   setEditState,
   setDrawData,
+  updateMouseCursor,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({
     object,
@@ -194,19 +197,6 @@ const useSkeleton: ToolInstanceHook = ({
     // nothing in skeleton
   };
 
-  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
-    ({ point, basic }) => {
-      setDrawData((s) => {
-        s.activeObjectIndex = -1;
-        s.creatingObject = {
-          type: EObjectType.Skeleton,
-          startPoint: point,
-          ...basic,
-        };
-      });
-      return true;
-    };
-
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
   }) => {
@@ -223,13 +213,71 @@ const useSkeleton: ToolInstanceHook = ({
     return false;
   };
 
+  const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
+    ({ point, basic }) => {
+      setDrawData((s) => {
+        s.activeObjectIndex = -1;
+        s.creatingObject = {
+          type: EObjectType.Skeleton,
+          startPoint: point,
+          ...basic,
+        };
+      });
+      return true;
+    };
+
+  const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
+    () => {
+      // change rect
+      if (
+        updateEditingRectWhenMouseMove({
+          editState,
+          contentMouse,
+          setDrawData,
+          updateMouseCursor,
+        })
+      )
+        return true;
+
+      const { focusEleType } = editState;
+      if (focusEleType === EElementType.Circle) {
+        // move point
+        if (editState.startElementMovePoint) {
+          updateMouseCursor('move');
+          setDrawData((s) => {
+            if (
+              s.activeObjectIndex > -1 &&
+              editState.focusEleIndex > -1 &&
+              editState.startElementMovePoint &&
+              s.creatingObject?.keypoints?.points?.[editState.focusEleIndex]
+            ) {
+              const point =
+                s.creatingObject?.keypoints?.points?.[editState.focusEleIndex];
+              const { x: newX, y: newY } = movePoint(contentMouse);
+              point.x = newX;
+              point.y = newY;
+            }
+          });
+          return true;
+        }
+      }
+      return false;
+    };
+
+  const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
+    () => {
+      return false;
+    };
+
   return {
     renderObject,
     renderCreatingObject,
     renderEditingObject,
     renderPrompt,
-    startCreatingWhenMouseDown,
     startEditingWhenMouseDown,
+    startCreatingWhenMouseDown,
+    updateEditingWhenMouseMove,
+    updateCreatingWhenMouseMove,
   };
 };
 
