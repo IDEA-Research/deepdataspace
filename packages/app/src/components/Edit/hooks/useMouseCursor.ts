@@ -1,22 +1,15 @@
 import { useCallback, useEffect } from 'react';
-import { CursorState } from 'ahooks/lib/useMouse';
 import { DrawData, EditState } from '../type';
-import { Direction, getAnchorUnderMouseByRect } from '@/utils/compute';
-import { EBasicToolItem, EElementType } from '@/constants';
+import { Direction } from '@/utils/compute';
+import { EBasicToolItem } from '@/constants';
 
 interface IProps {
   topCanvas: HTMLCanvasElement | null;
   editState: EditState;
   drawData: DrawData;
-  contentMouse: CursorState;
 }
 
-const useMouseCursor = ({
-  topCanvas,
-  editState,
-  drawData,
-  contentMouse,
-}: IProps) => {
+const useMouseCursor = ({ topCanvas, editState, drawData }: IProps) => {
   const updateMouseCursor = useCallback(
     (value: string, position?: Direction) => {
       if (!topCanvas) return;
@@ -47,46 +40,6 @@ const useMouseCursor = ({
     [topCanvas],
   );
 
-  const updateMouseCursorWhenMouseMove = () => {
-    if (
-      editState.focusObjectIndex > -1 &&
-      editState.focusObjectIndex === drawData.activeObjectIndex
-    ) {
-      switch (editState.focusEleType) {
-        case EElementType.Rect: {
-          if (drawData.activeObjectIndex > -1) {
-            const { rect } = drawData.objectList[drawData.activeObjectIndex];
-            if (rect) {
-              const anchorUnderMouse = getAnchorUnderMouseByRect(rect!, {
-                x: contentMouse.elementX,
-                y: contentMouse.elementY,
-              });
-              // focus on the resize point
-              if (anchorUnderMouse) {
-                updateMouseCursor('resize', anchorUnderMouse.type);
-              } else {
-                updateMouseCursor('move');
-              }
-            }
-          }
-          break;
-        }
-        case EElementType.Polygon:
-        case EElementType.Circle:
-        default: {
-          updateMouseCursor('pointer');
-          break;
-        }
-      }
-    } else if (editState.focusObjectIndex > -1) {
-      updateMouseCursor('pointer');
-    } else if (drawData.selectedTool !== EBasicToolItem.Drag) {
-      updateMouseCursor('crosshair');
-    } else {
-      updateMouseCursor('grab');
-    }
-  };
-
   useEffect(() => {
     if (editState.allowMove) {
       updateMouseCursor('grabbing');
@@ -101,7 +54,6 @@ const useMouseCursor = ({
 
   return {
     updateMouseCursor,
-    updateMouseCursorWhenMouseMove,
   };
 };
 

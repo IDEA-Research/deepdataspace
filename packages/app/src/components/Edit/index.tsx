@@ -221,11 +221,10 @@ const Edit: React.FC<EditProps> = (props) => {
     labelColors,
   });
 
-  const { updateMouseCursor, updateMouseCursorWhenMouseMove } = useMouseCursor({
+  const { updateMouseCursor } = useMouseCursor({
     topCanvas: activeCanvasRef.current,
     editState,
     drawData,
-    contentMouse,
   });
 
   const {
@@ -309,7 +308,7 @@ const Edit: React.FC<EditProps> = (props) => {
     isAIPoseEstimation,
     categories,
     updateRender,
-    updateMouseCursorWhenMouseMove,
+    updateMouseCursor,
     setCurrSelectedObject,
     objectHooksMap,
   });
@@ -495,6 +494,11 @@ const Edit: React.FC<EditProps> = (props) => {
       drawData.activeObjectIndex === -1
     );
 
+  const showSubTools =
+    drawData.selectedTool === EBasicToolItem.Mask ||
+    (drawData.creatingObject &&
+      drawData.creatingObject.type === EObjectType.Mask);
+
   if (visible) {
     return (
       <div className={styles.editor}>
@@ -665,7 +669,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   redo={redo}
                   deleteAll={removeAllObjects}
                 />
-                {drawData.selectedTool === EBasicToolItem.Mask && (
+                {showSubTools && (
                   <SubToolBar
                     selectedSubTool={drawData.selectedSubTool}
                     isAIAnnotationActive={drawData.AIAnnotation}

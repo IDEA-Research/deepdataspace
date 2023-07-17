@@ -232,23 +232,29 @@ const useSkeleton: ToolInstanceHook = ({
     };
 
   const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
-    () => {
+    ({ object }) => {
       // change rect
       if (
         updateEditingRectWhenMouseMove({
+          object,
           editState,
           contentMouse,
+          drawData,
           setDrawData,
           updateMouseCursor,
         })
       )
         return true;
 
-      const { focusEleType } = editState;
-      if (focusEleType === EElementType.Circle) {
+      if (
+        editState.focusObjectIndex === drawData.activeObjectIndex &&
+        editState.focusEleType === EElementType.Circle
+      ) {
+        updateMouseCursor('pointer');
+      }
+      if (editState.focusEleType === EElementType.Circle) {
         // move point
         if (editState.startElementMovePoint) {
-          updateMouseCursor('move');
           setDrawData((s) => {
             if (
               s.activeObjectIndex > -1 &&

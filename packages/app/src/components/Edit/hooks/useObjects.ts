@@ -201,11 +201,6 @@ const useObjects = ({
       ) {
         s.selectedTool = EBasicToolItem.Drag;
       }
-
-      // TODO: support edit mask in drag tool
-      if (s.objectList[index].type === EObjectType.Mask) {
-        s.selectedTool = EBasicToolItem.Mask;
-      }
     });
   };
 

@@ -398,6 +398,7 @@ const useMask: ToolInstanceHook = ({
   setDrawDataWithHistory,
   updateHistory,
   onAiAnnotation,
+  updateMouseCursor,
 }) => {
   const renderObject: ToolHooksFunc.RenderObject = ({ object, maskAlpha }) => {
     const { maskCanvasElement } = object;
@@ -745,6 +746,7 @@ const useMask: ToolInstanceHook = ({
     object,
   }) => {
     if (object || drawData.prompt.creatingMask) {
+      updateMouseCursor('crosshair');
       const allowRecordMousePath = [
         ESubToolItem.BrushAdd,
         ESubToolItem.BrushErase,
@@ -756,7 +758,6 @@ const useMask: ToolInstanceHook = ({
 
       // Left/Right button is pressed while mousemove
       const isMousePress = event.buttons === 1 || event.buttons === 2;
-
       if (allowRecordMousePath && isMousePress) {
         const mouse = {
           x: contentMouse.elementX,
@@ -773,9 +774,8 @@ const useMask: ToolInstanceHook = ({
             s.creatingObject?.maskStep?.points.push(mouse);
           }
         });
-        // updateRender();
-        return true;
       }
+      return true;
     }
     return false;
   };

@@ -116,10 +116,12 @@ const useRectangle: ToolInstanceHook = ({
     };
 
   const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
-    () => {
+    ({ object }) => {
       return updateEditingRectWhenMouseMove({
+        object,
         editState,
         contentMouse,
+        drawData,
         setDrawData,
         updateMouseCursor,
       });

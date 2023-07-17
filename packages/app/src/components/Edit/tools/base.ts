@@ -269,21 +269,45 @@ export const editBaseElementWhenMouseDown = ({
 };
 
 export const updateEditingRectWhenMouseMove = ({
+  object,
   editState,
   contentMouse,
+  drawData,
   setDrawData,
   updateMouseCursor,
 }: {
+  object: ICreatingObject;
   editState: EditState;
   contentMouse: CursorState;
+  drawData: DrawData;
   setDrawData: Updater<DrawData>;
   updateMouseCursor: (value: string, position?: Direction) => void;
 }) => {
-  const { focusEleIndex, focusEleType, startRectResizeAnchor } = editState;
+  const {
+    focusObjectIndex,
+    focusEleIndex,
+    focusEleType,
+    startRectResizeAnchor,
+  } = editState;
+  // update mouse cursor
+  if (
+    focusObjectIndex === drawData.activeObjectIndex &&
+    focusEleType === EElementType.Rect &&
+    object.rect
+  ) {
+    const anchorUnderMouse = getAnchorUnderMouseByRect(object.rect, {
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    });
+    if (anchorUnderMouse) {
+      updateMouseCursor('resize', anchorUnderMouse.type);
+    } else {
+      updateMouseCursor('move');
+    }
+  }
   if (focusEleType === EElementType.Rect && focusEleIndex === 0) {
     // resize rectangle
     if (startRectResizeAnchor) {
-      updateMouseCursor('resize', startRectResizeAnchor.type);
       setDrawData((s) => {
         if (
           s.activeObjectIndex > -1 &&
@@ -303,7 +327,6 @@ export const updateEditingRectWhenMouseMove = ({
     }
     // move rectangle
     if (editState.startElementMovePoint) {
-      updateMouseCursor('move');
       setDrawData((s) => {
         if (
           s.activeObjectIndex > -1 &&

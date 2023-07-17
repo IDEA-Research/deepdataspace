@@ -349,7 +349,13 @@ const usePolygon: ToolInstanceHook = ({
 
   const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
     () => {
-      const { focusEleType, focusEleIndex } = editState;
+      const { focusEleType, focusEleIndex, focusObjectIndex } = editState;
+      if (
+        focusObjectIndex === drawData.activeObjectIndex &&
+        focusEleType === EElementType.Polygon
+      ) {
+        updateMouseCursor('pointer');
+      }
       if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
         const { index, pointIndex } = editState.focusPolygonInfo;
         if (editState.startElementMovePoint && index > -1) {

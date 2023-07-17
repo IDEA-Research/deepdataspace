@@ -2,6 +2,7 @@ import { MouseEventHandler, useState } from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { DrawData, EditState, EditorMode } from '../type';
 import {
+  Direction,
   getFocusPartInPolygonGroup,
   isInCanvas,
   judgeFocusOnElement,
@@ -29,7 +30,7 @@ interface IProps {
   isAIPoseEstimation: boolean;
   categories: DATA.Category[];
   updateRender: (updateDrawData?: DrawData) => void;
-  updateMouseCursorWhenMouseMove: () => void;
+  updateMouseCursor: (value: string, position?: Direction) => void;
   setCurrSelectedObject: (index?: number) => void;
   objectHooksMap: Record<EObjectType, ToolInstanceHookReturn>;
 }
@@ -45,7 +46,7 @@ const useMouseEvents = ({
   isAIPoseEstimation,
   categories,
   updateRender,
-  updateMouseCursorWhenMouseMove,
+  updateMouseCursor,
   setCurrSelectedObject,
   objectHooksMap,
 }: IProps) => {
@@ -119,6 +120,7 @@ const useMouseEvents = ({
     // 1. Edit object
     if (drawData.creatingObject && drawData.activeObjectIndex > -1) {
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[drawData.creatingObject.type].startEditingWhenMouseDown({
           event,
           object: drawData.creatingObject,
@@ -132,6 +134,7 @@ const useMouseEvents = ({
     if (drawData.selectedTool !== EBasicToolItem.Drag && !isAIPoseEstimation) {
       const objectType = EBasicToolTypeMap[drawData.selectedTool];
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[objectType].startCreatingWhenMouseDown({
           event,
           object: drawData.creatingObject,
@@ -163,11 +166,19 @@ const useMouseEvents = ({
   const onMouseMove: MouseEventHandler<HTMLDivElement> = (event) => {
     if (!visible || editState.isRequiring || editState.allowMove) return;
 
-    if (mode !== EditorMode.Edit) return;
+    // update default cursor
+    if (editState.focusObjectIndex > -1) {
+      updateMouseCursor('pointer');
+    } else if (drawData.selectedTool !== EBasicToolItem.Drag) {
+      updateMouseCursor('crosshair');
+    } else {
+      updateMouseCursor('grab');
+    }
 
-    // 1. Edit object
     if (drawData.creatingObject && drawData.activeObjectIndex > -1) {
+      // 1. Edit object
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[drawData.creatingObject.type].updateEditingWhenMouseMove(
           {
             event,
@@ -177,15 +188,14 @@ const useMouseEvents = ({
       ) {
         return;
       }
-    }
-
-    /** 2. Create Object */
-    if (
+    } else if (
       drawData.selectedTool !== EBasicToolItem.Drag &&
       drawData.activeObjectIndex < 0
     ) {
+      /** 2. Create Object */
       const objectType = EBasicToolTypeMap[drawData.selectedTool];
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[objectType].updateCreatingWhenMouseMove({
           event,
           object: drawData.creatingObject,
@@ -197,7 +207,6 @@ const useMouseEvents = ({
 
     /** 3. Updata focus info */
     updateFocusInfoWhenMouseMove();
-    updateMouseCursorWhenMouseMove();
     updateRender();
   };
 
@@ -213,9 +222,10 @@ const useMouseEvents = ({
       return;
     }
 
-    // 1. Edit object
     if (drawData.creatingObject && drawData.activeObjectIndex > -1) {
+      // 1. Edit object
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[drawData.creatingObject.type].finishEditingWhenMouseUp({
           event,
           object: drawData.creatingObject,
@@ -223,14 +233,14 @@ const useMouseEvents = ({
       ) {
         return;
       }
-    }
-
-    if (
+    } else if (
       drawData.selectedTool !== EBasicToolItem.Drag &&
       drawData.activeObjectIndex < 0
     ) {
+      /** 2. Create Object */
       const objectType = EBasicToolTypeMap[drawData.selectedTool];
       if (
+        mode === EditorMode.Edit &&
         objectHooksMap[objectType].finishCreatingWhenMouseUp({
           event,
           object: drawData.creatingObject,
