@@ -4,6 +4,7 @@ import {
   EObjectType,
   EDITOR_TOOL_ICON,
   EActionToolItem,
+  ESubToolItem,
 } from '@/constants';
 import { CloseOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons/lib/components/Icon';
@@ -16,7 +17,9 @@ import { FloatWrapper } from '@/components/FloatWrapper';
 import { ReactComponent as DragToolIcon } from '@/assets/svg/drag.svg';
 import { useLocale } from '@/locales/helper';
 import CategoryCreator from '../CategoryCreator';
-import { DATA } from '@/services/type';
+import { DATA, SegmentEverythingParams } from '@/services/type';
+import { OnAiAnnotationFunc } from '../../hooks/useActions';
+import { useImmer } from 'use-immer';
 
 interface IProps {
   drawData: DrawData;
@@ -25,7 +28,7 @@ interface IProps {
   setAiLabels: (labels: string[]) => void;
   onCreateCategory: (name: string) => void;
   onExitAIAnnotation: () => void;
-  onAiAnnotation: () => void;
+  onAiAnnotation: OnAiAnnotationFunc;
   onSaveCurrCreate: () => void;
   onCancelCurrCreate: () => void;
   onChangeConfidenceRange: (range: [number, number]) => void;
@@ -46,6 +49,13 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   onApplyCurVisibleObjects,
 }) => {
   const { localeText } = useLocale();
+
+  /** Parameters for requesting segmemt everything API */
+  const [samParams, setSamParams] = useImmer<SegmentEverythingParams>({
+    predIouThresh: 0.89,
+    pointsPerSide: 32,
+    minMaskRegionArea: 300,
+  });
 
   const titleMap = {
     [EBasicToolItem.Drag]: {
@@ -90,7 +100,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
 
   const mouseEventHandler = (event: React.MouseEvent) => {
     // TODO
-    if (drawData.selectedTool !== EBasicToolItem.Skeleton) {
+    if (
+      drawData.selectedTool !== EBasicToolItem.Skeleton &&
+      drawData.selectedTool !== EBasicToolItem.Mask
+    ) {
       event.stopPropagation();
     } else {
       event.preventDefault();
@@ -98,13 +111,17 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   };
 
   const isVisible = useMemo(() => {
-    return (
-      drawData.AIAnnotation &&
-      ![EBasicToolItem.Drag, EBasicToolItem.Mask].includes(
-        drawData.selectedTool,
-      )
-    );
-  }, [drawData.selectedTool, drawData.AIAnnotation]);
+    if (!drawData.AIAnnotation || drawData.selectedTool === EBasicToolItem.Drag)
+      return false;
+
+    if (
+      drawData.selectedTool === EBasicToolItem.Mask &&
+      drawData.selectedSubTool !== ESubToolItem.AutoSegmentEverything
+    )
+      return false;
+
+    return true;
+  }, [drawData.selectedTool, drawData.selectedSubTool, drawData.AIAnnotation]);
 
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
@@ -173,7 +190,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
               >
                 {labelOptions}
               </Select>
-              <Button className={styles.action} onClick={onAiAnnotation}>
+              <Button className={styles.action} onClick={() => onAiAnnotation}>
                 {localeText('smartAnnotation.annotate')}
               </Button>
             </div>
@@ -202,7 +219,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
               >
                 {labelOptions}
               </Select>
-              <Button className={styles.action} onClick={onAiAnnotation}>
+              <Button className={styles.action} onClick={() => onAiAnnotation}>
                 {localeText('smartAnnotation.annotate')}
               </Button>
             </div>
@@ -267,6 +284,93 @@ const SmartAnnotationControl: React.FC<IProps> = ({
               )}
             </>
           )}
+          {drawData.selectedTool === EBasicToolItem.Mask &&
+            drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything && (
+              <>
+                <div
+                  id={'param-controls'}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: '',
+                    width: '100%',
+                  }}
+                >
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>{'虚拟点击密度'}</div>
+                    <Slider
+                      className={styles.slider}
+                      value={samParams.pointsPerSide}
+                      onChange={(val) =>
+                        setSamParams((s) => {
+                          s.pointsPerSide = val;
+                        })
+                      }
+                      min={16}
+                      max={64}
+                      tooltip={{
+                        //@ts-ignore
+                        getPopupContainer: () =>
+                          document.getElementById('param-controls'),
+                      }}
+                    />
+                  </div>
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>{'IoU阈值'}</div>
+                    <Slider
+                      className={styles.slider}
+                      value={samParams.predIouThresh}
+                      onChange={(val) =>
+                        setSamParams((s) => {
+                          s.predIouThresh = val;
+                        })
+                      }
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      tooltip={{
+                        //@ts-ignore
+                        getPopupContainer: () =>
+                          document.getElementById('param-controls'),
+                      }}
+                    />
+                  </div>
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>{'最小分割面积'}</div>
+                    <Slider
+                      className={styles.slider}
+                      value={samParams.minMaskRegionArea}
+                      onChange={(val) =>
+                        setSamParams((s) => {
+                          s.minMaskRegionArea = val;
+                        })
+                      }
+                      min={10}
+                      max={1000}
+                      tooltip={{
+                        //@ts-ignore
+                        getPopupContainer: () =>
+                          document.getElementById('param-controls'),
+                      }}
+                    />
+                  </div>
+                </div>
+                {
+                  <Button
+                    style={{ alignSelf: 'flex-end' }}
+                    type="primary"
+                    onClick={() =>
+                      onAiAnnotation({
+                        drawData,
+                        segmentEverythingParams: samParams,
+                      })
+                    }
+                  >
+                    {localeText('smartAnnotation.annotate')}
+                  </Button>
+                }
+              </>
+            )}
         </div>
       </Card>
     </FloatWrapper>

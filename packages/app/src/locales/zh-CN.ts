@@ -100,7 +100,7 @@ export default {
   'smartAnnotation.detection.name': '智能目标检测',
   'smartAnnotation.segmentation.name': '智能图像分割(多边形)',
   'smartAnnotation.pose.name': '智能姿态估计',
-  'smartAnnotation.mask.name': '智能图像分割（Mask）',
+  'smartAnnotation.mask.name': '智能全景分割（SAM）',
   'smartAnnotation.annotate': '生成标注',
   'smartAnnotation.detection.input': '选择或输入类别',
   'smartAnnotation.pose.input': '选择模版',

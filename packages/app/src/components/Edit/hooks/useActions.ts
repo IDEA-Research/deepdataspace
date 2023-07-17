@@ -16,6 +16,8 @@ import {
   EnumModelType,
   FetchAIMaskSegmentReq,
   FetchEdgeStitchingReq,
+  FetchSegmentEverythingReq,
+  SegmentEverythingParams,
 } from '@/services/type';
 import {
   BODY_TEMPLATE,
@@ -73,6 +75,7 @@ export type OnAiAnnotationFunc = ({
   bbox,
   maskPrompts,
   segmentationClicks,
+  segmentEverythingParams,
 }: {
   type?: EObjectType;
   drawData: DrawData;
@@ -83,6 +86,7 @@ export type OnAiAnnotationFunc = ({
     point: IPoint;
     isPositive: boolean;
   }[];
+  segmentEverythingParams?: SegmentEverythingParams;
 }) => Promise<void>;
 
 const useActions = ({
@@ -637,6 +641,50 @@ const useActions = ({
     }
   };
 
+  const requestSegmentEverything = async (
+    source: string,
+    params?: SegmentEverythingParams,
+  ) => {
+    const reqParams: FetchSegmentEverythingReq = {
+      ...params,
+    };
+
+    if (editState.imageCacheId) {
+      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    } else {
+      Object.assign(reqParams, { image: source });
+    }
+
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.SegmentEverything>(
+        EnumModelType.SegmentEverything,
+        reqParams,
+      );
+      if (result && result.rleList?.length > 0) {
+        const maskObjects = result.rleList.map((item) => {
+          const color = labelColors[latestLabel] || '#fff';
+          return {
+            type: EObjectType.Mask,
+            hidden: false,
+            label: latestLabel,
+            maskRle: item.maskRle,
+            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
+            conf: 1,
+          };
+        });
+
+        updateAllObject(maskObjects);
+        message.success(localeText('smartAnnotation.msg.success'));
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onAiAnnotation: OnAiAnnotationFunc = async ({
     type,
     drawData,
@@ -644,6 +692,7 @@ const useActions = ({
     bbox,
     maskPrompts,
     segmentationClicks,
+    segmentEverythingParams,
   }) => {
     if (isRequiring) return;
 
@@ -699,6 +748,10 @@ const useActions = ({
         case EObjectType.Mask: {
           if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
             await requestEdgeStitchingForMask(drawData, imgSrc);
+          } else if (
+            drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything
+          ) {
+            await requestSegmentEverything(imgSrc, segmentEverythingParams);
           } else {
             await requestAiSegmentByMask(drawData, imgSrc, maskPrompts);
           }

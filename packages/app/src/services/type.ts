@@ -244,14 +244,15 @@ export interface FetchEdgeStitchingReq {
   radius: number;
 }
 
-export interface FetchSegmentEverythingReq {
-  image?: string; // base64
-  imageId?: string;
-  points_per_side?: number; // default 32
-  pred_iou_thresh?: number; // default 0.89
-  min_mask_region_area?: number; // default 300
+export interface SegmentEverythingParams {
+  pointsPerSide?: number; // default 32
+  predIouThresh?: number; // default 0.89
+  minMaskRegionArea?: number; // default 300
 }
-
+export interface FetchSegmentEverythingReq extends SegmentEverythingParams {
+  image?: string;
+  imageId?: string;
+}
 export interface FetchAIPoseEstimationReq {
   image: string;
   targets: string;

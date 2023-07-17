@@ -83,15 +83,15 @@ export const SubToolBar: React.FC<IProps> = ({
         available: true,
       },
       {
-        key: ESubToolItem.AutoSegmentByClick,
-        name: localeText('editor.subtoolbar.mask.click'),
-        icon: <Icon component={ClickIcon} />,
-        available: true,
-      },
-      {
         key: ESubToolItem.AutoSegmentByStroke,
         name: localeText('editor.subtoolbar.mask.stroke'),
         icon: <Icon component={StrokeIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByClick,
+        name: localeText('editor.subtoolbar.mask.click'),
+        icon: <Icon component={ClickIcon} />,
         available: true,
       },
       {

@@ -107,7 +107,7 @@ export default {
   'smartAnnotation.detection.input': 'Select or enter categories',
   'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
-  'smartAnnotation.mask.name': 'Intelligent Segmentation (Mask)',
+  'smartAnnotation.mask.name': 'Intelligent Panoramic Segmentation (SAM)',
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
