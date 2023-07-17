@@ -180,7 +180,7 @@ export const editBaseElementWhenMouseDown = ({
   setEditState: Updater<EditState>;
   setDrawData: Updater<DrawData>;
 }) => {
-  const { focusEleIndex, focusEleType } = judgeFocusOnElement(
+  const { focusEleIndex, focusEleType, focusPolygonInfo } = judgeFocusOnElement(
     contentMouse,
     object,
   );
@@ -230,20 +230,10 @@ export const editBaseElementWhenMouseDown = ({
         break;
       }
       case EElementType.Polygon: {
-        const { lineIndex, index } = s.focusPolygonInfo;
+        const { lineIndex, index } = focusPolygonInfo;
         if (polygon) {
-          // move
-          s.startElementMovePoint = {
-            topLeftPoint: {
-              x: 0,
-              y: 0,
-            },
-            mousePoint: mouse,
-            initPoint: mouse,
-          };
-
-          // add point
           if (lineIndex > -1) {
+            // add point
             const line = getLinesFromPolygon(polygon.group[index])[lineIndex];
             if (line) {
               const midPoint = getMidPointFromTwoPoints(line.start, line.end);
@@ -258,8 +248,17 @@ export const editBaseElementWhenMouseDown = ({
                 }
                 s.creatingObject = { ...activeObject };
               });
+              s.focusPolygonInfo.pointIndex = lineIndex + 1;
             }
           }
+          s.startElementMovePoint = {
+            topLeftPoint: {
+              x: 0,
+              y: 0,
+            },
+            mousePoint: mouse,
+            initPoint: mouse,
+          };
         }
         break;
       }

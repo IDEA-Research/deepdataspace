@@ -407,7 +407,7 @@ const isPointOnLine = (line: ILine, mouse: CursorState): boolean => {
     Math.pow(line.end.x - line.start.x, 2) +
       Math.pow(line.end.y - line.start.y, 2),
   );
-  const buffer = 5;
+  const buffer = 0.75;
   return (
     distanceFromStart + distanceFromEnd >= lineLength - buffer &&
     distanceFromStart + distanceFromEnd <= lineLength + buffer
@@ -424,89 +424,29 @@ export const getLimitRectFromPoints = (points: IPoint[]): IRect => {
   };
 };
 
-export const judgeFocusOnElement = (
-  mouse: CursorState,
-  object: IAnnotationObject,
-): {
-  focusEleIndex: number;
-  focusEleType: EElementType;
-} => {
-  let focusEleType = EElementType.None;
-  let focusEleIndex = -1;
-
-  if (!isInCanvas(mouse) || object.hidden) {
-    return { focusEleType, focusEleIndex };
+export const getLinesFromPolygon = (polygon: IPolygon): ILine[] => {
+  const lines: ILine[] = [];
+  for (let i = 0; i < polygon.length; i++) {
+    const startPoint = polygon[i];
+    const endPoint = polygon[(i + 1) % polygon.length];
+    lines.push({ start: startPoint, end: endPoint });
   }
-
-  if (object.keypoints?.points) {
-    const { points } = object.keypoints;
-    for (let j = 0; j < points.length; j++) {
-      const { visible, x, y } = points[j];
-      if (
-        visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
-        isPointOnPoint({ x, y }, mouse)
-      ) {
-        focusEleType = EElementType.Circle;
-        focusEleIndex = j;
-
-        return { focusEleType, focusEleIndex };
-      }
-    }
-  }
-
-  if (object.polygon && object.polygon.visible) {
-    const { group } = object.polygon;
-    const polygonIdx = group.findIndex((polygon) =>
-      isPointInside(
-        polygon,
-        {
-          x: mouse.elementX,
-          y: mouse.elementY,
-        },
-        EElementType.Polygon,
-      ),
-    );
-    if (polygonIdx > -1) {
-      const pointFocusIdx = group[polygonIdx].findIndex((point) => {
-        return isPointOnPoint(point, mouse);
-      });
-      if (pointFocusIdx > -1) {
-        focusEleIndex = 0;
-        focusEleType = EElementType.Circle;
-      }
-      focusEleType = EElementType.Polygon;
-      focusEleIndex = 0;
-      return { focusEleType, focusEleIndex };
-    }
-  }
-
-  if (
-    object.rect &&
-    isPointInside(
-      expandRect(object.rect, { x: 8, y: 8 }),
-      {
-        x: mouse.elementX,
-        y: mouse.elementY,
-      },
-      EElementType.Rect,
-    )
-  ) {
-    focusEleType = EElementType.Rect;
-    focusEleIndex = 0;
-    return { focusEleType, focusEleIndex };
-  }
-
-  return { focusEleType, focusEleIndex };
+  return lines;
 };
 
 export const judgeFocusOnSingleObject = (
-  clientSize: ISize,
-  mousePoint: IPoint,
+  mouse: CursorState,
   object: IAnnotationObject,
+  clientSize?: ISize,
 ): boolean => {
   if (object.hidden) {
     return false;
   }
+
+  const mousePoint = {
+    x: mouse.elementX,
+    y: mouse.elementY,
+  };
 
   switch (object.type) {
     case EObjectType.Rectangle: {
@@ -529,6 +469,19 @@ export const judgeFocusOnSingleObject = (
           isPointInside(polygon, mousePoint, EElementType.Polygon),
         );
         if (isInside) return true;
+        const isInsidePoints = group.some((polygon) => {
+          return polygon.some((point) => {
+            return isPointOnPoint(point, mouse);
+          });
+        });
+        if (isInsidePoints) return true;
+        const isOnLines = group.some((polygon) => {
+          const lines = getLinesFromPolygon(polygon);
+          return lines.some((line) => {
+            return isPointOnLine(line, mouse);
+          });
+        });
+        if (isOnLines) return true;
       }
       break;
     }
@@ -586,7 +539,7 @@ export const judgeFocusOnSingleObject = (
     case EObjectType.Mask: {
       if (object.maskCanvasElement) {
         const tempCtx = object.maskCanvasElement.getContext('2d');
-        if (!tempCtx) break;
+        if (!tempCtx || !clientSize) break;
 
         // get target pixel data
         const pixelData = tempCtx.getImageData(
@@ -605,6 +558,116 @@ export const judgeFocusOnSingleObject = (
   return false;
 };
 
+export const judgeFocusOnElement = (
+  mouse: CursorState,
+  object: IAnnotationObject,
+): {
+  focusEleIndex: number;
+  focusEleType: EElementType;
+  focusPolygonInfo: {
+    index: number;
+    pointIndex: number;
+    lineIndex: number;
+  };
+} => {
+  let focusEleType = EElementType.None;
+  let focusEleIndex = -1;
+  let focusPolygonInfo = {
+    index: -1,
+    pointIndex: -1,
+    lineIndex: -1,
+  };
+
+  if (!isInCanvas(mouse) || object.hidden) {
+    return { focusEleType, focusEleIndex, focusPolygonInfo };
+  }
+
+  if (object.keypoints?.points) {
+    const { points } = object.keypoints;
+    for (let j = 0; j < points.length; j++) {
+      const { visible, x, y } = points[j];
+      if (
+        visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
+        isPointOnPoint({ x, y }, mouse)
+      ) {
+        focusEleType = EElementType.Circle;
+        focusEleIndex = j;
+
+        return { focusEleType, focusEleIndex, focusPolygonInfo };
+      }
+    }
+  }
+
+  if (object.polygon && object.polygon.visible) {
+    const { group } = object.polygon;
+    // find point in polygon
+    for (let i = 0; i < group.length; i++) {
+      const pointIndex = group[i].findIndex((point) => {
+        return isPointOnPoint(point, mouse);
+      });
+      if (pointIndex > -1) {
+        focusPolygonInfo.index = i;
+        focusPolygonInfo.pointIndex = pointIndex;
+        return {
+          focusEleType: EElementType.Polygon,
+          focusEleIndex: 0,
+          focusPolygonInfo,
+        };
+      }
+    }
+    // find line in polygon
+    for (let i = 0; i < group.length; i++) {
+      const lines = getLinesFromPolygon(group[i]);
+      const lineIndex = lines.findIndex((line) => isPointOnLine(line, mouse));
+      if (lineIndex > -1) {
+        focusPolygonInfo.index = i;
+        focusPolygonInfo.lineIndex = lineIndex;
+        return {
+          focusEleType: EElementType.Polygon,
+          focusEleIndex: 0,
+          focusPolygonInfo,
+        };
+      }
+    }
+    const polygonIdx = group.findIndex((polygon) =>
+      isPointInside(
+        polygon,
+        {
+          x: mouse.elementX,
+          y: mouse.elementY,
+        },
+        EElementType.Polygon,
+      ),
+    );
+    if (polygonIdx > -1) {
+      focusPolygonInfo.index = polygonIdx;
+      return {
+        focusEleType: EElementType.Polygon,
+        focusEleIndex: 0,
+        focusPolygonInfo,
+      };
+    }
+  }
+
+  if (
+    object.rect &&
+    isPointInside(
+      expandRect(object.rect, { x: 8, y: 8 }),
+      {
+        x: mouse.elementX,
+        y: mouse.elementY,
+      },
+      EElementType.Rect,
+    )
+  ) {
+    focusEleType = EElementType.Rect;
+    focusEleIndex = 0;
+    return { focusEleType, focusEleIndex, focusPolygonInfo };
+  }
+
+  return { focusEleType, focusEleIndex, focusPolygonInfo };
+};
+
 export const judgeFocusOnObject = (
   clientSize: ISize,
   mouse: CursorState,
@@ -615,22 +678,17 @@ export const judgeFocusOnObject = (
     return -1;
   }
 
-  const mousePoint = {
-    x: mouse.elementX,
-    y: mouse.elementY,
-  };
-
   // Judge focus on active object.
   if (
     objects[activeObjectIndex] &&
-    judgeFocusOnSingleObject(clientSize, mousePoint, objects[activeObjectIndex])
+    judgeFocusOnSingleObject(mouse, objects[activeObjectIndex], clientSize)
   ) {
     return activeObjectIndex;
   }
 
   // Find the topmost instance by searching the objectList in reverse order.
   for (let index = objects.length - 1; index >= 0; index--) {
-    if (judgeFocusOnSingleObject(clientSize, mousePoint, objects[index])) {
+    if (judgeFocusOnSingleObject(mouse, objects[index], clientSize)) {
       return index;
     }
   }
@@ -748,52 +806,6 @@ export const getAnchorUnderMouseByRect = (
     }
   }
   return null;
-};
-
-export const getLinesFromPolygon = (polygon: IPolygon): ILine[] => {
-  const lines: ILine[] = [];
-  for (let i = 0; i < polygon.length; i++) {
-    const startPoint = polygon[i];
-    const endPoint = polygon[(i + 1) % polygon.length];
-    lines.push({ start: startPoint, end: endPoint });
-  }
-  return lines;
-};
-
-export const getFocusPartInPolygonGroup = (
-  polygonGroup: IPolygonGroup,
-  mouse: CursorState,
-): {
-  index: number;
-  pointIndex: number;
-  lineIndex: number;
-} => {
-  let index = -1;
-  let pointIndex = -1;
-  let lineIndex = -1;
-
-  index = polygonGroup.group.findIndex((polygon) =>
-    isPointInside(
-      polygon,
-      { x: mouse.elementX, y: mouse.elementY },
-      EElementType.Polygon,
-    ),
-  );
-
-  if (index === -1) {
-    return { index, pointIndex, lineIndex };
-  }
-  const polygon = polygonGroup.group[index];
-  pointIndex = polygon.findIndex((point) => isPointOnPoint(point, mouse, 8));
-  if (pointIndex > -1) {
-    return { index, pointIndex, lineIndex };
-  }
-  const lines = getLinesFromPolygon(polygon);
-  lineIndex = lines.findIndex((line) => isPointOnLine(line, mouse));
-  if (lineIndex > -1) {
-    return { index, lineIndex, pointIndex };
-  }
-  return { index, lineIndex, pointIndex };
 };
 
 export const getAnchorFixRectPoint = (

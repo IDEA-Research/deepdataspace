@@ -3,7 +3,6 @@ import { CursorState } from 'ahooks/lib/useMouse';
 import { DrawData, EditState, EditorMode } from '../type';
 import {
   Direction,
-  getFocusPartInPolygonGroup,
   isInCanvas,
   judgeFocusOnElement,
   judgeFocusOnObject,
@@ -67,23 +66,13 @@ const useMouseEvents = ({
       });
       /** Update focus element index & mouse style */
       const activeObject = drawData.objectList[drawData.activeObjectIndex];
-      const { focusEleIndex, focusEleType } = judgeFocusOnElement(
-        contentMouse,
-        activeObject,
-      );
+      const { focusEleIndex, focusEleType, focusPolygonInfo } =
+        judgeFocusOnElement(contentMouse, activeObject);
       setEditState((s) => {
         s.focusEleIndex = focusEleIndex;
         s.focusEleType = focusEleType;
+        s.focusPolygonInfo = focusPolygonInfo;
       });
-      if (activeObject.polygon) {
-        const hoverDetail = getFocusPartInPolygonGroup(
-          activeObject.polygon,
-          contentMouse,
-        );
-        setEditState((s) => {
-          s.focusPolygonInfo = hoverDetail;
-        });
-      }
     } else if (
       drawData.selectedTool === EBasicToolItem.Drag ||
       isAIPoseEstimation
