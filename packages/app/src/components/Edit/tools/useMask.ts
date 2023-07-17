@@ -545,6 +545,28 @@ const useMask: ToolInstanceHook = ({
         shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
       }
     }
+
+    // draw existing prompts
+    if (prompt.maskPrompts) {
+      prompt.maskPrompts.forEach((item) => {
+        if (item.type === EMaskPromptType.Point) {
+          const canvasCoordPoint = translatePointCoord(item.point!, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            4,
+            item.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE,
+            2,
+            '#fff',
+          );
+        }
+      });
+    }
   };
 
   const updateMaskWhenMouseDown = (

@@ -90,7 +90,11 @@ const useCanvasRender = ({
   const updateCreatingPromptRender = (theDrawData: DrawData) => {
     const { prompt } = theDrawData;
 
-    if (prompt.creatingMask || prompt.activeRectWhileLoading) {
+    if (
+      prompt.maskPrompts ||
+      prompt.creatingMask ||
+      prompt.activeRectWhileLoading
+    ) {
       objectHooksMap[EObjectType.Mask].renderPrompt({
         prompt,
       });
