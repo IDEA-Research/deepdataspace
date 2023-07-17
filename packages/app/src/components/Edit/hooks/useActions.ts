@@ -388,7 +388,7 @@ const useActions = ({
         clientSize,
         naturalSize,
       );
-      area = [x1, y1, x2, y2];
+      area = [Math.round(x1), Math.round(y1), Math.round(x2), Math.round(y2)];
     }
 
     const reqParams: FetchAIMaskSegmentReq = {
