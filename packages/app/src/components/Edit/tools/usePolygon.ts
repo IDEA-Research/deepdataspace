@@ -478,6 +478,7 @@ const usePolygon: ToolInstanceHook = ({
           s.prompt.segmentationClicks = [...existClicks, click];
         });
         onAiAnnotation({
+          type: EObjectType.Polygon,
           drawData,
           segmentationClicks: [...existClicks, click],
           aiLabels: [object.label],
@@ -498,6 +499,7 @@ const usePolygon: ToolInstanceHook = ({
             s.prompt.segmentationClicks = [firstClick];
           });
           onAiAnnotation({
+            type: EObjectType.Polygon,
             drawData,
             segmentationClicks: [firstClick],
           });
@@ -524,7 +526,12 @@ const usePolygon: ToolInstanceHook = ({
           setDrawData((s) => {
             s.prompt.segmentationClicks = [...clicks];
           });
-          onAiAnnotation({ drawData, segmentationClicks: clicks, bbox });
+          onAiAnnotation({
+            type: EObjectType.Polygon,
+            drawData,
+            segmentationClicks: clicks,
+            bbox,
+          });
         }
         setDrawData((s) => (s.creatingObject = undefined));
       }

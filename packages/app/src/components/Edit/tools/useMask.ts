@@ -862,7 +862,7 @@ const useMask: ToolInstanceHook = ({
         const maskPrompts = drawData.prompt.maskPrompts
           ? [...drawData.prompt.maskPrompts, promptItem]
           : [promptItem];
-        onAiAnnotation({ drawData, maskPrompts });
+        onAiAnnotation({ type: EObjectType.Mask, drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoSegmentByClick: {
@@ -876,7 +876,7 @@ const useMask: ToolInstanceHook = ({
         const maskPrompts = drawData.prompt.maskPrompts
           ? [...drawData.prompt.maskPrompts, promptItem]
           : [promptItem];
-        onAiAnnotation({ drawData, maskPrompts });
+        onAiAnnotation({ type: EObjectType.Mask, drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoSegmentByStroke: {
@@ -890,12 +890,12 @@ const useMask: ToolInstanceHook = ({
         const maskPrompts = drawData.prompt.maskPrompts
           ? [...drawData.prompt.maskPrompts, promptItem]
           : [promptItem];
-        onAiAnnotation({ drawData, maskPrompts });
+        onAiAnnotation({ type: EObjectType.Mask, drawData, maskPrompts });
         break;
       }
       case ESubToolItem.AutoEdgeStitching: {
         if (!drawData.prompt.creatingMask?.stroke) break;
-        onAiAnnotation({ drawData });
+        onAiAnnotation({ type: EObjectType.Mask, drawData });
         break;
       }
     }

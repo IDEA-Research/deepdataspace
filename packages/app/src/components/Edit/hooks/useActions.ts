@@ -20,6 +20,7 @@ import {
 import {
   BODY_TEMPLATE,
   EBasicToolItem,
+  EBasicToolTypeMap,
   EObjectType,
   ESubToolItem,
 } from '@/constants';
@@ -66,12 +67,14 @@ interface IProps {
 }
 
 export type OnAiAnnotationFunc = ({
+  type,
   drawData,
   aiLabels,
   bbox,
   maskPrompts,
   segmentationClicks,
 }: {
+  type?: EObjectType;
   drawData: DrawData;
   aiLabels?: string[];
   bbox?: IBoundingBox;
@@ -635,6 +638,7 @@ const useActions = ({
   };
 
   const onAiAnnotation: OnAiAnnotationFunc = async ({
+    type,
     drawData,
     aiLabels = [],
     bbox,
@@ -673,16 +677,17 @@ const useActions = ({
       reportEvent('dataset_item_edit_ai_annotation', {
         labels: aiLabels,
       });
-      switch (drawData.selectedTool) {
-        case EBasicToolItem.Rectangle: {
+      const aiType = type || EBasicToolTypeMap[drawData.selectedTool];
+      switch (aiType) {
+        case EObjectType.Rectangle: {
           await requestAiDetection(drawData, imgSrc, aiLabels);
           break;
         }
-        case EBasicToolItem.Skeleton: {
+        case EObjectType.Skeleton: {
           await requestAiPoseEstimation(drawData, imgSrc, aiLabels);
           break;
         }
-        case EBasicToolItem.Polygon: {
+        case EObjectType.Polygon: {
           await requestAiSegmentByPolygon(
             drawData,
             imgSrc,
@@ -691,7 +696,7 @@ const useActions = ({
           );
           break;
         }
-        case EBasicToolItem.Mask: {
+        case EObjectType.Mask: {
           if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
             await requestEdgeStitchingForMask(drawData, imgSrc);
           } else {

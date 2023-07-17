@@ -190,10 +190,10 @@ export enum EUserStatus {
 export const DEFAULT_USER_ANNOTATION = 'UserAnnotation';
 
 export enum EObjectType {
+  Custom = 'Custom',
   Rectangle = 'Rectangle',
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
-  Custom = 'Custom',
   Mask = 'Mask',
 }
 
@@ -213,6 +213,7 @@ export enum EBasicToolItem {
 }
 
 export const EBasicToolTypeMap = {
+  [EBasicToolItem.Drag]: EObjectType.Custom,
   [EBasicToolItem.Rectangle]: EObjectType.Rectangle,
   [EBasicToolItem.Polygon]: EObjectType.Polygon,
   [EBasicToolItem.Skeleton]: EObjectType.Skeleton,
