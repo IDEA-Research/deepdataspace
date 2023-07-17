@@ -6,6 +6,7 @@ export const ERROR_STATUS_MSG_MAP: Record<number, string> = {
   /** CODE_4xx */
   401: 'requestConfig.unAuth.msg',
   403: 'requestConfig.permissionDenied.msg',
+  429: 'errCode.TokenExceedsRateLimit',
   /** CODE_5XX */
   500: 'requestConfig.responseStatus.msg',
 };
@@ -106,6 +107,7 @@ export const ERROR_CODE_MSG_MAP: Record<number, string> = {
   404151: 'errCode.LabelProjectRoleNotFound',
   404152: 'errCode.LabelProjectTaskNotFound',
   404153: 'errCode.LabelTaskImageNotFound',
+  429002: 'errCode.TokenExceedsRateLimit',
   500000: 'errCode.InternalError',
   /** CODE_5XXXXX */
   500001: 'errCode.FailedToCloneLabelSet',

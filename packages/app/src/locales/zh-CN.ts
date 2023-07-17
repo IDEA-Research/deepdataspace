@@ -116,6 +116,9 @@ export default {
   'smartAnnotation.msg.labelRequired': '请至少选择一个目标类别',
   'smartAnnotation.msg.confResults': '共有{count}条标注符合目标置信区间',
   'smartAnnotation.msg.applyConf': '已保留{count}条标注，其他标注已移除',
+  'smartAnnotation.rateLimit.content':
+    '非常抱歉，我们的公共服务器暂时负载不足，请稍后再试。',
+  'smartAnnotation.rateLimit.okText': '好的',
 
   /** Editor */
   'editor.save': '保存',
@@ -525,6 +528,7 @@ export default {
   'errCode.LabelProjectRoleNotFound': '标注项目角色未找到。',
   'errCode.LabelProjectTaskNotFound': '标注项目任务未找到。',
   'errCode.LabelTaskImageNotFound': '标注任务图像未找到。',
+  'errCode.TokenExceedsRateLimit': '该账号请求超过限频。',
   'errCode.InternalError': '内部错误。',
   'errCode.FailedToCloneLabelSet': '克隆标注集失败。',
 };

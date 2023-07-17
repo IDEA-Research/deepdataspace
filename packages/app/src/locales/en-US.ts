@@ -121,6 +121,9 @@ export default {
   'smartAnnotation.msg.confResults': '{count} matching annotations shown',
   'smartAnnotation.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'smartAnnotation.rateLimit.content':
+    'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
+  'smartAnnotation.rateLimit.okText': 'OK',
 
   /** Editor */
   'editor.save': 'Save',
@@ -592,6 +595,7 @@ export default {
   'errCode.LabelProjectRoleNotFound': 'Label project role not found.',
   'errCode.LabelProjectTaskNotFound': 'Label project task not found.',
   'errCode.LabelTaskImageNotFound': 'Label task image not found.',
+  'errCode.TokenExceedsRateLimit': 'Token exceeds Rate Limit.',
   'errCode.InternalError': 'Internal error.',
   'errCode.FailedToCloneLabelSet': 'Failed to clone label set.',
 };
