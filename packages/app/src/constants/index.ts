@@ -3,6 +3,7 @@ import { ReactComponent as SkeletonIcon } from '@/assets/svg/keypoints.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/magic.svg';
 import { ReactComponent as PolygonIcon } from '@/assets/svg/polygon.svg';
 import { ReactComponent as CustomIcon } from '@/assets/svg/custom.svg';
+import { ReactComponent as MaskIcon } from '@/assets/svg/brush.svg';
 import { ReactComponent as UndoIcon } from '@/assets/svg/undo.svg';
 import { ReactComponent as RedoIcon } from '@/assets/svg/redo.svg';
 import { ReactComponent as ClassifyIcon } from '@/assets/svg/classification.svg';
@@ -10,6 +11,7 @@ import { ReactComponent as DetectIcon } from '@/assets/svg/datasetDetection.svg'
 import { ReactComponent as SegmentIcon } from '@/assets/svg/datasetSegment.svg';
 import { ReactComponent as MattingIcon } from '@/assets/svg/datasetMatting.svg';
 import { ReactComponent as KeypointIcon } from '@/assets/svg/datasetKeypoint.svg';
+import { ReactComponent as DeleteAllIcon } from '@/assets/svg/delete_all.svg';
 
 export const DEFAULT_NAME = 'Deep Data Space';
 
@@ -192,12 +194,14 @@ export enum EObjectType {
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
   Custom = 'Custom',
+  Mask = 'Mask',
 }
 
 export enum EElementType {
   Rect = 'rect',
   Circle = 'circle',
   Polygon = 'polygon',
+  None = 'none',
 }
 
 export enum EBasicToolItem {
@@ -205,12 +209,33 @@ export enum EBasicToolItem {
   Rectangle = 'Rect',
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
+  Mask = 'Mask',
+}
+
+export const EBasicToolTypeMap = {
+  [EBasicToolItem.Rectangle]: EObjectType.Rectangle,
+  [EBasicToolItem.Polygon]: EObjectType.Polygon,
+  [EBasicToolItem.Skeleton]: EObjectType.Skeleton,
+  [EBasicToolItem.Mask]: EObjectType.Mask,
+};
+
+export enum ESubToolItem {
+  PenAdd = 'PenAdd',
+  PenErase = 'PenErase',
+  BrushAdd = 'BrushAdd',
+  BrushErase = 'BrushErase',
+  AutoSegmentByBox = 'AutoSegmentByBox',
+  AutoSegmentByClick = 'AutoSegmentByClick',
+  AutoSegmentByStroke = 'AutoSegmentByStroke',
+  AutoSegmentEverything = 'AutoSegmentEverything',
+  AutoEdgeStitching = 'AutoEdgeStitching',
 }
 
 export enum EActionToolItem {
   SmartAnnotation = 'SmartAnnotation',
   Undo = 'Undo',
   Redo = 'Redo',
+  DeleteAll = 'DeleteAll',
 }
 
 export type EToolType = EBasicToolItem;
@@ -223,6 +248,7 @@ export const OBJECT_ICON: Record<
   [EObjectType.Skeleton]: SkeletonIcon,
   [EObjectType.Polygon]: PolygonIcon,
   [EObjectType.Custom]: CustomIcon,
+  [EObjectType.Mask]: MaskIcon,
 };
 
 export const EDITOR_TOOL_ICON: Record<
@@ -232,6 +258,7 @@ export const EDITOR_TOOL_ICON: Record<
   [EActionToolItem.SmartAnnotation]: MagicIcon,
   [EActionToolItem.Undo]: UndoIcon,
   [EActionToolItem.Redo]: RedoIcon,
+  [EActionToolItem.DeleteAll]: DeleteAllIcon,
 };
 
 export enum DRAW_TYPE {

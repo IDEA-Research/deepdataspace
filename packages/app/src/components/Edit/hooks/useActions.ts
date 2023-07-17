@@ -1,16 +1,28 @@
 import { reportEvent } from '@/logs';
 import { fetchModelResults } from '@/services/dataset';
 import {
+  getVisibleAreaForImage,
   isEqualRect,
   translateBoundingBoxToRect,
   translateObjectsToAnnotations,
   translatePointsToPointObjs,
+  translatePointZoom,
+  translateRectToAbsBbox,
 } from '@/utils/compute';
 import { message, Modal } from 'antd';
-import { DrawData, EditImageData, IAnnotationObject } from '..';
 import { Updater } from 'use-immer';
-import { DATA, EnumModelType } from '@/services/type';
-import { BODY_TEMPLATE, EBasicToolItem, EObjectType } from '@/constants';
+import {
+  DATA,
+  EnumModelType,
+  FetchAIMaskSegmentReq,
+  FetchEdgeStitchingReq,
+} from '@/services/type';
+import {
+  BODY_TEMPLATE,
+  EBasicToolItem,
+  EObjectType,
+  ESubToolItem,
+} from '@/constants';
 import {
   getCanvasPoint,
   getImageBase64,
@@ -19,42 +31,85 @@ import {
 } from '@/utils/annotation';
 import { useLocale } from '@/locales/helper';
 import { useModel } from '@umijs/max';
+import {
+  DrawData,
+  EditImageData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+  MaskPromptItem,
+} from '../type';
+import { objectToRle, rleToCanvas } from '../tools/useMask';
+import { EQaAction } from '@/pages/Project/constants';
+import { ANNO_FILL_COLOR } from '../constants/render';
+import { CursorState } from 'ahooks/lib/useMouse';
 
 interface IProps {
+  mode: EditorMode;
   list: EditImageData[];
   current: number;
   setDrawData: Updater<DrawData>;
-  isRequiring: boolean;
-  setIsRequiring: Updater<boolean>;
+  setDrawDataWithHistory: Updater<DrawData>;
+  editState: EditState;
+  setEditState: Updater<EditState>;
   naturalSize: ISize;
   clientSize: ISize;
+  containerMouse: CursorState;
+  imagePos: React.MutableRefObject<IPoint>;
+  updateAllObject: (objectList: IAnnotationObject[]) => void;
+  hadChangeRecord: boolean;
+  latestLabel: string;
+  labelColors: Record<string, string>;
   onCancel?: () => void;
   onSave?: (imageId: string, annotations: DATA.BaseObject[]) => Promise<void>;
-  updateAllObject: (objectList: IAnnotationObject[]) => void;
+  onReviewResult?: (imageId: string, action: EQaAction) => Promise<void>;
 }
 
+export type OnAiAnnotationFunc = ({
+  drawData,
+  aiLabels,
+  bbox,
+  maskPrompts,
+  segmentationClicks,
+}: {
+  drawData: DrawData;
+  aiLabels?: string[];
+  bbox?: IBoundingBox;
+  maskPrompts?: MaskPromptItem[];
+  segmentationClicks?: {
+    point: IPoint;
+    isPositive: boolean;
+  }[];
+}) => Promise<void>;
+
 const useActions = ({
+  mode,
   list,
   current,
   setDrawData,
-  isRequiring,
-  setIsRequiring,
+  setDrawDataWithHistory,
+  editState,
+  setEditState,
   naturalSize,
   clientSize,
+  imagePos,
+  containerMouse,
+  updateAllObject,
+  hadChangeRecord,
+  latestLabel,
+  labelColors,
   onCancel,
   onSave,
-  updateAllObject,
+  onReviewResult,
 }: IProps) => {
   const { localeText } = useLocale();
   const { setLoading } = useModel('global');
+  const { isRequiring } = editState;
+  const setIsRequiring = (requiring: boolean) =>
+    setEditState((s) => {
+      s.isRequiring = requiring;
+    });
 
-  /**
-   * Smart Detection
-   * @param drawData
-   * @param source
-   * @param aiLabels
-   * @param hide
-   */
   const requestAiDetection = async (
     drawData: DrawData,
     source: string,
@@ -105,10 +160,14 @@ const useActions = ({
     }
   };
 
-  const requestAiSegmentation = async (
+  const requestAiSegmentByPolygon = async (
     drawData: DrawData,
     source: string,
     bbox?: IBoundingBox,
+    segmentationClicks?: {
+      point: IPoint;
+      isPositive: boolean;
+    }[],
   ) => {
     const existPolygons =
       drawData.creatingObject?.polygon?.group.map((polygon) => {
@@ -123,7 +182,7 @@ const useActions = ({
       }) || [];
 
     const clicks =
-      drawData.segmentationClicks?.map((click) => {
+      segmentationClicks?.map((click) => {
         const { x, y } = getNaturalPoint(
           [click.point.x, click.point.y],
           naturalSize,
@@ -137,7 +196,7 @@ const useActions = ({
 
     const reqParams = {
       image: source,
-      mask: drawData.segmentationMask || '',
+      mask: drawData.prompt.segmentationMask || '',
       polygons: existPolygons,
       clicks: clicks,
     };
@@ -166,11 +225,10 @@ const useActions = ({
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.Segmentation>(
-        EnumModelType.Segmentation,
+      const result = await fetchModelResults<EnumModelType.SegmentByPolygon>(
+        EnumModelType.SegmentByPolygon,
         reqParams,
       );
-
       if (result) {
         const { polygon, mask } = result;
 
@@ -193,7 +251,7 @@ const useActions = ({
           const creatingObj = {
             type: EObjectType.Polygon,
             hidden: false,
-            label: drawData.latestLabel,
+            label: latestLabel,
             currIndex: -1,
             polygon: {
               visible: true,
@@ -201,9 +259,9 @@ const useActions = ({
             },
           };
 
-          setDrawData((s) => {
+          setDrawDataWithHistory((s) => {
             s.creatingObject = creatingObj;
-            s.segmentationMask = mask;
+            s.prompt.segmentationMask = mask;
           });
         }
 
@@ -216,11 +274,168 @@ const useActions = ({
     }
   };
 
-  /**
-   * AI Pose Estimation
-   * @param source
-   * @param aiLabels
-   */
+  const convertPromptFormat = (
+    prompt: MaskPromptItem[],
+  ): {
+    type: string;
+    isPositive: boolean;
+    point?: number[];
+    rect?: number[];
+    stroke?: number[];
+  }[] => {
+    const newPromptArr = prompt.map((item) => {
+      const { type, isPositive, point, rect, stroke, radius } = item;
+
+      const newItem = { type, isPositive };
+
+      if (rect) {
+        const { xmax, xmin, ymax, ymin } = translateRectToAbsBbox(rect);
+        const topleftPoint = getNaturalPoint(
+          [xmin, ymin],
+          naturalSize,
+          clientSize,
+        );
+        const bottomRightPoint = getNaturalPoint(
+          [xmax, ymax],
+          naturalSize,
+          clientSize,
+        );
+        Object.assign(newItem, {
+          rect: [
+            topleftPoint.x,
+            topleftPoint.y,
+            bottomRightPoint.x,
+            bottomRightPoint.y,
+          ],
+        });
+      }
+
+      if (point) {
+        const naturalPoint = getNaturalPoint(
+          [point.x, point.y],
+          naturalSize,
+          clientSize,
+        );
+        Object.assign(newItem, {
+          point: [naturalPoint.x, naturalPoint.y],
+        });
+      }
+
+      if (stroke) {
+        const points = stroke.reduce((acc: number[], point: IPoint) => {
+          const { x, y } = point;
+          const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
+          return acc.concat([naturalPoint.x, naturalPoint.y]);
+        }, []);
+        Object.assign(newItem, {
+          stroke: points,
+          radius,
+        });
+      }
+
+      return newItem;
+    });
+
+    return newPromptArr;
+  };
+
+  const requestAiSegmentByMask = async (
+    drawData: DrawData,
+    source: string,
+    maskPrompts?: MaskPromptItem[],
+  ) => {
+    if (!maskPrompts) return;
+
+    const currMask =
+      drawData.creatingObject?.maskCanvasElement ||
+      drawData.creatingObject?.tempMaskSteps
+        ? objectToRle(
+            clientSize,
+            naturalSize,
+            drawData.creatingObject?.tempMaskSteps || [],
+            drawData.creatingObject?.maskCanvasElement,
+          )
+        : [];
+
+    // record visible area currently for model
+    const { xmin, ymin, xmax, ymax } = getVisibleAreaForImage(
+      imagePos.current,
+      clientSize,
+      containerMouse,
+    );
+    let area = [0, 0, naturalSize.width, naturalSize.height];
+    if (xmax > 0 && ymax > 0) {
+      const { x: x1, y: y1 } = translatePointZoom(
+        {
+          x: xmin,
+          y: ymin,
+        },
+        clientSize,
+        naturalSize,
+      );
+      const { x: x2, y: y2 } = translatePointZoom(
+        {
+          x: xmax,
+          y: ymax,
+        },
+        clientSize,
+        naturalSize,
+      );
+      area = [x1, y1, x2, y2];
+    }
+
+    const reqParams: FetchAIMaskSegmentReq = {
+      maskRle: currMask || [],
+      maskId: drawData.prompt.segmentationMask || '',
+      prompt: convertPromptFormat(maskPrompts || []),
+      area,
+    };
+
+    if (editState.imageCacheId) {
+      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    } else {
+      Object.assign(reqParams, { image: source });
+    }
+
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.SegmentByMask>(
+        EnumModelType.SegmentByMask,
+        reqParams,
+      );
+      if (result) {
+        const { maskId, maskRle, imageId } = result;
+        const color = labelColors[latestLabel] || ANNO_FILL_COLOR.CREATING_MASK;
+        const creatingObj = {
+          type: EObjectType.Mask,
+          hidden: false,
+          label: latestLabel,
+          currIndex: -1,
+          maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
+          maskRle,
+        };
+        setDrawDataWithHistory((s) => {
+          s.creatingObject = creatingObj;
+          s.prompt.maskPrompts = maskPrompts;
+          s.prompt.segmentationMask = maskId;
+          s.prompt.creatingMask = undefined;
+        });
+        setEditState((s) => {
+          s.imageCacheId = imageId;
+        });
+        message.success(localeText('smartAnnotation.msg.success'));
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+      setDrawDataWithHistory((s) => {
+        s.prompt.creatingMask = undefined;
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const requestAiPoseEstimation = async (
     drawData: DrawData,
     source: string,
@@ -237,7 +452,20 @@ const useActions = ({
         pointColors,
       },
     };
-    const skeletonObjs = drawData.objectList.filter(
+
+    const objectList = [...drawData.objectList];
+    if (
+      drawData.activeObjectIndex > -1 &&
+      objectList[drawData.activeObjectIndex] &&
+      drawData.creatingObject
+    ) {
+      // update creating object
+      objectList[drawData.activeObjectIndex] = {
+        ...objectList[drawData.activeObjectIndex],
+        ...drawData.creatingObject,
+      };
+    }
+    const skeletonObjs = objectList.filter(
       (obj) => obj.type === EObjectType.Skeleton,
     );
     if (skeletonObjs.length > 0) {
@@ -314,11 +542,105 @@ const useActions = ({
     }
   };
 
-  const onAiAnnotation = async (
+  const requestEdgeStitchingForMask = async (
     drawData: DrawData,
-    aiLabels: string[],
-    bbox?: IBoundingBox,
+    source: string,
   ) => {
+    if (
+      !drawData.prompt.creatingMask?.stroke ||
+      !drawData.prompt.creatingMask?.radius
+    )
+      return;
+
+    const { stroke, radius } = drawData.prompt.creatingMask;
+
+    const maskObjects = drawData.objectList.filter(
+      (item) => item.type === EObjectType.Mask,
+    );
+
+    if (maskObjects.length < 2) {
+      message.error(
+        'To ensure valid results when using intelligent edge stitching, make sure to use at least 2 mask objects.',
+      );
+      setDrawData((s) => {
+        s.prompt.creatingMask = undefined;
+      });
+      return;
+    }
+
+    const rleList = maskObjects.map((item) => {
+      const maskRle =
+        objectToRle(clientSize, naturalSize, [], item.maskCanvasElement) || [];
+      return { maskRle, categoryName: item.label };
+    });
+
+    const points = stroke.reduce((acc: number[], point: IPoint) => {
+      const { x, y } = point;
+      const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
+      return acc.concat([naturalPoint.x, naturalPoint.y]);
+    }, []);
+
+    const reqParams: FetchEdgeStitchingReq = {
+      rleList,
+      stroke: points,
+      radius,
+    };
+
+    if (editState.imageCacheId) {
+      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    } else {
+      Object.assign(reqParams, { image: source });
+    }
+
+    Object.assign(reqParams, { image: source });
+
+    try {
+      setLoading(true);
+      const result = await fetchModelResults<EnumModelType.MaskEdgeStitching>(
+        EnumModelType.MaskEdgeStitching,
+        reqParams,
+      );
+      if (result && result.rleList?.length > 0) {
+        const maskObjects = result.rleList.map((item) => {
+          const color = labelColors[item.categoryName] || '#fff';
+          return {
+            type: EObjectType.Mask,
+            hidden: false,
+            label: item.categoryName,
+            maskRle: item.maskRle,
+            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
+            conf: 1,
+          };
+        });
+
+        // Replace all instances of the mask type
+        const leftObjs = drawData.objectList.filter(
+          (obj) => obj.type !== EObjectType.Mask,
+        );
+
+        const updatedObjects = [...leftObjs, ...maskObjects];
+        updateAllObject(updatedObjects);
+
+        message.success(localeText('smartAnnotation.msg.success'));
+      }
+    } catch (error: any) {
+      console.error(error.message);
+      message.error(`Request Failed: ${error.message}, Please retry later.`);
+    } finally {
+      setLoading(false);
+      setDrawData((s) => {
+        s.prompt.creatingMask = undefined;
+      });
+    }
+  };
+
+  const onAiAnnotation: OnAiAnnotationFunc = async ({
+    drawData,
+    aiLabels = [],
+    bbox,
+    maskPrompts,
+    segmentationClicks,
+  }) => {
     if (isRequiring) return;
 
     if (
@@ -354,32 +676,41 @@ const useActions = ({
       switch (drawData.selectedTool) {
         case EBasicToolItem.Rectangle: {
           await requestAiDetection(drawData, imgSrc, aiLabels);
-          setIsRequiring(false);
-          hide();
           break;
         }
         case EBasicToolItem.Skeleton: {
           await requestAiPoseEstimation(drawData, imgSrc, aiLabels);
-          setIsRequiring(false);
-          hide();
           break;
         }
         case EBasicToolItem.Polygon: {
-          await requestAiSegmentation(drawData, imgSrc, bbox);
-          setIsRequiring(false);
-          hide();
+          await requestAiSegmentByPolygon(
+            drawData,
+            imgSrc,
+            bbox,
+            segmentationClicks,
+          );
+          break;
+        }
+        case EBasicToolItem.Mask: {
+          if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
+            await requestEdgeStitchingForMask(drawData, imgSrc);
+          } else {
+            await requestAiSegmentByMask(drawData, imgSrc, maskPrompts);
+          }
           break;
         }
         default:
-          setIsRequiring(false);
-          hide();
           message.warning('Plan to Support!');
           break;
       }
     } catch (error) {
-      setIsRequiring(false);
-      hide();
       message.error(localeText('smartAnnotation.msg.error'));
+    } finally {
+      setIsRequiring(false);
+      setDrawData((s) => {
+        s.prompt.activeRectWhileLoading = undefined;
+      });
+      hide();
     }
   };
 
@@ -407,9 +738,9 @@ const useActions = ({
     setIsRequiring(false);
   };
 
-  const onCancelAnnotations = (drawData: DrawData) => {
+  const onCancelAnnotations = () => {
     if (list[current]) {
-      if (drawData.changed) {
+      if (hadChangeRecord) {
         Modal.confirm({
           content: localeText('editor.confirmLeave.content'),
           cancelText: localeText('editor.confirmLeave.cancel'),
@@ -427,10 +758,24 @@ const useActions = ({
     reportEvent('dataset_item_edit_cancel');
   };
 
+  const onReject = () => {
+    if (mode === EditorMode.Review && onReviewResult) {
+      onReviewResult(list[current]?.id || '', EQaAction.Reject);
+    }
+  };
+
+  const onAccept = () => {
+    if (mode === EditorMode.Review && onReviewResult) {
+      onReviewResult(list[current]?.id || '', EQaAction.Accept);
+    }
+  };
+
   return {
     onAiAnnotation,
     onSaveAnnotations,
     onCancelAnnotations,
+    onReject,
+    onAccept,
   };
 };
 

@@ -1,4 +1,9 @@
-import { EElementType, EObjectType } from '@/constants';
+import {
+  EBasicToolItem,
+  EBasicToolTypeMap,
+  EElementType,
+  EObjectType,
+} from '@/constants';
 import { DATA } from '@/services/type';
 import { getSegmentationPoints } from '@/utils/annotation';
 import {
@@ -8,7 +13,8 @@ import {
   translatePointsToPointObjs,
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
-import { DrawData, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
+import { rleToCanvas } from '../tools/useMask';
 
 interface IProps {
   objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];
@@ -17,27 +23,26 @@ interface IProps {
   setAnnotations: Updater<DATA.BaseObject[]>;
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
+  setDrawDataWithHistory: Updater<DrawData>;
+  editState: EditState;
+  setEditState: Updater<EditState>;
   clientSize: ISize;
   naturalSize: ISize;
-  addAnnotation: (object: IAnnotationObject) => void;
-  removeAnnotation: (index: number) => void;
-  updateAnnotation: (object: IAnnotationObject, index: number) => void;
-  updateAllAnnotation: (objects: IAnnotationObject[]) => void;
 }
 
 const useObjects = ({
   mode,
   drawData,
   setDrawData,
+  setDrawDataWithHistory,
+  editState,
+  setEditState,
   clientSize,
   naturalSize,
-  addAnnotation,
-  removeAnnotation,
-  updateAnnotation,
-  updateAllAnnotation,
 }: IProps) => {
   const translateAnnotationToObject = (
     annotation: DATA.BaseObject,
+    labelColors: Record<string, string>,
   ): IAnnotationObject => {
     let {
       categoryName,
@@ -47,7 +52,9 @@ const useObjects = ({
       pointNames,
       pointColors,
       segmentation,
+      maskRle,
     } = annotation;
+    const color = labelColors[categoryName || ''] || '#ffffff';
 
     const newObj: IAnnotationObject = {
       label: categoryName || '',
@@ -95,67 +102,121 @@ const useObjects = ({
       };
       Object.assign(newObj, { polygon });
     }
+
+    if (maskRle) {
+      Object.assign(newObj, {
+        maskRle,
+        maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
+      });
+    }
+
     newObj.type = getObjectType(newObj);
     return newObj;
   };
 
-  const initObjectList = (annotations: DATA.BaseObject[]) => {
-    setDrawData((s) => {
+  const initObjectList = (
+    annotations: DATA.BaseObject[],
+    labelColors: Record<string, string>,
+  ) => {
+    setDrawDataWithHistory((s) => {
       s.objectList = annotations.map((annotation) => {
-        return translateAnnotationToObject(annotation);
+        return translateAnnotationToObject(annotation, labelColors);
       });
     });
   };
 
-  const addObject = (object: IAnnotationObject) => {
+  const addObject = (object: IAnnotationObject, notActive?: boolean) => {
     if (mode !== EditorMode.Edit) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList.push(object);
-      s.creatingObject = undefined;
-      s.activeObjectIndex = s.objectList.length - 1;
-      s.changed = true;
+      s.creatingObject = { ...object };
+      s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
     });
-    addAnnotation(object);
   };
 
   const removeObject = (index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       if (s.objectList[index]) {
         s.objectList.splice(index, 1);
         s.activeObjectIndex = -1;
-        s.focusObjectIndex = -1;
-        s.focusEleIndex = -1;
-        s.focusEleType = EElementType.Rect;
-        s.changed = true;
+        s.creatingObject = undefined;
       }
     });
-    removeAnnotation(index);
+    setEditState((s) => {
+      s.focusObjectIndex = -1;
+      s.focusEleIndex = -1;
+      s.focusEleType = EElementType.Rect;
+    });
+  };
+
+  const removeAllObjects = () => {
+    if (mode !== EditorMode.Edit) return;
+    setDrawDataWithHistory((s) => {
+      s.objectList = [];
+      s.creatingObject = undefined;
+    });
+    setEditState((s) => {
+      s.focusObjectIndex = -1;
+      s.focusEleIndex = -1;
+      s.focusEleType = EElementType.Rect;
+    });
   };
 
   const updateObject = (object: IAnnotationObject, index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList[index] = object;
-      s.changed = true;
+      if (s.creatingObject && s.activeObjectIndex === index) {
+        s.creatingObject = { ...object };
+      }
     });
-    updateAnnotation(object, index);
   };
 
   const updateAllObject = (objectList: IAnnotationObject[]) => {
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList = objectList;
-      s.changed = true;
+      if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+        s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
+      }
     });
-    updateAllAnnotation(objectList);
+  };
+
+  const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
+    if (index < 0) return;
+    setDrawData((s) => {
+      s.activeObjectIndex = index;
+      s.creatingObject = {
+        ...drawData.objectList[index],
+        currIndex: undefined,
+        startPoint: undefined,
+        tempMaskSteps: [],
+        maskStep: undefined,
+      };
+
+      if (
+        s.selectedTool !== EBasicToolItem.Drag &&
+        s.objectList[index] &&
+        EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
+      ) {
+        s.selectedTool = EBasicToolItem.Drag;
+      }
+
+      // TODO: support edit mask in drag tool
+      if (s.objectList[index].type === EObjectType.Mask) {
+        s.selectedTool = EBasicToolItem.Mask;
+      }
+    });
   };
 
   return {
     initObjectList,
     addObject,
     removeObject,
+    removeAllObjects,
     updateObject,
     updateAllObject,
+    setCurrSelectedObject,
   };
 };
 

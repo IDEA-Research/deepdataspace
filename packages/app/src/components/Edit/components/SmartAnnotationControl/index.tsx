@@ -10,7 +10,7 @@ import Icon from '@ant-design/icons/lib/components/Icon';
 import { Button, Card, Select, Slider } from 'antd';
 import classNames from 'classnames';
 import { useMemo } from 'react';
-import { DrawData } from '../..';
+import { DrawData } from '../../type';
 import styles from './index.less';
 import { FloatWrapper } from '@/components/FloatWrapper';
 import { ReactComponent as DragToolIcon } from '@/assets/svg/drag.svg';
@@ -64,6 +64,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
       name: localeText('smartAnnotation.pose.name'),
       icon: OBJECT_ICON[EObjectType.Skeleton],
     },
+    [EBasicToolItem.Mask]: {
+      name: localeText('smartAnnotation.mask.name'),
+      icon: OBJECT_ICON[EObjectType.Mask],
+    },
   };
 
   const labelOptions = useMemo(() => {
@@ -95,7 +99,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
 
   const isVisible = useMemo(() => {
     return (
-      drawData.AIAnnotation && drawData.selectedTool !== EBasicToolItem.Drag
+      drawData.AIAnnotation &&
+      ![EBasicToolItem.Drag, EBasicToolItem.Mask].includes(
+        drawData.selectedTool,
+      )
     );
   }, [drawData.selectedTool, drawData.AIAnnotation]);
 

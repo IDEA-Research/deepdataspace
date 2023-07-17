@@ -66,9 +66,6 @@ export default function useCanvasContainer({
     | undefined
   >(undefined);
 
-  // Whether the mouse is moving
-  const movedRef = useRef<boolean>(false);
-
   const contentMouse = useMemo(() => {
     return {
       ...containerMouse,
@@ -143,29 +140,21 @@ export default function useCanvasContainer({
         ? Math.min(MAX_SCALE, fixedFloatNum(s.scale + step, 2))
         : Math.max(MIN_SCALE, fixedFloatNum(s.scale - step, 2));
 
-      // Record the starting zoom scale ratio.
+      // update scale center
       if (
-        isZoomBtn ||
-        !contentMouse.elementX ||
-        !containerMouse.elementX ||
-        !clientSize.width
-      ) {
-        // Center zoom.
-        lastScalePosRef.current = undefined;
-      } else if (
         !lastScalePosRef.current ||
-        (movedRef.current &&
-          (containerMouse.elementX !== lastScalePosRef.current.mouseX ||
-            containerMouse.elementY !== lastScalePosRef.current.mouseY))
+        containerMouse.elementX !== lastScalePosRef.current.mouseX ||
+        containerMouse.elementY !== lastScalePosRef.current.mouseY
       ) {
-        // Focus zoom && Mouse move
-        lastScalePosRef.current = {
-          posRatioX: contentMouse.elementX / clientSize.width,
-          posRatioY: contentMouse.elementY / clientSize.height,
-          mouseX: containerMouse.elementX,
-          mouseY: containerMouse.elementY,
-        };
-        movedRef.current = false;
+        if (!isZoomBtn) {
+          const scalePos = {
+            posRatioX: contentMouse.elementX / clientSize.width,
+            posRatioY: contentMouse.elementY / clientSize.height,
+            mouseX: containerMouse.elementX,
+            mouseY: containerMouse.elementY,
+          };
+          lastScalePosRef.current = scalePos;
+        }
       }
 
       s.scale = scale;
@@ -228,7 +217,6 @@ export default function useCanvasContainer({
     'mousemove',
     () => {
       if (!visible) return;
-      movedRef.current = true;
       if (movingImgAnchor && allowMove) {
         const offsetX = contentMouse.elementX - movingImgAnchor.x;
         const offsetY = contentMouse.elementY - movingImgAnchor.y;
@@ -258,6 +246,11 @@ export default function useCanvasContainer({
   useEffect(() => {
     if (!allowMove) {
       setMovingImgAnchor(null);
+    } else {
+      setMovingImgAnchor({
+        x: contentMouse.elementX,
+        y: contentMouse.elementY,
+      });
     }
   }, [allowMove]);
 

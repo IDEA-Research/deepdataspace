@@ -14,7 +14,7 @@ import Icon, {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { IAnnotationObject } from '../..';
+import { IAnnotationObject } from '../../type';
 import PointItem from '../Items/PointItem';
 import RectItem from '../Items/RectItem';
 import PolygonItem from '../Items/PolygonItem';
@@ -42,7 +42,6 @@ export interface IProps {
   onDeleteObject: (index: number) => void;
   onChangeEleVisible: (eleType: EElementType, visible: boolean) => void;
   onCancelMovingStatus: () => void;
-  onConvertPolygonToAIMode: (objIndex: number) => void;
   onChangeActiveClassName: (className: string) => void;
   onChangePointVisible: (visible: KEYPOINTS_VISIBLE_TYPE) => void;
 }
@@ -169,22 +168,6 @@ const ObjectList: React.FC<IProps> = (props) => {
                 }}
               />
             </Tooltip>
-            {/* {object.type === EObjectType.Polygon && (
-              <Tooltip
-                title={localeText('editor.annotsList.convertToSmartMode')}
-              >
-                <Button
-                  ghost
-                  className={styles.btn}
-                  icon={<Icon component={MagicIcon} />}
-                  shape={'circle'}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onConvertPolygonToAIMode(objIndex);
-                  }}
-                />
-              </Tooltip>
-            )} */}
           </>
         )}
         {[EObjectType.Custom, EObjectType.Skeleton].includes(object.type) && (
@@ -502,25 +485,6 @@ const ObjectList: React.FC<IProps> = (props) => {
                               }}
                             />
                           </Tooltip>
-
-                          {/* {object.type === EObjectType.Polygon && (
-                            <Tooltip
-                              title={localeText(
-                                'editor.annotsList.convertToSmartMode',
-                              )}
-                            >
-                              <Button
-                                ghost
-                                className={styles.btn}
-                                icon={<Icon component={MagicIcon} />}
-                                shape={'circle'}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onConvertPolygonToAIMode(object.originIndex);
-                                }}
-                              />
-                            </Tooltip>
-                          )} */}
                         </>
                       )}
                     </div>
