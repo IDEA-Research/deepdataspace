@@ -106,10 +106,6 @@ const Edit: React.FC<EditProps> = (props) => {
   const activeCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const isDragToolActive = useMemo(() => {
-    return drawData.selectedTool === EBasicToolItem.Drag;
-  }, [drawData.selectedTool]);
-
   const isAIPoseEstimation = useMemo(() => {
     return (
       drawData.AIAnnotation && drawData.selectedTool === EBasicToolItem.Skeleton
@@ -310,7 +306,6 @@ const Edit: React.FC<EditProps> = (props) => {
     setEditState,
     clientSize,
     contentMouse,
-    isDragToolActive,
     isAIPoseEstimation,
     categories,
     updateRender,

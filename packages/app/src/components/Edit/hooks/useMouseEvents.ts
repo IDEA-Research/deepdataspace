@@ -26,7 +26,6 @@ interface IProps {
   setEditState: Updater<EditState>;
   clientSize: ISize;
   contentMouse: CursorState;
-  isDragToolActive: boolean;
   isAIPoseEstimation: boolean;
   categories: DATA.Category[];
   updateRender: (updateDrawData?: DrawData) => void;
@@ -43,7 +42,6 @@ const useMouseEvents = ({
   setEditState,
   clientSize,
   contentMouse,
-  isDragToolActive,
   isAIPoseEstimation,
   categories,
   updateRender,
@@ -85,7 +83,10 @@ const useMouseEvents = ({
           s.focusPolygonInfo = hoverDetail;
         });
       }
-    } else if (isDragToolActive || isAIPoseEstimation) {
+    } else if (
+      drawData.selectedTool === EBasicToolItem.Drag ||
+      isAIPoseEstimation
+    ) {
       setEditState((s) => {
         s.focusObjectIndex = focusObjectIndex;
         s.focusEleIndex = -1;
@@ -121,7 +122,6 @@ const useMouseEvents = ({
         objectHooksMap[drawData.creatingObject.type].startEditingWhenMouseDown({
           event,
           object: drawData.creatingObject,
-          prompt: drawData.prompt,
         })
       ) {
         return;
@@ -135,7 +135,6 @@ const useMouseEvents = ({
         objectHooksMap[objectType].startCreatingWhenMouseDown({
           event,
           object: drawData.creatingObject,
-          prompt: drawData.prompt,
           point: {
             x: contentMouse.elementX,
             y: contentMouse.elementY,
@@ -173,7 +172,6 @@ const useMouseEvents = ({
           {
             event,
             object: drawData.creatingObject,
-            prompt: drawData.prompt,
           },
         )
       ) {
@@ -191,7 +189,6 @@ const useMouseEvents = ({
         objectHooksMap[objectType].updateCreatingWhenMouseMove({
           event,
           object: drawData.creatingObject,
-          prompt: drawData.prompt,
         })
       ) {
         return;
@@ -222,7 +219,6 @@ const useMouseEvents = ({
         objectHooksMap[drawData.creatingObject.type].finishEditingWhenMouseUp({
           event,
           object: drawData.creatingObject,
-          prompt: drawData.prompt,
         })
       ) {
         return;
@@ -238,7 +234,6 @@ const useMouseEvents = ({
         objectHooksMap[objectType].finishCreatingWhenMouseUp({
           event,
           object: drawData.creatingObject,
-          prompt: drawData.prompt,
         })
       ) {
         return;

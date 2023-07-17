@@ -56,7 +56,6 @@ export namespace ToolHooksFunc {
   export type StartCreatingWhenMouseDown = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object?: ICreatingObject;
-    prompt: IPrompt;
     point: { x: number; y: number };
     basic: { hidden: boolean; label: string };
   }) => boolean;
@@ -64,31 +63,26 @@ export namespace ToolHooksFunc {
   export type StartEditingWhenMouseDown = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object: ICreatingObject;
-    prompt: IPrompt;
   }) => boolean;
 
   export type UpdateCreatingWhenMouseMove = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object?: ICreatingObject;
-    prompt: IPrompt;
   }) => boolean;
 
   export type UpdateEditingWhenMouseMove = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object: ICreatingObject;
-    prompt: IPrompt;
   }) => boolean;
 
   export type FinishCreatingWhenMouseUp = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object?: ICreatingObject;
-    prompt: IPrompt;
   }) => boolean;
 
   export type FinishEditingWhenMouseUp = (params: {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object: ICreatingObject;
-    prompt: IPrompt;
   }) => boolean;
 }
 

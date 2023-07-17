@@ -721,9 +721,8 @@ const useMask: ToolInstanceHook = ({
   const updateMaskWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove = ({
     event,
     object,
-    prompt,
   }) => {
-    if (object || prompt.creatingMask) {
+    if (object || drawData.prompt.creatingMask) {
       const allowRecordMousePath = [
         ESubToolItem.BrushAdd,
         ESubToolItem.BrushErase,
@@ -760,19 +759,17 @@ const useMask: ToolInstanceHook = ({
   };
 
   const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
-    ({ object, prompt, event }) => {
+    ({ object, event }) => {
       return updateMaskWhenMouseMove({
         object,
-        prompt,
         event,
       });
     };
 
   const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
-    ({ object, prompt, event }) => {
+    ({ object, event }) => {
       return updateMaskWhenMouseMove({
         object,
-        prompt,
         event,
       });
     };
