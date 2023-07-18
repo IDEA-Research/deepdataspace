@@ -236,6 +236,8 @@ export async function fetchModelResults<T extends EnumModelType>(
     // status 429 indicates warning for rate limit of AI annotate request
     if (error.response.status === 429) {
       Modal.info({
+        title: globalLocaleText('smartAnnotation.rateLimit.title'),
+        centered: true,
         content: globalLocaleText('smartAnnotation.rateLimit.content'),
         okText: globalLocaleText('smartAnnotation.rateLimit.okText'),
         onOk: () => {},

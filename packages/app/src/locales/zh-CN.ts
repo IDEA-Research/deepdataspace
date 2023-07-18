@@ -116,6 +116,7 @@ export default {
   'smartAnnotation.msg.labelRequired': '请至少选择一个目标类别',
   'smartAnnotation.msg.confResults': '共有{count}条标注符合目标置信区间',
   'smartAnnotation.msg.applyConf': '已保留{count}条标注，其他标注已移除',
+  'smartAnnotation.rateLimit.title': '提示',
   'smartAnnotation.rateLimit.content':
     '非常抱歉，我们的公共服务器暂时负载不足，请稍后再试。',
   'smartAnnotation.rateLimit.okText': '好的',

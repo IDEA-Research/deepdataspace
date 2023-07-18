@@ -121,6 +121,7 @@ export default {
   'smartAnnotation.msg.confResults': '{count} matching annotations shown',
   'smartAnnotation.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'smartAnnotation.rateLimit.title': 'Tips',
   'smartAnnotation.rateLimit.content':
     'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
   'smartAnnotation.rateLimit.okText': 'OK',
