@@ -570,9 +570,7 @@ const useMask: ToolInstanceHook = ({
     }
   };
 
-  const updateMaskWhenMouseDown = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
+  const updateMaskWhenMouseDown = (event: MouseEvent) => {
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -759,6 +757,7 @@ const useMask: ToolInstanceHook = ({
       // Left/Right button is pressed while mousemove
       const isMousePress = event.buttons === 1 || event.buttons === 2;
       if (allowRecordMousePath && isMousePress) {
+        // checkContainerVisibleArea();
         const mouse = {
           x: contentMouse.elementX,
           y: contentMouse.elementY,

@@ -58,7 +58,12 @@ const Page: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.left}>
+      <div
+        className={styles.left}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
+      >
         <Button
           type="primary"
           icon={<SettingOutlined />}

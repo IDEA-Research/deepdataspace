@@ -1,4 +1,4 @@
-import { MouseEventHandler, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { DrawData, EditState, EditorMode, EObjectStatus } from '../type';
 import {
@@ -16,6 +16,7 @@ import {
 import { Updater } from 'use-immer';
 import { DATA } from '@/services/type';
 import { ToolInstanceHookReturn } from '../tools/base';
+import { useEventListener, useRafInterval } from 'ahooks';
 
 interface IProps {
   visible: boolean;
@@ -32,6 +33,8 @@ interface IProps {
   updateMouseCursor: (value: string, position?: Direction) => void;
   setCurrSelectedObject: (index?: number) => void;
   objectHooksMap: Record<EObjectType, ToolInstanceHookReturn>;
+  imagePos: React.MutableRefObject<IPoint>;
+  containerMouse: CursorState;
 }
 
 const useMouseEvents = ({
@@ -48,8 +51,99 @@ const useMouseEvents = ({
   updateMouseCursor,
   setCurrSelectedObject,
   objectHooksMap,
+  imagePos,
+  containerMouse,
 }: IProps) => {
+  const moveVisibleAreaRef = useRef<{
+    direction?: Direction;
+    topMin?: number;
+    topMax?: number;
+    leftMin?: number;
+    leftMax?: number;
+  }>({});
+
+  const [moveVisibleAreaInterval, setMoveVisibleAreaInterval] = useState<
+    number | undefined
+  >(undefined);
+  useRafInterval(() => {
+    let changed = false;
+    if (
+      moveVisibleAreaRef.current.direction?.includes('TOP') &&
+      imagePos.current.y < moveVisibleAreaRef.current.topMax!
+    ) {
+      imagePos.current.y += 8;
+      changed = true;
+    } else if (
+      moveVisibleAreaRef.current.direction?.includes('BOTTOM') &&
+      imagePos.current.y > moveVisibleAreaRef.current.topMin!
+    ) {
+      imagePos.current.y -= 8;
+      changed = true;
+    }
+    if (
+      moveVisibleAreaRef.current.direction?.includes('LEFT') &&
+      imagePos.current.x < moveVisibleAreaRef.current.leftMax!
+    ) {
+      imagePos.current.x += 8;
+      changed = true;
+    } else if (
+      moveVisibleAreaRef.current.direction?.includes('RIGHT') &&
+      imagePos.current.x > moveVisibleAreaRef.current.leftMin!
+    ) {
+      imagePos.current.x -= 8;
+      changed = true;
+    }
+    if (!changed) {
+      setMoveVisibleAreaInterval(undefined);
+    }
+    updateRender();
+  }, moveVisibleAreaInterval);
+
+  const checkContainerVisibleArea = () => {
+    let direction = '';
+    const offset = 40;
+    const mouseOffset = 10;
+    const topMax = offset;
+    const topMin = containerMouse.elementH - contentMouse.elementH - offset;
+    const leftMax = offset;
+    const leftMin = containerMouse.elementW - contentMouse.elementW - offset;
+    if (containerMouse.elementY <= mouseOffset && imagePos.current.y < topMax) {
+      direction = 'TOP';
+    } else if (
+      containerMouse.elementY >= containerMouse.elementH - mouseOffset &&
+      imagePos.current.y > topMin
+    ) {
+      direction = 'BOTTOM';
+    }
+    if (
+      containerMouse.elementX <= mouseOffset &&
+      imagePos.current.x < leftMax
+    ) {
+      direction += direction ? '_LEFT' : 'LEFT';
+    } else if (
+      containerMouse.elementX >= containerMouse.elementW - mouseOffset &&
+      imagePos.current.x > leftMin
+    ) {
+      direction += direction ? '_RIGHT' : 'RIGHT';
+    }
+
+    if (direction) {
+      moveVisibleAreaRef.current = {
+        direction: direction as Direction,
+        topMax,
+        topMin,
+        leftMax,
+        leftMin,
+      };
+      setMoveVisibleAreaInterval(16);
+    } else {
+      setMoveVisibleAreaInterval(undefined);
+    }
+    updateRender();
+  };
+
   const updateFocusInfoWhenMouseMove = () => {
+    if (!isInCanvas(containerMouse)) return;
     const focusObjectIndex = judgeFocusOnObject(
       clientSize,
       contentMouse,
@@ -103,9 +197,7 @@ const useMouseEvents = ({
 
   const [isMousePress, setMousePress] = useState(false);
 
-  const onMouseDown: MouseEventHandler<HTMLDivElement> = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-  ) => {
+  const onMouseDown = (event: MouseEvent) => {
     setMousePress(true);
 
     if (
@@ -163,7 +255,7 @@ const useMouseEvents = ({
     }
   };
 
-  const onMouseMove: MouseEventHandler<HTMLDivElement> = (event) => {
+  const onMouseMove = (event: MouseEvent) => {
     if (!visible || editState.isRequiring || editState.allowMove) return;
 
     // update default cursor
@@ -186,6 +278,7 @@ const useMouseEvents = ({
           },
         )
       ) {
+        checkContainerVisibleArea();
         return;
       }
     } else if (
@@ -201,6 +294,7 @@ const useMouseEvents = ({
           object: drawData.creatingObject,
         })
       ) {
+        checkContainerVisibleArea();
         return;
       }
     }
@@ -210,8 +304,9 @@ const useMouseEvents = ({
     updateRender();
   };
 
-  const onMouseUp: MouseEventHandler<HTMLDivElement> = (event) => {
+  const onMouseUp = (event: MouseEvent) => {
     setMousePress(false);
+    setMoveVisibleAreaInterval(undefined);
 
     if (!visible || editState.isRequiring) return;
 
@@ -251,10 +346,19 @@ const useMouseEvents = ({
     }
   };
 
+  useEventListener('mousedown', (event) => {
+    onMouseDown(event);
+  });
+
+  useEventListener('mousemove', (event) => {
+    onMouseMove(event);
+  });
+
+  useEventListener('mouseup', (event) => {
+    onMouseUp(event);
+  });
+
   return {
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
     isMousePress,
   };
 };

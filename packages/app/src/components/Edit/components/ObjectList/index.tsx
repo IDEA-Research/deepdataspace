@@ -118,6 +118,9 @@ const ObjectList: React.FC<IProps> = (props) => {
     objIndex: number;
   }> = ({ object, objIndex }) => (
     <div
+      onMouseDown={(event) => {
+        event.stopPropagation();
+      }}
       className={classNames(styles.collapseHeader, {
         [styles.collapseHeaderSelected]: activeObjectIndex === objIndex,
       })}

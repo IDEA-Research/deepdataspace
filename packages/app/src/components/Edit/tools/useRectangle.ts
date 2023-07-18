@@ -129,8 +129,8 @@ const useRectangle: ToolInstanceHook = ({
     };
 
   const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
-    () => {
-      return false;
+    ({ object }) => {
+      return !!object;
     };
 
   const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({
@@ -157,7 +157,9 @@ const useRectangle: ToolInstanceHook = ({
       contentMouse.elementX === object.startPoint.x ||
       contentMouse.elementY === object.startPoint.y
     ) {
-      setDrawData((s) => (s.creatingObject = undefined));
+      setDrawData((s) => {
+        s.creatingObject = undefined;
+      });
       return true;
     }
     const newRect = getRectFromPoints(

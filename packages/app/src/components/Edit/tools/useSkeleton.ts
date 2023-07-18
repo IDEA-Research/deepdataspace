@@ -277,8 +277,8 @@ const useSkeleton: ToolInstanceHook = ({
     };
 
   const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
-    () => {
-      return false;
+    ({ object }) => {
+      return !!object;
     };
 
   const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({

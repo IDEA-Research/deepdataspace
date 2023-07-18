@@ -297,7 +297,7 @@ const Edit: React.FC<EditProps> = (props) => {
     objectHooksMap,
   });
 
-  const { onMouseDown, onMouseMove, onMouseUp, isMousePress } = useMouseEvents({
+  const { isMousePress } = useMouseEvents({
     visible,
     mode,
     drawData,
@@ -312,6 +312,8 @@ const Edit: React.FC<EditProps> = (props) => {
     updateMouseCursor,
     setCurrSelectedObject,
     objectHooksMap,
+    imagePos,
+    containerMouse,
   });
 
   useShortcuts({
@@ -538,12 +540,7 @@ const Edit: React.FC<EditProps> = (props) => {
         </TopTools>
         <div className={styles.container}>
           <div className={styles.leftSlider}></div>
-          <div
-            className={styles.centerContent}
-            onMouseMove={onMouseMove}
-            onMouseDown={onMouseDown}
-            onMouseUp={onMouseUp}
-          >
+          <div className={styles.centerContent}>
             {CanvasContainer({
               className: styles.editWrap,
               children: (
@@ -578,7 +575,11 @@ const Edit: React.FC<EditProps> = (props) => {
                 allowAddCategory={isSeperate}
                 latestLabel={editState.latestLabel}
                 categories={categories}
-                currEditObject={drawData.creatingObject}
+                currEditObject={
+                  drawData.objectList[drawData.activeObjectIndex] ||
+                  (drawData.selectedTool === EBasicToolItem.Mask &&
+                    drawData.creatingObject)
+                }
                 onCreateCategory={onCreateCategory}
                 onDeleteCurrObject={onDeleteCurrObject}
                 onFinishCurrCreate={onFinishCurrCreate}

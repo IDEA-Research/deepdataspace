@@ -201,47 +201,35 @@ export default function useCanvasContainer({
     }
   }, [visible]);
 
-  useEventListener(
-    'mousedown',
-    () => {
-      if (!visible || !containerRef.current) return;
-      setMovingImgAnchor({
-        x: contentMouse.elementX,
-        y: contentMouse.elementY,
-      });
-    },
-    { target: () => containerRef.current },
-  );
+  useEventListener('mousedown', () => {
+    if (!visible || !containerRef.current) return;
+    setMovingImgAnchor({
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    });
+  });
 
-  useEventListener(
-    'mousemove',
-    () => {
-      if (!visible) return;
-      if (movingImgAnchor && allowMove) {
-        const offsetX = contentMouse.elementX - movingImgAnchor.x;
-        const offsetY = contentMouse.elementY - movingImgAnchor.y;
-        const { x, y } = imagePos.current;
-        imagePos.current = {
-          x: x + offsetX,
-          y: y + offsetY,
-        };
-      }
-    },
-    { target: () => containerRef.current },
-  );
+  useEventListener('mousemove', () => {
+    if (!visible) return;
+    if (movingImgAnchor && allowMove) {
+      const offsetX = contentMouse.elementX - movingImgAnchor.x;
+      const offsetY = contentMouse.elementY - movingImgAnchor.y;
+      const { x, y } = imagePos.current;
+      imagePos.current = {
+        x: x + offsetX,
+        y: y + offsetY,
+      };
+    }
+  });
 
-  useEventListener(
-    'mouseup',
-    () => {
-      if (!visible || !allowMove) return;
-      // Stop moving the image.
-      if (movingImgAnchor) {
-        setMovingImgAnchor(null);
-        return;
-      }
-    },
-    { target: () => containerRef.current },
-  );
+  useEventListener('mouseup', () => {
+    if (!visible || !allowMove) return;
+    // Stop moving the image.
+    if (movingImgAnchor) {
+      setMovingImgAnchor(null);
+      return;
+    }
+  });
 
   useEffect(() => {
     if (!allowMove) {

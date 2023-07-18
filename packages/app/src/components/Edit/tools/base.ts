@@ -55,34 +55,34 @@ export namespace ToolHooksFunc {
   export type RenderPrompt = (params: { prompt: IPrompt }) => void;
 
   export type StartCreatingWhenMouseDown = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object?: ICreatingObject;
     point: { x: number; y: number };
     basic: { hidden: boolean; label: string; status: EObjectStatus };
   }) => boolean;
 
   export type StartEditingWhenMouseDown = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object: ICreatingObject;
   }) => boolean;
 
   export type UpdateCreatingWhenMouseMove = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object?: ICreatingObject;
   }) => boolean;
 
   export type UpdateEditingWhenMouseMove = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object: ICreatingObject;
   }) => boolean;
 
   export type FinishCreatingWhenMouseUp = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object?: ICreatingObject;
   }) => boolean;
 
   export type FinishEditingWhenMouseUp = (params: {
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>;
+    event: MouseEvent;
     object: ICreatingObject;
   }) => boolean;
 }
@@ -162,9 +162,7 @@ export const renderActiveRect = (
   });
 };
 
-export const getPromptBoolean = (
-  event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-): boolean => {
+export const getPromptBoolean = (event: MouseEvent): boolean => {
   // Right Mouse Click / Lift Mouse Click + (Alt/Option) -> false
   if (event.button === 2 || (event.button === 0 && event.altKey)) return false;
   return true;
