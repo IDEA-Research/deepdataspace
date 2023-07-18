@@ -55,18 +55,28 @@
       width: 100%;
     }
 
-    .paramItem {
+    .paramControls {
       display: flex;
-      flex-direction: row;
-      justify-content: space-around;
+      flex-direction: column;
+      width: 100%;
 
-      .title {
-        width: 100px;
-      }
+      .paramItem {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
 
-      .slider {
-        align-self: flex-end;
-        width: 200px;
+        .title {
+          width: 100px;
+        }
+
+        .select {
+          flex: 1;
+        }
+
+        .slider {
+          align-self: flex-end;
+          flex: 1;
+        }
       }
     }
 

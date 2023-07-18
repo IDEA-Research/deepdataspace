@@ -18,6 +18,7 @@ import {
 import {
   DrawData,
   EditState,
+  EObjectStatus,
   IAnnotationObject,
   ICreatingObject,
   IPrompt,
@@ -57,7 +58,7 @@ export namespace ToolHooksFunc {
     event: React.MouseEvent<HTMLDivElement, MouseEvent>;
     object?: ICreatingObject;
     point: { x: number; y: number };
-    basic: { hidden: boolean; label: string };
+    basic: { hidden: boolean; label: string; status: EObjectStatus };
   }) => boolean;
 
   export type StartEditingWhenMouseDown = (params: {

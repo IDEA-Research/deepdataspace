@@ -554,12 +554,13 @@ const usePolygon: ToolInstanceHook = ({
       }
     } else {
       if (object.currIndex === -1) {
-        const { polygon, type, hidden, label } = object;
+        const { polygon, type, hidden, label, status } = object;
         const newObject = {
           polygon,
           type,
           hidden,
           label,
+          status,
         };
         addObject(newObject);
       }

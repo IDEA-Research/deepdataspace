@@ -1,6 +1,12 @@
 import React from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
-import { DrawData, EditState, ICreatingObject } from '../type';
+import {
+  DrawData,
+  EditState,
+  EObjectStatus,
+  IAnnotationObject,
+  ICreatingObject,
+} from '../type';
 import { translateAnnotCoord } from '@/utils/compute';
 import { EObjectType } from '@/constants';
 import {
@@ -128,28 +134,17 @@ const useCanvasRender = ({
     updateCreatingPromptRender(theDrawData);
   };
 
-  const updateRender = (updateDrawData?: DrawData) => {
-    if (!visible || !canvasRef.current || !imgRef.current) return;
-
-    resizeSmoothCanvas(canvasRef.current, {
-      width: containerMouse.elementW,
-      height: containerMouse.elementH,
-    });
-    canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
-    clearCanvas(canvasRef.current);
-
-    drawImage(canvasRef.current, imgRef.current, {
-      x: imagePos.current.x,
-      y: imagePos.current.y,
-      width: clientSize.width,
-      height: clientSize.height,
-    });
-
-    const theDrawData = updateDrawData || drawData;
-
-    // draw esisting objects
-    theDrawData.objectList.forEach((obj, index) => {
-      if (obj.hidden || index === theDrawData.activeObjectIndex) return;
+  const renderObjectList = (
+    list: IAnnotationObject[],
+    activeObjectIndex: number,
+  ) => {
+    list.forEach((obj, index) => {
+      if (
+        obj.hidden ||
+        obj.status === EObjectStatus.Unchecked ||
+        index === activeObjectIndex
+      )
+        return;
 
       const canvasCoordObject = translateAnnotCoord(obj, {
         x: -imagePos.current.x,
@@ -186,6 +181,29 @@ const useCanvasRender = ({
         maskAlpha,
       });
     });
+  };
+
+  const updateRender = (updateDrawData?: DrawData) => {
+    if (!visible || !canvasRef.current || !imgRef.current) return;
+
+    resizeSmoothCanvas(canvasRef.current, {
+      width: containerMouse.elementW,
+      height: containerMouse.elementH,
+    });
+    canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
+    clearCanvas(canvasRef.current);
+
+    drawImage(canvasRef.current, imgRef.current, {
+      x: imagePos.current.x,
+      y: imagePos.current.y,
+      width: clientSize.width,
+      height: clientSize.height,
+    });
+
+    const theDrawData = updateDrawData || drawData;
+
+    // draw esisting objects
+    renderObjectList(theDrawData.objectList, theDrawData.activeObjectIndex);
 
     // draw creating object
     updateRenderActiveCanvas(updateDrawData);

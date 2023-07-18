@@ -32,7 +32,7 @@ interface IProps {
   onSaveCurrCreate: () => void;
   onCancelCurrCreate: () => void;
   onChangeConfidenceRange: (range: [number, number]) => void;
-  onApplyCurVisibleObjects: () => void;
+  onAcceptValidObjects: () => void;
 }
 
 const SmartAnnotationControl: React.FC<IProps> = ({
@@ -46,7 +46,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   onSaveCurrCreate,
   onCancelCurrCreate,
   onChangeConfidenceRange,
-  onApplyCurVisibleObjects,
+  onAcceptValidObjects,
 }) => {
   const { localeText } = useLocale();
 
@@ -123,6 +123,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
     return true;
   }, [drawData.selectedTool, drawData.selectedSubTool, drawData.AIAnnotation]);
 
+  const onApplyCurrMaskObjs = () => {
+    onAcceptValidObjects();
+  };
+
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
       <Card
@@ -190,81 +194,92 @@ const SmartAnnotationControl: React.FC<IProps> = ({
               >
                 {labelOptions}
               </Select>
-              <Button className={styles.action} onClick={() => onAiAnnotation}>
-                {localeText('smartAnnotation.annotate')}
-              </Button>
-            </div>
-          )}
-          {drawData.selectedTool === EBasicToolItem.Skeleton && (
-            <div className={styles.item}>
-              <Select
-                style={{ width: 250 }}
-                placeholder={localeText('smartAnnotation.pose.input')}
-                showArrow={true}
-                value={aiLabels}
-                onChange={(values) =>
-                  Array.isArray(values)
-                    ? setAiLabels(values)
-                    : setAiLabels([values])
-                }
-                onInputKeyDown={(e) => {
-                  if (e.code !== 'Enter') {
-                    e.stopPropagation();
-                  }
-                }}
-                // @ts-ignore
-                getPopupContainer={() =>
-                  document.getElementById('smart-annotation-editor')
-                }
+              <Button
+                type="primary"
+                className={styles.action}
+                onClick={() => onAiAnnotation({ drawData, aiLabels })}
               >
-                {labelOptions}
-              </Select>
-              <Button className={styles.action} onClick={() => onAiAnnotation}>
                 {localeText('smartAnnotation.annotate')}
               </Button>
             </div>
           )}
           {drawData.selectedTool === EBasicToolItem.Skeleton &&
-            drawData.objectList.filter(
-              (obj) => obj.type === EObjectType.Skeleton,
-            ).length > 0 && (
-              <div
-                id="conf-slider"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  width: '100%',
-                }}
-              >
-                <div style={{ alignSelf: 'flex-start' }}>
-                  {localeText('editor.confidence')}
+            (drawData.isBatchEditing ? (
+              <>
+                <div className={styles.paramControls}>
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>
+                      {localeText('editor.confidence')}
+                    </div>
+                    <Slider
+                      className={styles.slider}
+                      range
+                      defaultValue={[0, 100]}
+                      onAfterChange={(range) =>
+                        onChangeConfidenceRange([
+                          range[0] / 100,
+                          range[1] / 100,
+                        ])
+                      }
+                      tooltip={{
+                        formatter: (value?: number) => {
+                          return <>{`${value! / 100}`}</>;
+                        },
+                        //@ts-ignore
+                        getPopupContainer: () =>
+                          document.getElementById('conf-slider'),
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className={styles.item}>
-                  <Slider
-                    style={{
-                      width: '220px',
-                    }}
-                    range
-                    defaultValue={[0, 100]}
-                    onAfterChange={(range) =>
-                      onChangeConfidenceRange([range[0] / 100, range[1] / 100])
-                    }
-                    tooltip={{
-                      formatter: (value?: number) => {
-                        return <>{`${value! / 100}`}</>;
-                      },
-                      //@ts-ignore
-                      getPopupContainer: () =>
-                        document.getElementById('conf-slider'),
-                    }}
-                  />
-                  <Button type="primary" onClick={onApplyCurVisibleObjects}>
-                    {localeText('smartAnnotation.pose.apply')}
-                  </Button>
+                <Button
+                  style={{ alignSelf: 'flex-end' }}
+                  type="primary"
+                  onClick={onAcceptValidObjects}
+                >
+                  {localeText('editor.save')}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className={styles.paramControls}>
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>
+                      {localeText('smartAnnotation.modelTyle')}
+                    </div>
+                    <Select
+                      className={styles.select}
+                      placeholder={localeText('smartAnnotation.pose.input')}
+                      showArrow={true}
+                      value={aiLabels}
+                      onChange={(values) =>
+                        Array.isArray(values)
+                          ? setAiLabels(values)
+                          : setAiLabels([values])
+                      }
+                      onInputKeyDown={(e) => {
+                        if (e.code !== 'Enter') {
+                          e.stopPropagation();
+                        }
+                      }}
+                      // @ts-ignore
+                      getPopupContainer={() =>
+                        document.getElementById('smart-annotation-editor')
+                      }
+                    >
+                      {labelOptions}
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            )}
+                <Button
+                  style={{ alignSelf: 'flex-end' }}
+                  type="primary"
+                  onClick={() => onAiAnnotation({ drawData, aiLabels })}
+                >
+                  {localeText('smartAnnotation.annotate')}
+                </Button>
+              </>
+            ))}
           {drawData.selectedTool === EBasicToolItem.Polygon && (
             <>
               <div className={styles.instruction}>
@@ -287,15 +302,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
           {drawData.selectedTool === EBasicToolItem.Mask &&
             drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything && (
               <>
-                <div
-                  id={'param-controls'}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: '',
-                    width: '100%',
-                  }}
-                >
+                <div id={'param-controls'} className={styles.paramControls}>
                   <div className={styles.paramItem}>
                     <div className={styles.title}>{'虚拟点击密度'}</div>
                     <Slider
@@ -355,7 +362,23 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                     />
                   </div>
                 </div>
-                {
+                {drawData.isBatchEditing ? (
+                  <div className={styles.actions}>
+                    <Button
+                      onClick={() =>
+                        onAiAnnotation({
+                          drawData,
+                          segmentEverythingParams: samParams,
+                        })
+                      }
+                    >
+                      {localeText('smartAnnotation.annotate')}
+                    </Button>
+                    <Button type="primary" onClick={onApplyCurrMaskObjs}>
+                      {localeText('editor.annotsEditor.finish')}
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     style={{ alignSelf: 'flex-end' }}
                     type="primary"
@@ -368,7 +391,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                   >
                     {localeText('smartAnnotation.annotate')}
                   </Button>
-                }
+                )}
               </>
             )}
         </div>

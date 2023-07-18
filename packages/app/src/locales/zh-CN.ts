@@ -102,6 +102,7 @@ export default {
   'smartAnnotation.pose.name': '智能姿态估计',
   'smartAnnotation.mask.name': '智能全景分割（SAM）',
   'smartAnnotation.annotate': '生成标注',
+  'smartAnnotation.modelTyle': '模型类型',
   'smartAnnotation.detection.input': '选择或输入类别',
   'smartAnnotation.pose.input': '选择模版',
   'smartAnnotation.pose.apply': '保留当前结果',

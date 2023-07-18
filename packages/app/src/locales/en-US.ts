@@ -111,6 +111,7 @@ export default {
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
+  'smartAnnotation.modelTyle': 'Model Type',
   'smartAnnotation.segmentation.tipsInitial':
     'Tips: Draw a bounding box around your target or click the center of it to generate initial segmentation.',
   'smartAnnotation.segmentation.tipsNext':

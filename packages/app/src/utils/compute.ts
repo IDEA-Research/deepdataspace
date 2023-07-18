@@ -6,11 +6,7 @@ import {
 } from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
-import {
-  getCanvasPoint,
-  getNaturalPoint,
-  getSegmentationPoints,
-} from './annotation';
+import { getCanvasPoint, getNaturalPoint } from './annotation';
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
 import { cloneDeep } from 'lodash';
 
@@ -980,86 +976,6 @@ export const isValidBBox = (bbox: IBoundingBox) => {
     return false;
   }
   return true;
-};
-
-export const translateAnnotationsToObjects = ({
-  annotations,
-  objectsFilter,
-  naturalSize,
-  clientSize,
-  needNormalizeBbox = true,
-}: {
-  annotations: DATA.BaseObject[];
-  objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];
-  naturalSize: ISize;
-  clientSize: ISize;
-  needNormalizeBbox?: boolean;
-}): IAnnotationObject[] => {
-  const objects = objectsFilter ? objectsFilter(annotations) : annotations;
-  const objectList = objects.map((obj) => {
-    let {
-      categoryName,
-      boundingBox,
-      points,
-      lines,
-      pointNames,
-      pointColors,
-      segmentation,
-    } = obj;
-
-    const newObj: IAnnotationObject = {
-      label: categoryName || '',
-      type: EObjectType.Rectangle,
-      hidden: false,
-      conf: 1,
-    };
-
-    // TODO: Ignore fields with bbox values of 0.
-    if (boundingBox && isValidBBox(boundingBox)) {
-      const rect = needNormalizeBbox
-        ? translateBoundingBoxToRect(boundingBox, clientSize)
-        : translateAbsBBoxToRect(boundingBox);
-      Object.assign(newObj, { rect: { visible: true, ...rect } });
-    }
-    if (
-      points &&
-      points.length > 0 &&
-      lines &&
-      lines.length > 0 &&
-      pointNames &&
-      pointColors
-    ) {
-      const pointObjs: IElement<IPoint>[] = translatePointsToPointObjs(
-        points,
-        pointNames,
-        pointColors,
-        naturalSize,
-        clientSize,
-      );
-      Object.assign(newObj, {
-        keypoints: {
-          points: pointObjs,
-          lines,
-        },
-      });
-    }
-    if (segmentation) {
-      const group = getSegmentationPoints(
-        segmentation,
-        naturalSize,
-        clientSize,
-      );
-      const polygon: IElement<IPolygonGroup> = {
-        group,
-        visible: true,
-      };
-      Object.assign(newObj, { polygon });
-    }
-    newObj.type = getObjectType(newObj);
-    return newObj;
-  });
-
-  return objectList;
 };
 
 export const translateObjectsToAnnotations = (

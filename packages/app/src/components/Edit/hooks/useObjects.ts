@@ -13,7 +13,13 @@ import {
   translatePointsToPointObjs,
 } from '@/utils/compute';
 import { Updater } from 'use-immer';
-import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
+import {
+  DrawData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+  EObjectStatus,
+} from '../type';
 import { rleToCanvas } from '../tools/useMask';
 
 interface IProps {
@@ -61,6 +67,7 @@ const useObjects = ({
       type: EObjectType.Rectangle,
       hidden: false,
       conf: 1,
+      status: EObjectStatus.Commited,
     };
 
     if (boundingBox && isValidBBox(boundingBox)) {

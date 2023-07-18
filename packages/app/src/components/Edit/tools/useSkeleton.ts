@@ -22,6 +22,7 @@ import {
   updateEditingRectWhenMouseMove,
 } from './base';
 import { changeRgbaOpacity, hexToRgba } from '@/utils/color';
+import { EObjectStatus } from '../type';
 
 const renderKeypoints = (
   canvas: HTMLCanvasElement,
@@ -347,6 +348,7 @@ const useSkeleton: ToolInstanceHook = ({
         lines: lines,
       },
       conf: 1,
+      status: EObjectStatus.Commited,
     };
     addObject(newObject);
     return true;

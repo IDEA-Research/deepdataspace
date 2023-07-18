@@ -2,7 +2,13 @@ import { useCallback } from 'react';
 import { Updater } from 'use-immer';
 import { Modal, message } from 'antd';
 import { EBasicToolItem, EObjectType, ESubToolItem } from '@/constants';
-import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
+import {
+  DrawData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+  EObjectStatus,
+} from '../type';
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { useLocale } from '@/locales/helper';
 
@@ -66,6 +72,7 @@ const useToolActions = ({
           maskRle,
           maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
           conf: 1,
+          status: EObjectStatus.Commited,
         };
         if (drawData.activeObjectIndex > -1) {
           // edit mask object
@@ -105,7 +112,12 @@ const useToolActions = ({
   };
 
   const selectTool = (tool: EBasicToolItem) => {
-    if (mode !== EditorMode.Edit || tool === drawData.selectedTool) return;
+    if (
+      mode !== EditorMode.Edit ||
+      tool === drawData.selectedTool ||
+      drawData.isBatchEditing
+    )
+      return;
     setDrawData((s) => {
       s.selectedTool = tool;
       if (tool === EBasicToolItem.Mask) {

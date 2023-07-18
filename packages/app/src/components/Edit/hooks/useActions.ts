@@ -41,6 +41,7 @@ import {
   EditorMode,
   IAnnotationObject,
   MaskPromptItem,
+  EObjectStatus,
 } from '../type';
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { EQaAction } from '@/pages/Project/constants';
@@ -154,6 +155,7 @@ const useActions = ({
               label: item.categoryName,
               type: EObjectType.Rectangle,
               hidden: false,
+              status: EObjectStatus.Commited,
             });
           }
         });
@@ -264,6 +266,7 @@ const useActions = ({
               visible: true,
               group: predictPolygons,
             },
+            status: EObjectStatus.Checked,
           };
 
           setDrawDataWithHistory((s) => {
@@ -420,6 +423,7 @@ const useActions = ({
           currIndex: -1,
           maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
           maskRle,
+          status: EObjectStatus.Checked,
         };
         setDrawDataWithHistory((s) => {
           s.creatingObject = creatingObj;
@@ -460,35 +464,39 @@ const useActions = ({
       },
     };
 
-    const objectList = [...drawData.objectList];
-    if (
-      drawData.activeObjectIndex > -1 &&
-      objectList[drawData.activeObjectIndex] &&
-      drawData.creatingObject
-    ) {
-      // update creating object
-      objectList[drawData.activeObjectIndex] = {
-        ...objectList[drawData.activeObjectIndex],
-        ...drawData.creatingObject,
-      };
-    }
-    const skeletonObjs = objectList.filter(
-      (obj) => obj.type === EObjectType.Skeleton,
-    );
-    if (skeletonObjs.length > 0) {
-      const annotations = translateObjectsToAnnotations(
-        skeletonObjs,
-        naturalSize,
-        clientSize,
-      );
-      const objects = annotations.map((item) => {
-        return {
-          categoryName: item.categoryName,
-          points: item.points,
-          boundingBox: item.boundingBox,
+    if (drawData.isBatchEditing) {
+      const objectList = [...drawData.objectList];
+      if (
+        drawData.activeObjectIndex > -1 &&
+        objectList[drawData.activeObjectIndex] &&
+        drawData.creatingObject
+      ) {
+        // update creating object
+        objectList[drawData.activeObjectIndex] = {
+          ...objectList[drawData.activeObjectIndex],
+          ...drawData.creatingObject,
         };
-      });
-      Object.assign(reqParams, { objects });
+      }
+      const skeletonObjs = objectList.filter(
+        (obj) =>
+          obj.type === EObjectType.Skeleton &&
+          obj.status === EObjectStatus.Checked,
+      );
+      if (skeletonObjs.length > 0) {
+        const annotations = translateObjectsToAnnotations(
+          skeletonObjs,
+          naturalSize,
+          clientSize,
+        );
+        const objects = annotations.map((item) => {
+          return {
+            categoryName: item.categoryName,
+            points: item.points,
+            boundingBox: item.boundingBox,
+          };
+        });
+        Object.assign(reqParams, { objects });
+      }
     }
 
     try {
@@ -509,6 +517,7 @@ const useActions = ({
               type: EObjectType.Skeleton,
               hidden: false,
               conf,
+              status: EObjectStatus.Checked,
             };
             if (boundingBox) {
               const rect = translateBoundingBoxToRect(boundingBox!, clientSize);
@@ -532,12 +541,18 @@ const useActions = ({
             return newObj;
           });
 
-          // Replace all instances of the skeleton type
-          const leftObjs = drawData.objectList.filter(
-            (obj) => obj.type !== EObjectType.Skeleton,
-          );
-          const updatedObjects = [...leftObjs, ...skeletonObjs];
-          updateAllObject(updatedObjects);
+          setDrawDataWithHistory((s) => {
+            if (!s.isBatchEditing) {
+              s.isBatchEditing = true;
+            }
+            const commitedObjects = s.objectList.filter(
+              (obj) => obj.status === EObjectStatus.Commited,
+            );
+            s.objectList = [...commitedObjects, ...skeletonObjs];
+            if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+              s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
+            }
+          });
 
           message.success(localeText('smartAnnotation.msg.success'));
         }
@@ -617,6 +632,7 @@ const useActions = ({
             maskRle: item.maskRle,
             maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
             conf: 1,
+            status: EObjectStatus.Commited,
           };
         });
 
@@ -662,7 +678,7 @@ const useActions = ({
         reqParams,
       );
       if (result && result.rleList?.length > 0) {
-        const maskObjects = result.rleList.map((item) => {
+        const maskObjects: IAnnotationObject[] = result.rleList.map((item) => {
           const color = labelColors[latestLabel] || '#fff';
           return {
             type: EObjectType.Mask,
@@ -671,10 +687,13 @@ const useActions = ({
             maskRle: item.maskRle,
             maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
             conf: 1,
+            status: EObjectStatus.Checked,
           };
         });
-
-        updateAllObject(maskObjects);
+        setDrawDataWithHistory((s) => {
+          s.objectList = maskObjects;
+          s.isBatchEditing = true;
+        });
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {

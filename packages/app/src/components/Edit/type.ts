@@ -8,6 +8,12 @@ import {
 } from '@/constants';
 import { RectAnchor } from '@/utils/compute';
 
+export enum EObjectStatus {
+  Unchecked,
+  Checked,
+  Commited,
+}
+
 export interface IAnnotationObject {
   type: EObjectType;
   label: string;
@@ -21,6 +27,7 @@ export interface IAnnotationObject {
   maskRle?: number[];
   maskCanvasElement?: any;
   conf?: number;
+  status: EObjectStatus;
 }
 
 export interface ICreatingMaskStep {
@@ -90,6 +97,7 @@ export interface DrawData {
   activeClassName: string;
   activeObjectIndex: number;
   creatingObject?: ICreatingObject; // - editing / creating
+  isBatchEditing: boolean; // active while handle batch predictions by model
 
   /** prompt actions */
   prompt: IPrompt;
@@ -141,6 +149,7 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   creatingObject: undefined,
   brushSize: 20,
   prompt: {},
+  isBatchEditing: false,
 };
 
 export const DEFAULT_EDIT_STATE: EditState = {

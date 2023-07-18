@@ -1,6 +1,6 @@
 import { MouseEventHandler, useState } from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
-import { DrawData, EditState, EditorMode } from '../type';
+import { DrawData, EditState, EditorMode, EObjectStatus } from '../type';
 import {
   Direction,
   isInCanvas,
@@ -144,6 +144,7 @@ const useMouseEvents = ({
           basic: {
             hidden: false,
             label: editState.latestLabel || categories[0].name,
+            status: EObjectStatus.Commited,
           },
         })
       ) {

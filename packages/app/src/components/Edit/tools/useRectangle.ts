@@ -9,6 +9,7 @@ import {
   editBaseElementWhenMouseDown,
   updateEditingRectWhenMouseMove,
 } from './base';
+import { EObjectStatus } from '../type';
 
 const useRectangle: ToolInstanceHook = ({
   contentMouse,
@@ -173,6 +174,7 @@ const useRectangle: ToolInstanceHook = ({
       hidden: false,
       rect: { visible: true, ...newRect },
       conf: 1,
+      status: EObjectStatus.Commited,
     };
     addObject(newObject);
     return true;

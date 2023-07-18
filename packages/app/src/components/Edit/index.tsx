@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Button, Divider, message } from 'antd';
+import { Button, Divider } from 'antd';
 import { EObjectType, EElementType, EBasicToolItem } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import { scaleDrawData } from '@/utils/compute';
@@ -32,6 +32,7 @@ import {
   EditImageData,
   EditState,
   EditorMode,
+  EObjectStatus,
 } from './type';
 import useMouseCursor from './hooks/useMouseCursor';
 import useShortcuts from './hooks/useShortcuts';
@@ -499,6 +500,12 @@ const Edit: React.FC<EditProps> = (props) => {
     (drawData.creatingObject &&
       drawData.creatingObject.type === EObjectType.Mask);
 
+  const commitedObjects = useMemo(() => {
+    return drawData.objectList.filter((obj) => {
+      return obj.status === EObjectStatus.Commited;
+    });
+  }, [drawData.isBatchEditing, drawData.objectList]);
+
   if (visible) {
     return (
       <div className={styles.editor}>
@@ -585,7 +592,11 @@ const Edit: React.FC<EditProps> = (props) => {
               setAiLabels={setAiLabels}
               onExitAIAnnotation={() => {
                 setDrawData((s) => {
+                  s.objectList = s.objectList.filter(
+                    (obj) => obj.status === EObjectStatus.Commited,
+                  );
                   s.AIAnnotation = false;
+                  s.isBatchEditing = false;
                   s.creatingObject = undefined;
                   s.prompt = {};
                 });
@@ -597,6 +608,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   polygon: drawData.creatingObject?.polygon,
                   label: drawData.creatingObject?.label || '',
                   hidden: false,
+                  status: EObjectStatus.Commited,
                 });
                 setDrawData((s) => {
                   s.activeObjectIndex = s.objectList.length - 1;
@@ -611,40 +623,40 @@ const Edit: React.FC<EditProps> = (props) => {
                 });
               }}
               onChangeConfidenceRange={(range) => {
-                setDrawData((s) => {
-                  const filterObjects = s.objectList.map((obj) => {
-                    if (obj.conf === undefined) return obj;
-                    obj.hidden =
-                      obj.conf < range[0] || obj.conf > range[1] ? true : false;
-                    return obj;
-                  });
-                  s.objectList = filterObjects;
-                  const visibleCount = filterObjects.reduce((sum, obj) => {
-                    return sum + (obj.hidden ? 0 : 1);
-                  }, 0);
-                  message.success(
-                    localeText('smartAnnotation.msg.confResults', {
-                      count: visibleCount,
-                    }),
+                setDrawDataWithHistory((s) => {
+                  const updateObjects = cloneDeep(drawData.objectList).map(
+                    (obj) => {
+                      if (obj.status === EObjectStatus.Commited) {
+                        return obj;
+                      }
+                      if (obj.conf === undefined) {
+                        obj.status = EObjectStatus.Unchecked;
+                        return obj;
+                      }
+                      obj.status =
+                        obj.conf < range[0] || obj.conf > range[1]
+                          ? EObjectStatus.Unchecked
+                          : EObjectStatus.Checked;
+                      return obj;
+                    },
                   );
+                  s.objectList = updateObjects;
                 });
               }}
-              onApplyCurVisibleObjects={() => {
-                setDrawData((s) => {
-                  const visibleObjects = s.objectList.filter((obj) => {
-                    return (
-                      (!obj.hidden && obj.type === EObjectType.Skeleton) ||
-                      obj.type !== EObjectType.Skeleton
-                    );
-                  });
-                  s.objectList = visibleObjects;
+              onAcceptValidObjects={() => {
+                setDrawDataWithHistory((s) => {
+                  const validObjs = cloneDeep(drawData.objectList)
+                    .filter((obj) => {
+                      return obj.status !== EObjectStatus.Unchecked;
+                    })
+                    .map((obj) => {
+                      obj.status = EObjectStatus.Commited;
+                      return obj;
+                    });
+                  s.objectList = validObjs;
+                  s.isBatchEditing = false;
                   s.activeObjectIndex = -1;
                   s.creatingObject = undefined;
-                  message.success(
-                    localeText('smartAnnotation.msg.applyConf', {
-                      count: visibleObjects.length,
-                    }),
-                  );
                 });
               }}
               onCreateCategory={onCreateCategory}
@@ -693,7 +705,7 @@ const Edit: React.FC<EditProps> = (props) => {
           <ObjectList
             supportEdit={mode === EditorMode.Edit}
             className={styles.rightSlider}
-            objects={drawData.objectList}
+            objects={commitedObjects}
             labelColors={labelColors}
             activeObjectIndex={drawData.activeObjectIndex}
             focusObjectIndex={editState.focusObjectIndex}
