@@ -80,13 +80,23 @@ const useMouseEvents = ({
       setEditState((s) => {
         s.focusObjectIndex = focusObjectIndex;
         s.focusEleIndex = -1;
-        s.focusEleType = EElementType.Rect;
+        s.focusEleType = EElementType.None;
+        s.focusPolygonInfo = {
+          index: -1,
+          pointIndex: -1,
+          lineIndex: -1,
+        };
       });
     } else {
       setEditState((s) => {
         s.focusObjectIndex = -1;
         s.focusEleIndex = -1;
-        s.focusEleType = EElementType.Rect;
+        s.focusEleType = EElementType.None;
+        s.focusPolygonInfo = {
+          index: -1,
+          pointIndex: -1,
+          lineIndex: -1,
+        };
       });
     }
   };

@@ -5,9 +5,9 @@ import {
 } from '@/utils/draw';
 import { EElementType, EObjectType, LABELS_STROKE_DASH } from '@/constants';
 import {
+  getClosestPointOnLineSegment,
   getInnerPolygonIndexFromGroup,
   getLinesFromPolygon,
-  getMidPointFromTwoPoints,
   getRectFromPoints,
   getReferencePointsFromRect,
   isInCanvas,
@@ -229,7 +229,14 @@ const usePolygon: ToolInstanceHook = ({
         const lines = getLinesFromPolygon(polygon.group[index]);
         if (lines[lineIndex]) {
           const { start, end } = lines[lineIndex];
-          const midPoint = getMidPointFromTwoPoints(start, end);
+          const midPoint = getClosestPointOnLineSegment(
+            {
+              x: contentMouse.elementX + imagePos.current.x,
+              y: contentMouse.elementY + imagePos.current.y,
+            },
+            start,
+            end,
+          );
           if (midPoint) {
             drawCircleWithFill(
               activeCanvasRef.current!,
@@ -359,16 +366,17 @@ const usePolygon: ToolInstanceHook = ({
         focusObjectIndex === drawData.activeObjectIndex &&
         focusEleType === EElementType.Polygon
       ) {
-        if (focusPolygonInfo.lineIndex < 0 && focusPolygonInfo.pointIndex < 0) {
-          updateMouseCursor('move');
-        } else {
+        if (focusPolygonInfo.pointIndex > -1) {
           updateMouseCursor('pointer');
+        } else if (focusPolygonInfo.lineIndex > -1) {
+          updateMouseCursor('crosshair');
+        } else {
+          updateMouseCursor('move');
         }
       }
       if (focusEleType === EElementType.Polygon && focusEleIndex === 0) {
         const { index, pointIndex } = editState.focusPolygonInfo;
         if (editState.startElementMovePoint && index > -1) {
-          updateMouseCursor('move');
           if (pointIndex > -1) {
             // move single point
             setDrawData((s) => {

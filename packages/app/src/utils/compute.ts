@@ -1120,6 +1120,24 @@ export const translateObjectsToAnnotations = (
   return annotations;
 };
 
+export const getClosestPointOnLineSegment = (
+  point: IPoint,
+  lineStart: IPoint,
+  lineEnd: IPoint,
+) => {
+  const ap = { x: point.x - lineStart.x, y: point.y - lineStart.y };
+  const ab = { x: lineEnd.x - lineStart.x, y: lineEnd.y - lineStart.y };
+  const ab2: number = ab.x * ab.x + ab.y * ab.y;
+  const ap_ab: number = ap.x * ab.x + ap.y * ab.y;
+  let t: number = ap_ab / ab2;
+  if (t < 0 || isNaN(t)) {
+    t = 0;
+  } else if (t > 1) {
+    t = 1;
+  }
+  return { x: lineStart.x + ab.x * t, y: lineStart.y + ab.y * t };
+};
+
 export const getMidPointFromTwoPoints = (p1: IPoint, p2: IPoint): IPoint => {
   return {
     x: (p1.x + p2.x) / 2,

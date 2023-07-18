@@ -6,8 +6,8 @@ import {
   Direction,
   getAnchorFixRectPoint,
   getAnchorUnderMouseByRect,
+  getClosestPointOnLineSegment,
   getLinesFromPolygon,
-  getMidPointFromTwoPoints,
   getRectWithCenterAndSize,
   judgeFocusOnElement,
   mapRectToAnchors,
@@ -236,7 +236,11 @@ export const editBaseElementWhenMouseDown = ({
             // add point
             const line = getLinesFromPolygon(polygon.group[index])[lineIndex];
             if (line) {
-              const midPoint = getMidPointFromTwoPoints(line.start, line.end);
+              const midPoint = getClosestPointOnLineSegment(
+                mouse,
+                line.start,
+                line.end,
+              );
               setDrawData((s) => {
                 const activeObject = s.objectList[s.activeObjectIndex];
                 if (activeObject.polygon) {
@@ -249,16 +253,25 @@ export const editBaseElementWhenMouseDown = ({
                 s.creatingObject = { ...activeObject };
               });
               s.focusPolygonInfo.pointIndex = lineIndex + 1;
+              s.startElementMovePoint = {
+                topLeftPoint: {
+                  x: 0,
+                  y: 0,
+                },
+                mousePoint: midPoint,
+                initPoint: midPoint,
+              };
             }
+          } else {
+            s.startElementMovePoint = {
+              topLeftPoint: {
+                x: 0,
+                y: 0,
+              },
+              mousePoint: mouse,
+              initPoint: mouse,
+            };
           }
-          s.startElementMovePoint = {
-            topLeftPoint: {
-              x: 0,
-              y: 0,
-            },
-            mousePoint: mouse,
-            initPoint: mouse,
-          };
         }
         break;
       }
