@@ -37,6 +37,9 @@ interface IProps {
   containerMouse: CursorState;
 }
 
+const BOUNDING_OFFSET = 40;
+const MOUSE_OFFSET = 10;
+
 const useMouseEvents = ({
   visible,
   mode,
@@ -56,39 +59,45 @@ const useMouseEvents = ({
 }: IProps) => {
   const moveVisibleAreaRef = useRef<{
     direction?: Direction;
-    topMin?: number;
-    topMax?: number;
-    leftMin?: number;
-    leftMax?: number;
-  }>({});
+    topMin: number;
+    topMax: number;
+    leftMin: number;
+    leftMax: number;
+  }>({
+    topMin: 0,
+    topMax: 0,
+    leftMin: 0,
+    leftMax: 0,
+  });
 
   const [moveVisibleAreaInterval, setMoveVisibleAreaInterval] = useState<
     number | undefined
   >(undefined);
+
   useRafInterval(() => {
     let changed = false;
     if (
       moveVisibleAreaRef.current.direction?.includes('TOP') &&
-      imagePos.current.y < moveVisibleAreaRef.current.topMax!
+      imagePos.current.y < moveVisibleAreaRef.current.topMax
     ) {
       imagePos.current.y += 8;
       changed = true;
     } else if (
       moveVisibleAreaRef.current.direction?.includes('BOTTOM') &&
-      imagePos.current.y > moveVisibleAreaRef.current.topMin!
+      imagePos.current.y > moveVisibleAreaRef.current.topMin
     ) {
       imagePos.current.y -= 8;
       changed = true;
     }
     if (
       moveVisibleAreaRef.current.direction?.includes('LEFT') &&
-      imagePos.current.x < moveVisibleAreaRef.current.leftMax!
+      imagePos.current.x < moveVisibleAreaRef.current.leftMax
     ) {
       imagePos.current.x += 8;
       changed = true;
     } else if (
       moveVisibleAreaRef.current.direction?.includes('RIGHT') &&
-      imagePos.current.x > moveVisibleAreaRef.current.leftMin!
+      imagePos.current.x > moveVisibleAreaRef.current.leftMin
     ) {
       imagePos.current.x -= 8;
       changed = true;
@@ -101,27 +110,30 @@ const useMouseEvents = ({
 
   const checkContainerVisibleArea = () => {
     let direction = '';
-    const offset = 40;
-    const mouseOffset = 10;
-    const topMax = offset;
-    const topMin = containerMouse.elementH - contentMouse.elementH - offset;
-    const leftMax = offset;
-    const leftMin = containerMouse.elementW - contentMouse.elementW - offset;
-    if (containerMouse.elementY <= mouseOffset && imagePos.current.y < topMax) {
+    const topMax = BOUNDING_OFFSET;
+    const topMin =
+      containerMouse.elementH - contentMouse.elementH - BOUNDING_OFFSET;
+    const leftMax = BOUNDING_OFFSET;
+    const leftMin =
+      containerMouse.elementW - contentMouse.elementW - BOUNDING_OFFSET;
+    if (
+      containerMouse.elementY <= MOUSE_OFFSET &&
+      imagePos.current.y < topMax
+    ) {
       direction = 'TOP';
     } else if (
-      containerMouse.elementY >= containerMouse.elementH - mouseOffset &&
+      containerMouse.elementY >= containerMouse.elementH - MOUSE_OFFSET &&
       imagePos.current.y > topMin
     ) {
       direction = 'BOTTOM';
     }
     if (
-      containerMouse.elementX <= mouseOffset &&
+      containerMouse.elementX <= MOUSE_OFFSET &&
       imagePos.current.x < leftMax
     ) {
       direction += direction ? '_LEFT' : 'LEFT';
     } else if (
-      containerMouse.elementX >= containerMouse.elementW - mouseOffset &&
+      containerMouse.elementX >= containerMouse.elementW - MOUSE_OFFSET &&
       imagePos.current.x > leftMin
     ) {
       direction += direction ? '_RIGHT' : 'RIGHT';

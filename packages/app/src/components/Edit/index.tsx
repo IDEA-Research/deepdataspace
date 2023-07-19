@@ -360,17 +360,12 @@ const Edit: React.FC<EditProps> = (props) => {
   /** Update canvas while data changing */
   useEffect(() => {
     updateRender();
-  }, [drawData, editState]);
+  }, [drawData, editState, imagePos.current.x, imagePos.current.y]);
 
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
-  }, [
-    imagePos.current.x,
-    imagePos.current.y,
-    clientSize.height,
-    clientSize.width,
-  ]);
+  }, [clientSize.height, clientSize.width]);
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {

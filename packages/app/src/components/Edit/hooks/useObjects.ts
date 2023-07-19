@@ -171,7 +171,6 @@ const useObjects = ({
   };
 
   const updateObject = (object: IAnnotationObject, index: number) => {
-    console.log('>>>>> updateObject');
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setDrawDataWithHistory((s) => {
       s.objectList[index] = object;
@@ -182,7 +181,6 @@ const useObjects = ({
   };
 
   const updateAllObject = (objectList: IAnnotationObject[]) => {
-    console.log('>>>>> updateAllObject');
     setDrawDataWithHistory((s) => {
       s.objectList = objectList;
       if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
