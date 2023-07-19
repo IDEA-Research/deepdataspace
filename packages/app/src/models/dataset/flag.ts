@@ -267,6 +267,7 @@ export default () => {
             message.success('Generated embedding success!');
             setPageData((s) => {
               s.screenLoading = '';
+              s.hasEmbedFile = true;
             });
           } else if (status === 'fail') {
             cancelQueryGenEmbedTask();
