@@ -1330,6 +1330,13 @@ export const scaleDrawData = (
       preSize,
       curSize,
     );
+    if (updateDrawData.creatingObject.startPoint) {
+      updateDrawData.creatingObject.startPoint = translatePointZoom(
+        updateDrawData.creatingObject.startPoint,
+        preSize,
+        curSize,
+      );
+    }
     if (updateDrawData.creatingObject.maskStep) {
       const newPoints = updateDrawData.creatingObject.maskStep.points.map(
         (point) => {

@@ -207,11 +207,7 @@ const useMouseEvents = ({
     }
   };
 
-  const [isMousePress, setMousePress] = useState(false);
-
   const onMouseDown = (event: MouseEvent) => {
-    setMousePress(true);
-
     if (
       !visible ||
       editState.allowMove ||
@@ -317,7 +313,6 @@ const useMouseEvents = ({
   };
 
   const onMouseUp = (event: MouseEvent) => {
-    setMousePress(false);
     setMoveVisibleAreaInterval(undefined);
 
     if (!visible || editState.isRequiring) return;
@@ -369,10 +364,6 @@ const useMouseEvents = ({
   useEventListener('mouseup', (event) => {
     onMouseUp(event);
   });
-
-  return {
-    isMousePress,
-  };
 };
 
 export default useMouseEvents;

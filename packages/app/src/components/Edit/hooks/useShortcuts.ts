@@ -6,9 +6,9 @@ import { DrawData, EditState, EditorMode } from '../type';
 
 interface IProps {
   visible: boolean;
-  isMousePress: boolean;
   mode: EditorMode;
   drawData: DrawData;
+  isMousePress: boolean;
   setDrawData: Updater<DrawData>;
   setEditState: Updater<EditState>;
   onSaveAnnotations: (drawData: DrawData) => Promise<void>;
@@ -21,9 +21,9 @@ interface IProps {
 
 const useShortcuts = ({
   visible,
-  isMousePress,
   mode,
   drawData,
+  isMousePress,
   setDrawData,
   setEditState,
   onSaveAnnotations,

@@ -126,11 +126,12 @@ const Edit: React.FC<EditProps> = (props) => {
     onZoomOut,
     onReset,
     CanvasContainer,
+    isMousePress,
   } = useCanvasContainer({
     visible,
     allowMove: editState.allowMove,
     isRequiring: editState.isRequiring,
-    showMouseAim: true,
+    showMouseAim: drawData.selectedTool !== EBasicToolItem.Drag,
     minPadding: {
       top: 30,
       left: 30,
@@ -301,7 +302,7 @@ const Edit: React.FC<EditProps> = (props) => {
     objectHooksMap,
   });
 
-  const { isMousePress } = useMouseEvents({
+  useMouseEvents({
     visible,
     mode,
     drawData,
@@ -322,9 +323,9 @@ const Edit: React.FC<EditProps> = (props) => {
 
   useShortcuts({
     visible,
-    isMousePress,
     mode,
     drawData,
+    isMousePress,
     setDrawData,
     setEditState,
     onSaveAnnotations,

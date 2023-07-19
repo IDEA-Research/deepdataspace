@@ -202,7 +202,10 @@ export default function useCanvasContainer({
     }
   }, [visible]);
 
+  const [isMousePress, setMousePress] = useState(false);
+
   useEventListener('mousedown', () => {
+    setMousePress(true);
     if (!visible || !containerRef.current) return;
     setMovingImgAnchor({
       x: contentMouse.elementX,
@@ -212,7 +215,7 @@ export default function useCanvasContainer({
 
   useEventListener('mousemove', () => {
     if (!visible) return;
-    if (movingImgAnchor && allowMove) {
+    if (movingImgAnchor && allowMove && isMousePress) {
       const offsetX = contentMouse.elementX - movingImgAnchor.x;
       const offsetY = contentMouse.elementY - movingImgAnchor.y;
       const { x, y } = imagePos.current;
@@ -224,6 +227,7 @@ export default function useCanvasContainer({
   });
 
   useEventListener('mouseup', () => {
+    setMousePress(false);
     if (!visible || !allowMove) return;
     // Stop moving the image.
     if (movingImgAnchor) {
@@ -336,6 +340,7 @@ export default function useCanvasContainer({
     },
     contentMouse,
     imagePos,
+    isMousePress,
     onLoadImg,
     onZoomIn,
     onZoomOut,
