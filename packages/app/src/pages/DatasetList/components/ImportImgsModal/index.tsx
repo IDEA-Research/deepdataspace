@@ -16,6 +16,7 @@ const ImportImgsModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
   const [imgList, setImgList] = useState<string[]>([]);
   const { handleImportImages, checkImageUrls } = useModel('DatasetList.model');
   const { onPageContentLoaded, pageState } = useModel('dataset.common');
+  const [btnLoading, setBtnLoading] = useState(false);
   const { localeText } = useLocale();
 
   return (
@@ -29,6 +30,10 @@ const ImportImgsModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
       }}
       onCancel={() => {
         setOpen(false);
+      }}
+      okButtonProps={{
+        disabled: btnLoading || imgList.length === 0,
+        loading: btnLoading,
       }}
     >
       <div className={styles.container}>
@@ -45,8 +50,10 @@ const ImportImgsModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
           onChange={(e: any) => {
             const _imgs = e.target.value.split('\n');
 
+            setBtnLoading(true);
             checkImageUrls(_imgs).then((results) => {
               setImgList(results);
+              setBtnLoading(false);
             });
           }}
           rules={[

@@ -22,6 +22,7 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
     useModel('DatasetList.model');
   const { onPageContentLoaded } = useModel('dataset.common');
   const { datasetId } = useModel('datasets');
+  const [btnLoading, setBtnLoading] = useState(false);
   const { localeText } = useLocale();
 
   return (
@@ -58,13 +59,15 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
               }
 
               return [
-                <Button key="gotoTwo" onClick={() => props.onPre?.()}>
+                <Button key="goPrev" onClick={() => props.onPre?.()}>
                   {localeText('dataset.create.modal.step.prev')}
                 </Button>,
                 <Button
                   type="primary"
-                  key="goToTree"
+                  key="finish"
                   onClick={() => props.onSubmit?.()}
+                  disabled={btnLoading || imgList.length === 0}
+                  loading={btnLoading}
                 >
                   {localeText('dataset.create.modal.step.finish')}
                 </Button>,
@@ -79,7 +82,7 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
             name="step1"
             title={localeText('dataset.create.modal.title')}
             onFinish={async (v) => {
-              await handleCreateDataset(v);
+              return await handleCreateDataset(v);
             }}
           >
             <ProFormText
@@ -118,8 +121,10 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
               onChange={(e: any) => {
                 const _imgs = e.target.value.split('\n');
 
+                setBtnLoading(true);
                 checkImageUrls(_imgs).then((results) => {
                   setImgList(results);
+                  setBtnLoading(false);
                 });
               }}
             />
