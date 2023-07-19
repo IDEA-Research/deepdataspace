@@ -122,7 +122,9 @@ export const matchErrorMsg = (code?: number, status?: number) => {
     return globalLocaleText(ERROR_CODE_MSG_MAP[code]);
   }
   if (status && ERROR_STATUS_MSG_MAP[status]) {
-    return globalLocaleText(ERROR_STATUS_MSG_MAP[status]);
+    return globalLocaleText('requestConfig.responseStatus.msg', {
+      status: status ? status : '',
+    });
   }
   return globalLocaleText('requestConfig.errorData.msg', {
     code: `${status}${code ? `-${code}` : ''}`,

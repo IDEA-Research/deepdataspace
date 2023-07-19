@@ -102,8 +102,12 @@ export default () => {
       message.success(globalLocaleText('dataset.create.success'));
       setDatasetId(id);
       loadDatasets();
-    } catch (error) {
-      message.error(globalLocaleText('dataset.create.error', { error }));
+      return true;
+    } catch (error: any) {
+      message.error(
+        globalLocaleText('dataset.create.error', { error: error?.message }),
+      );
+      return false;
     }
   };
 
