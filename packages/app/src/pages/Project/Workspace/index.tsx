@@ -14,7 +14,7 @@ import { AnnotationType } from '@/constants';
 import { LabelImage, LoadImagesType } from '../models/workspace';
 import Edit from '@/components/Edit';
 import { EditorMode } from '@/components/Edit/type';
-import { ETaskImageStatus } from '../constants';
+import { ETaskImageStatus, ETaskStatus } from '../constants';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { EProjectAction } from '../models/auth';
 import { useSize } from 'ahooks';
@@ -84,7 +84,12 @@ const Page: React.FC = () => {
   );
 
   const actionElements = useMemo(() => {
-    if (pageData.editorMode !== EditorMode.View) return [];
+    if (
+      pageData.editorMode !== EditorMode.View ||
+      pageState.taskStatus !== ETaskStatus.Working
+    ) {
+      return [];
+    }
     if (checkPermission(userRoles, EProjectAction.StartLabel)) {
       if (pageState.status === ETaskImageStatus.Labeling) {
         return [
@@ -119,7 +124,7 @@ const Page: React.FC = () => {
       ];
     }
     return [];
-  }, [pageState.status, pageData.editorMode, userRoles]);
+  }, [pageState.status, pageState.taskStatus, pageData.editorMode, userRoles]);
 
   return (
     <PageContainer
@@ -149,6 +154,7 @@ const Page: React.FC = () => {
                 />
                 {curRole &&
                   curRole?.labelNumWaiting > 0 &&
+                  pageState.taskStatus === ETaskStatus.Working &&
                   checkPermission(userRoles, EProjectAction.StartLabel) && (
                     <Button
                       type="primary"
@@ -160,6 +166,7 @@ const Page: React.FC = () => {
                   )}
                 {curRole &&
                   curRole?.reviewNumRejected > 0 &&
+                  pageState.taskStatus === ETaskStatus.Working &&
                   checkPermission(userRoles, EProjectAction.StartLabel) && (
                     <Button
                       type="primary"
@@ -171,6 +178,7 @@ const Page: React.FC = () => {
                   )}
                 {curRole &&
                   curRole?.reviewNumWaiting > 0 &&
+                  pageState.taskStatus === ETaskStatus.Working &&
                   checkPermission(userRoles, EProjectAction.StartReview) && (
                     <Button
                       type="primary"

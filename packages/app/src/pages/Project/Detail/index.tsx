@@ -149,44 +149,60 @@ const TaskList: React.FC = () => {
       }
     }
 
-    const workspaceUrl = `/project/task/workspace?projectId=${getUrlPathnameLastKey()}&taskId=${
-      record.id
-    }`;
+    const getWorkspaceUrl = (states?: object) => {
+      const workspaceUrl = `/project/task/workspace?projectId=${getUrlPathnameLastKey()}&taskId=${
+        record.id
+      }`;
+      const pageState = {
+        taskStatus: record.status,
+        ...states,
+      };
+      return `${workspaceUrl}&pageState=${encodeURIComponent(
+        JSON.stringify(pageState),
+      )}`;
+    };
+
     if (checkPermission(userRoles, EProjectAction.View)) {
       actions.push(
-        <Link key="view" to={workspaceUrl}>
+        <Link key="view" to={getWorkspaceUrl()}>
           {localeText('proj.table.detail.action.view')}
         </Link>,
       );
     }
-    if (checkPermission(userRoles, EProjectAction.StartLabel)) {
+    if (
+      checkPermission(userRoles, EProjectAction.StartLabel) &&
+      record.status === ETaskStatus.Working
+    ) {
       const roleId = record.labelers.find(
         (item) => item.userId === user.userId,
       )?.id;
-      const pageState = encodeURIComponent(
-        JSON.stringify({
-          status: ETaskImageStatus.Labeling,
-          roleId,
-        }),
-      );
       actions.push(
-        <Link key="StartLabel" to={`${workspaceUrl}&pageState=${pageState}`}>
+        <Link
+          key="StartLabel"
+          to={getWorkspaceUrl({
+            status: ETaskImageStatus.Labeling,
+            roleId,
+          })}
+        >
           {localeText('proj.table.detail.action.startLabel')}
         </Link>,
       );
     }
-    if (checkPermission(userRoles, EProjectAction.StartReview)) {
+    if (
+      checkPermission(userRoles, EProjectAction.StartReview) &&
+      record.status === ETaskStatus.Working
+    ) {
       const roleId = record.reviewers.find(
         (item) => item.userId === user.userId,
       )?.id;
-      const pageState = encodeURIComponent(
-        JSON.stringify({
-          status: ETaskImageStatus.Reviewing,
-          roleId,
-        }),
-      );
       actions.push(
-        <Link key="StartReview" to={`${workspaceUrl}&pageState=${pageState}`}>
+        <Link
+          key="StartReview"
+          to={getWorkspaceUrl({
+            status: ETaskImageStatus.Reviewing,
+            roleId,
+          })}
+        >
           {localeText('proj.table.detail.action.startReview')}
         </Link>,
       );
