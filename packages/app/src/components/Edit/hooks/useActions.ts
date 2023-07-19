@@ -9,7 +9,7 @@ import {
   translatePointZoom,
   translateRectToAbsBbox,
 } from '@/utils/compute';
-import { message, Modal } from 'antd';
+import { message } from 'antd';
 import { Updater } from 'use-immer';
 import {
   DATA,
@@ -47,11 +47,13 @@ import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { EQaAction } from '@/pages/Project/constants';
 import { ANNO_FILL_COLOR } from '../constants/render';
 import { CursorState } from 'ahooks/lib/useMouse';
+import { ModalStaticFunctions } from 'antd/es/modal/confirm';
 
 interface IProps {
   mode: EditorMode;
   list: EditImageData[];
   current: number;
+  modal: Omit<ModalStaticFunctions, 'warn'>;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
   editState: EditState;
@@ -94,6 +96,7 @@ const useActions = ({
   mode,
   list,
   current,
+  modal,
   setDrawData,
   setDrawDataWithHistory,
   editState,
@@ -816,20 +819,19 @@ const useActions = ({
   };
 
   const onCancelAnnotations = () => {
-    if (list[current]) {
-      if (hadChangeRecord) {
-        Modal.confirm({
-          content: localeText('editor.confirmLeave.content'),
-          cancelText: localeText('editor.confirmLeave.cancel'),
-          okText: localeText('editor.confirmLeave.ok'),
-          okButtonProps: { danger: true },
-          onOk: () => {
-            if (onCancel) onCancel();
-            reportEvent('dataset_item_edit_cancel');
-          },
-        });
-        return;
-      }
+    if (mode === EditorMode.Edit && hadChangeRecord) {
+      modal.confirm({
+        getContainer: () => document.body,
+        content: localeText('editor.confirmLeave.content'),
+        cancelText: localeText('editor.confirmLeave.cancel'),
+        okText: localeText('editor.confirmLeave.ok'),
+        okButtonProps: { danger: true },
+        onOk: () => {
+          if (onCancel) onCancel();
+          reportEvent('dataset_item_edit_cancel');
+        },
+      });
+      return;
     }
     if (onCancel) onCancel();
     reportEvent('dataset_item_edit_cancel');

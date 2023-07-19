@@ -189,6 +189,28 @@ const useObjects = ({
     });
   };
 
+  const updateObjectWithoutHistory = (
+    object: IAnnotationObject,
+    index: number,
+  ) => {
+    if (!drawData.objectList[index]) return;
+    setDrawData((s) => {
+      s.objectList[index] = object;
+      if (s.creatingObject && s.activeObjectIndex === index) {
+        s.creatingObject = { ...object };
+      }
+    });
+  };
+
+  const updateAllObjectWithoutHistory = (objectList: IAnnotationObject[]) => {
+    setDrawData((s) => {
+      s.objectList = objectList;
+      if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+        s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
+      }
+    });
+  };
+
   const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
     if (index < 0) return;
     setDrawData((s) => {
@@ -218,6 +240,8 @@ const useObjects = ({
     removeAllObjects,
     updateObject,
     updateAllObject,
+    updateObjectWithoutHistory,
+    updateAllObjectWithoutHistory,
     setCurrSelectedObject,
   };
 };

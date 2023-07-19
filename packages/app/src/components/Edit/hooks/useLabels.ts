@@ -14,8 +14,11 @@ interface IProps {
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
   editState: EditState;
-  updateObject: (object: IAnnotationObject, index: number) => void;
-  updateAllObject: (objectList: IAnnotationObject[]) => void;
+  updateObjectWithoutHistory: (
+    object: IAnnotationObject,
+    index: number,
+  ) => void;
+  updateAllObjectWithoutHistory: (objectList: IAnnotationObject[]) => void;
 }
 
 export default function useLabels({
@@ -25,8 +28,8 @@ export default function useLabels({
   drawData,
   setDrawData,
   editState,
-  updateObject,
-  updateAllObject,
+  updateObjectWithoutHistory,
+  updateAllObjectWithoutHistory,
 }: IProps) {
   const [aiLabels, setAiLabels] = useState<string[]>([]);
   const labelColors = useMemo(
@@ -62,7 +65,7 @@ export default function useLabels({
   const onChangeObjectHidden = (index: number, hidden: boolean) => {
     const newObject = { ...drawData.objectList[index] };
     newObject.hidden = hidden;
-    updateObject(newObject, index);
+    updateObjectWithoutHistory(newObject, index);
   };
 
   const onChangeCategoryHidden = (category: string, hidden: boolean) => {
@@ -71,7 +74,7 @@ export default function useLabels({
       if (temp.label === category) temp.hidden = hidden;
       return temp;
     });
-    updateAllObject(updatedObjects);
+    updateAllObjectWithoutHistory(updatedObjects);
   };
 
   const onChangeElementVisible = (eleType: EElementType, visible: boolean) => {
@@ -80,14 +83,14 @@ export default function useLabels({
       case EElementType.Rect: {
         if (newObject.rect) {
           newObject.rect.visible = visible;
-          updateObject(newObject, editState.focusObjectIndex);
+          updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
         }
         break;
       }
       case EElementType.Polygon: {
         if (newObject.polygon) {
           newObject.polygon.visible = visible;
-          updateObject(newObject, editState.focusObjectIndex);
+          updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
         }
         break;
       }
@@ -108,7 +111,7 @@ export default function useLabels({
     if (point) {
       point.visible = visible;
     }
-    updateObject(newObject, editState.focusObjectIndex);
+    updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
   };
 
   const onChangeActiveClass = (name: string) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useEventListener, useMouse } from 'ahooks';
+import { useEventListener, useMouse, useSize } from 'ahooks';
 import { useImmer } from 'use-immer';
 import { isInCanvas } from '@/utils/compute';
 import { zoomImgSize } from '@/utils/annotation';
@@ -32,8 +32,8 @@ export default function useCanvasContainer({
   onClickBg,
 }: IProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const containerMouse = useMouse(containerRef.current);
+  const containerSize = useSize(() => containerRef.current);
+  const containerMouse = useMouse(() => containerRef.current); // delayed get size when move don't move
 
   /** The original size of image */
   const [naturalSize, setNaturalSize] = useState<ISize>({
@@ -79,10 +79,9 @@ export default function useCanvasContainer({
   const [movingImgAnchor, setMovingImgAnchor] = useImmer<IPoint | null>(null);
 
   const initClientSizeToFit = (naturalSize: ISize) => {
-    const containerWidth = containerMouse.elementW;
-    const containerHeight = containerMouse.elementH;
-
-    if (naturalSize && containerWidth && containerHeight) {
+    if (naturalSize && containerSize) {
+      const containerWidth = containerSize.width;
+      const containerHeight = containerSize.height;
       const [width, height, scale] = zoomImgSize(
         naturalSize.width,
         naturalSize.height,
@@ -105,11 +104,13 @@ export default function useCanvasContainer({
   /** Initial position to fit container */
   useEffect(() => {
     initClientSizeToFit(naturalSize);
-  }, [naturalSize, containerMouse.elementW, containerMouse.elementH]);
+  }, [naturalSize, containerSize]);
 
   const adaptImagePosWhileZoom = () => {
-    const containerWidth = containerMouse.elementW;
-    const containerHeight = containerMouse.elementH;
+    if (!containerSize) return;
+
+    const containerWidth = containerSize?.width;
+    const containerHeight = containerSize?.height;
 
     // Default zoom center
     let posRatioX = 0.5;
@@ -327,7 +328,12 @@ export default function useCanvasContainer({
       width: clientSize.width,
       height: clientSize.height,
     },
-    containerMouse,
+    containerSize,
+    containerMouse: {
+      ...containerMouse,
+      elementW: containerSize?.width || containerMouse.elementW,
+      elementH: containerSize?.height || containerMouse.elementH,
+    },
     contentMouse,
     imagePos,
     onLoadImg,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Button, Divider } from 'antd';
+import { Button, Divider, Modal } from 'antd';
 import { EObjectType, EElementType, EBasicToolItem } from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import { scaleDrawData } from '@/utils/compute';
@@ -92,6 +92,7 @@ const Edit: React.FC<EditProps> = (props) => {
   } = props;
 
   const { localeText } = useLocale();
+  const [modal, contextHolder] = Modal.useModal();
 
   const [annotations, setAnnotations] = useImmer<DATA.BaseObject[]>([]);
 
@@ -160,6 +161,8 @@ const Edit: React.FC<EditProps> = (props) => {
     initObjectList,
     updateAllObject,
     updateObject,
+    updateObjectWithoutHistory,
+    updateAllObjectWithoutHistory,
     setCurrSelectedObject,
   } = useObjects({
     annotations,
@@ -192,8 +195,8 @@ const Edit: React.FC<EditProps> = (props) => {
     drawData,
     setDrawData,
     editState,
-    updateObject,
-    updateAllObject,
+    updateObjectWithoutHistory,
+    updateAllObjectWithoutHistory,
   });
 
   const {
@@ -206,6 +209,7 @@ const Edit: React.FC<EditProps> = (props) => {
     mode,
     list,
     current,
+    modal,
     setDrawData,
     setDrawDataWithHistory,
     editState,
@@ -340,14 +344,14 @@ const Edit: React.FC<EditProps> = (props) => {
    * @param {boolean} isUpdateDrawData - Optional parameter that specifies whether to update draw data.
    * @return {void}
    */
-  const rebuildDrawData = (isUpdateDrawData?: boolean) => {
+  const rebuildDrawData = () => {
     if (!clientSize.width || !clientSize.height) return;
-    if (isUpdateDrawData || !drawData.initialized) {
+    if (!drawData.initialized) {
       // Initialization
-      initObjectList(annotations, labelColors);
       setDrawData((s) => {
         s.initialized = true;
       });
+      initObjectList(annotations, labelColors);
     } else if (preClientSize) {
       // scale change
       const updateDrawData = scaleDrawData(drawData, preClientSize, clientSize);
@@ -365,7 +369,7 @@ const Edit: React.FC<EditProps> = (props) => {
   /** Recalculate drawData while changing size */
   useEffect(() => {
     rebuildDrawData();
-  }, [clientSize.height, clientSize.width]);
+  }, [annotations, clientSize.height, clientSize.width]);
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {
@@ -377,25 +381,19 @@ const Edit: React.FC<EditProps> = (props) => {
     setEditState(cloneDeep(DEFAULT_EDIT_STATE));
     clearHistory();
     if (visible) {
-      const annotations = list[current]?.objects || [];
+      const annotations = list[current]?.objects
+        ? [...list[current]?.objects]
+        : [];
       const currAnnotations = objectsFilter
         ? objectsFilter(annotations)
         : annotations;
-
       setAnnotations(currAnnotations);
     }
-  }, [visible, current]);
+  }, [visible, mode, current]);
 
   useEffect(() => {
     document.body.style.overflow = visible ? 'hidden' : 'overlay';
   }, [visible]);
-
-  useEffect(() => {
-    if (!drawData.initialized) {
-      clearHistory();
-      rebuildDrawData(true);
-    }
-  }, [annotations]);
 
   // =================================================================================================================
   // Render
@@ -739,6 +737,13 @@ const Edit: React.FC<EditProps> = (props) => {
             onChangePointVisible={onChangePointVisible}
             onChangeActiveClassName={onChangeActiveClass}
           />
+        </div>
+        <div
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {contextHolder}
         </div>
       </div>
     );
