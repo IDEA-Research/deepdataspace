@@ -72,12 +72,14 @@ const NewDatasetModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
             },
           }}
         >
-          <StepsForm.StepForm
+          <StepsForm.StepForm<{
+            name: string;
+            description: string;
+          }>
             name="step1"
             title={localeText('dataset.create.modal.title')}
-            onFinish={(v) => {
-              handleCreateDataset(v);
-              return true;
+            onFinish={async (v) => {
+              await handleCreateDataset(v);
             }}
           >
             <ProFormText
