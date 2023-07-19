@@ -2,7 +2,6 @@ import { reportEvent } from '@/logs';
 import { fetchModelResults } from '@/services/dataset';
 import {
   getVisibleAreaForImage,
-  isEqualRect,
   translateBoundingBoxToRect,
   translateObjectsToAnnotations,
   translatePointsToPointObjs,
@@ -138,31 +137,38 @@ const useActions = ({
 
       if (result) {
         const { objects } = result;
-        const newObjects: IAnnotationObject[] = [];
-        objects.forEach((item) => {
+        const limitConf = 0.5; // TODO: add real limitConf
+        const newObjects = objects.map((item) => {
           // mouse.elementW is not necessarily identical to the size during initialization transformation
           const rect = {
             ...translateBoundingBoxToRect(item.boundingBox, clientSize),
           };
-          if (
-            !drawData.objectList.find((obj) => {
-              return (
-                obj.label === item.categoryName &&
-                obj.rect &&
-                isEqualRect(rect, obj.rect)
-              );
-            })
-          ) {
-            newObjects.push({
-              rect: { ...rect, visible: true },
-              label: item.categoryName,
-              type: EObjectType.Rectangle,
-              hidden: false,
-              status: EObjectStatus.Commited,
-            });
+          return {
+            rect: { ...rect, visible: true },
+            label: item.categoryName,
+            type: EObjectType.Rectangle,
+            hidden: false,
+            status:
+              item.score >= limitConf
+                ? EObjectStatus.Checked
+                : EObjectStatus.Unchecked,
+            conf: item.score,
+          };
+        });
+        console.log('newObjects >>>', newObjects);
+        setDrawDataWithHistory((s) => {
+          s.isBatchEditing = true;
+          s.limitConf = limitConf;
+          const commitedObjects = s.objectList.filter(
+            (obj) => obj.status === EObjectStatus.Commited,
+          );
+          s.objectList = [...commitedObjects, ...newObjects];
+          console.log('>>>>>', [...commitedObjects, ...newObjects]);
+          if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+            s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
           }
         });
-        updateAllObject([...drawData.objectList, ...newObjects]);
+        // updateAllObject([...drawData.objectList, ...newObjects]);
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {

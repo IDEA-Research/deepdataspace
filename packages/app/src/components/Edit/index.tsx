@@ -638,6 +638,24 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.objectList = updateObjects;
                 });
               }}
+              onChangeLimitConf={(value) => {
+                setDrawDataWithHistory((s) => {
+                  const updateObjects = cloneDeep(drawData.objectList).map(
+                    (obj) => {
+                      if (obj.status === EObjectStatus.Commited) {
+                        return obj;
+                      }
+                      obj.status =
+                        obj.conf && obj.conf >= value
+                          ? EObjectStatus.Checked
+                          : EObjectStatus.Unchecked;
+                      return obj;
+                    },
+                  );
+                  console.log('>>>>>', updateObjects);
+                  s.objectList = updateObjects;
+                });
+              }}
               onAcceptValidObjects={() => {
                 setDrawDataWithHistory((s) => {
                   const validObjs = cloneDeep(drawData.objectList)

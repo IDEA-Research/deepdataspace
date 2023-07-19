@@ -90,6 +90,7 @@ const useSkeleton: ToolInstanceHook = ({
     strokeAlpha,
     fillAlpha,
   }) => {
+    if (object.status === EObjectStatus.Unchecked) return;
     const { rect, keypoints } = object;
     if (rect && rect.visible) {
       renderRect(canvasRef.current!, rect, color, strokeAlpha, fillAlpha);

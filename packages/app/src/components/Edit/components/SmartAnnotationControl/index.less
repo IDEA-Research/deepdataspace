@@ -2,7 +2,7 @@
   position: absolute;
   right: 1rem;
   top: 1rem;
-  width: 400px;
+  width: 375px;
   box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
   opacity: 0;
   transition: opacity 0.15s ease;
@@ -88,6 +88,20 @@
       display: flex;
       justify-content: space-between;
       width: 100%;
+    }
+
+    .columnItem {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .tipText {
+      span {
+        font-weight: bold;
+      }
     }
   }
 }

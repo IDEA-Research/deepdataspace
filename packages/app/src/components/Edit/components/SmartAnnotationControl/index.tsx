@@ -32,6 +32,7 @@ interface IProps {
   onSaveCurrCreate: () => void;
   onCancelCurrCreate: () => void;
   onChangeConfidenceRange: (range: [number, number]) => void;
+  onChangeLimitConf: (value: number) => void;
   onAcceptValidObjects: () => void;
 }
 
@@ -46,6 +47,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   onSaveCurrCreate,
   onCancelCurrCreate,
   onChangeConfidenceRange,
+  onChangeLimitConf,
   onAcceptValidObjects,
 }) => {
   const { localeText } = useLocale();
@@ -156,53 +158,88 @@ const SmartAnnotationControl: React.FC<IProps> = ({
         }
       >
         <div className={styles.content}>
-          {drawData.selectedTool === EBasicToolItem.Rectangle && (
-            <div className={styles.item}>
-              <Select
-                style={{ width: 250 }}
-                placeholder={localeText('smartAnnotation.detection.input')}
-                showArrow={true}
-                value={aiLabels}
-                onChange={(values) =>
-                  Array.isArray(values)
-                    ? setAiLabels(values)
-                    : setAiLabels([values])
-                }
-                onInputKeyDown={(e) => {
-                  if (e.code !== 'Enter') {
-                    e.stopPropagation();
+          {drawData.selectedTool === EBasicToolItem.Rectangle &&
+            (drawData.isBatchEditing ? (
+              <div className={styles.columnItem}>
+                <div className={styles.paramControls}>
+                  <div className={styles.paramItem}>
+                    <div className={styles.title}>
+                      {localeText('editor.confidence')}:
+                    </div>
+                    <Slider
+                      className={styles.slider}
+                      defaultValue={drawData.limitConf}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onAfterChange={onChangeLimitConf}
+                      railStyle={{
+                        background: '#99bdff',
+                      }}
+                      trackStyle={{
+                        background: '#edf0f3',
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className={styles.tipText}>
+                  <span>tips: </span>按住ctrl进入回收未选标注模式
+                </div>
+                <Button
+                  style={{ alignSelf: 'flex-end' }}
+                  type="primary"
+                  onClick={onAcceptValidObjects}
+                >
+                  {localeText('editor.save')}
+                </Button>
+              </div>
+            ) : (
+              <div className={styles.item}>
+                <Select
+                  style={{ width: 250 }}
+                  placeholder={localeText('smartAnnotation.detection.input')}
+                  showArrow={true}
+                  value={aiLabels}
+                  onChange={(values) =>
+                    Array.isArray(values)
+                      ? setAiLabels(values)
+                      : setAiLabels([values])
                   }
-                }}
-                // @ts-ignore
-                getPopupContainer={() =>
-                  document.getElementById('smart-annotation-editor')
-                }
-                mode={'multiple'}
-                dropdownRender={(menu) => (
-                  <>
-                    {menu}
-                    {
-                      <CategoryCreator
-                        onAdd={(value) => {
-                          onCreateCategory(value);
-                          setAiLabels([...aiLabels, value]);
-                        }}
-                      />
+                  onInputKeyDown={(e) => {
+                    if (e.code !== 'Enter') {
+                      e.stopPropagation();
                     }
-                  </>
-                )}
-              >
-                {labelOptions}
-              </Select>
-              <Button
-                type="primary"
-                className={styles.action}
-                onClick={() => onAiAnnotation({ drawData, aiLabels })}
-              >
-                {localeText('smartAnnotation.annotate')}
-              </Button>
-            </div>
-          )}
+                  }}
+                  // @ts-ignore
+                  getPopupContainer={() =>
+                    document.getElementById('smart-annotation-editor')
+                  }
+                  mode={'multiple'}
+                  dropdownRender={(menu) => (
+                    <>
+                      {menu}
+                      {
+                        <CategoryCreator
+                          onAdd={(value) => {
+                            onCreateCategory(value);
+                            setAiLabels([...aiLabels, value]);
+                          }}
+                        />
+                      }
+                    </>
+                  )}
+                >
+                  {labelOptions}
+                </Select>
+                <Button
+                  type="primary"
+                  className={styles.action}
+                  onClick={() => onAiAnnotation({ drawData, aiLabels })}
+                >
+                  {localeText('smartAnnotation.annotate')}
+                </Button>
+              </div>
+            ))}
           {drawData.selectedTool === EBasicToolItem.Skeleton &&
             (drawData.isBatchEditing ? (
               <>

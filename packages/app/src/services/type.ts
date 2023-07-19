@@ -272,6 +272,7 @@ export interface FetchAIDetectionRsp {
   objects: Array<{
     categoryName: string;
     boundingBox: IBoundingBox;
+    score: number;
   }>;
 }
 

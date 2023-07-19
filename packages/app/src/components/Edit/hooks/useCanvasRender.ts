@@ -3,7 +3,6 @@ import { CursorState } from 'ahooks/lib/useMouse';
 import {
   DrawData,
   EditState,
-  EObjectStatus,
   IAnnotationObject,
   ICreatingObject,
 } from '../type';
@@ -139,12 +138,7 @@ const useCanvasRender = ({
     activeObjectIndex: number,
   ) => {
     list.forEach((obj, index) => {
-      if (
-        obj.hidden ||
-        obj.status === EObjectStatus.Unchecked ||
-        index === activeObjectIndex
-      )
-        return;
+      if (obj.hidden || index === activeObjectIndex) return;
 
       const canvasCoordObject = translateAnnotCoord(obj, {
         x: -imagePos.current.x,

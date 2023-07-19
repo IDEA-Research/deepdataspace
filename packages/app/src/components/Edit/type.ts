@@ -98,6 +98,7 @@ export interface DrawData {
   activeObjectIndex: number;
   creatingObject?: ICreatingObject; // - editing / creating
   isBatchEditing: boolean; // active while handle batch predictions by model
+  limitConf: number;
 
   /** prompt actions */
   prompt: IPrompt;
@@ -150,6 +151,7 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   brushSize: 20,
   prompt: {},
   isBatchEditing: false,
+  limitConf: 0,
 };
 
 export const DEFAULT_EDIT_STATE: EditState = {

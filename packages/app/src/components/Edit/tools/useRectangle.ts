@@ -32,6 +32,7 @@ const useRectangle: ToolInstanceHook = ({
   }) => {
     const { rect } = object;
     if (rect && rect.visible) {
+      if (object.status === EObjectStatus.Unchecked) return;
       renderRect(canvasRef.current!, rect, color, strokeAlpha, fillAlpha);
     }
   };
