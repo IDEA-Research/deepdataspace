@@ -28,7 +28,8 @@ export const ANNO_STROKE_COLOR = {
 
 export const ANNO_FILL_COLOR = {
   CREATING: 'transparent',
-  CREATING_MASK: '#a5b7ef',
+  CREATING_POSITIVE: '#2876d4',
+  CREATING_NEGATIVE: '#e91d00',
 };
 
 export const PROMPT_FILL_COLOR = {

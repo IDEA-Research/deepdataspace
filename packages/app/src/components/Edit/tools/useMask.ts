@@ -176,6 +176,11 @@ export const renderMask = (
 
   // draw currently step when mouse move
   if (maskStep && maskStep.points.length > 0) {
+    const color =
+      maskStep.tool === ESubToolItem.PenAdd ||
+      maskStep.tool === ESubToolItem.BrushAdd
+        ? ANNO_FILL_COLOR.CREATING_POSITIVE
+        : ANNO_FILL_COLOR.CREATING_NEGATIVE;
     const canvasCoordPath = translatePolygonCoord(maskStep.points, {
       x: -imagePos.x,
       y: -imagePos.y,
@@ -190,9 +195,9 @@ export const renderMask = (
         maskCanvas!,
         canvasCoordPath[0],
         6,
-        strokeColor,
+        hexToRgba(color, ANNO_STROKE_ALPHA.CREATING),
         3,
-        '#1f4dd8',
+        ANNO_STROKE_COLOR.CREATING,
       );
 
       if (canvasCoordPath.length > 0) {
@@ -200,7 +205,7 @@ export const renderMask = (
         drawPath(
           maskCanvas!,
           canvasCoordPath,
-          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING),
+          hexToRgba(color, ANNO_STROKE_ALPHA.CREATING),
           1,
           LABELS_STROKE_DASH[0],
         );
@@ -210,7 +215,7 @@ export const renderMask = (
           maskCanvas!,
           canvasCoordPath[canvasCoordPath.length - 1],
           mousePoint,
-          hexToRgba(strokeColor, ANNO_STROKE_ALPHA.CREATING_LINE),
+          hexToRgba(color, ANNO_STROKE_ALPHA.CREATING_LINE),
           1,
           LABELS_STROKE_DASH[2],
         );
@@ -226,7 +231,7 @@ export const renderMask = (
         drawQuadraticPath(
           maskCanvas!,
           canvasCoordPath,
-          hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING),
+          hexToRgba(color, ANNO_MASK_ALPHA.CREATING),
           (maskStep.radius * clientSize.width) / naturalSize.width,
         );
       }

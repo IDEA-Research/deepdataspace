@@ -423,7 +423,8 @@ const useActions = ({
       );
       if (result) {
         const { maskId, maskRle, imageId } = result;
-        const color = labelColors[latestLabel] || ANNO_FILL_COLOR.CREATING_MASK;
+        const color =
+          labelColors[latestLabel] || ANNO_FILL_COLOR.CREATING_POSITIVE;
         const creatingObj = {
           type: EObjectType.Mask,
           hidden: false,
