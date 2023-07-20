@@ -38,6 +38,7 @@ import {
   EditState,
   EditorMode,
   EObjectStatus,
+  DEFAULT_IMG_DISPLAY_OPTIONS,
 } from './type';
 import useMouseCursor from './hooks/useMouseCursor';
 import useShortcuts from './hooks/useShortcuts';
@@ -729,6 +730,27 @@ const Edit: React.FC<EditProps> = (props) => {
               onZoomIn={onZoomIn}
               onZoomOut={onZoomOut}
               onReset={onReset}
+              displayOption={editState.imageDisplayOptions}
+              setBrightness={(v) => {
+                setEditState((s) => {
+                  s.imageDisplayOptions.brightness = v;
+                });
+              }}
+              setContrast={(v) => {
+                setEditState((s) => {
+                  s.imageDisplayOptions.contrast = v;
+                });
+              }}
+              setSaturate={(v) => {
+                setEditState((s) => {
+                  s.imageDisplayOptions.saturate = v;
+                });
+              }}
+              resetOptions={() => {
+                setEditState((s) => {
+                  s.imageDisplayOptions = DEFAULT_IMG_DISPLAY_OPTIONS;
+                });
+              }}
             />
             {mode === EditorMode.Edit && (
               <>

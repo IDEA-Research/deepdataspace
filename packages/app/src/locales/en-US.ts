@@ -176,6 +176,10 @@ export default {
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
+  'editor.imgDisplayTool.title': 'Display Options',
+  'editor.imgDisplayTool.brightness': 'Brightness',
+  'editor.imgDisplayTool.contrast': 'Contrast',
+  'editor.imgDisplayTool.saturate': 'Saturation',
   'editor.toolbar.undo.desc': 'Undo the previous action.',
   'editor.toolbar.redo.desc': 'Redo the previous action.',
   'editor.toolbar.rectangle.desc':

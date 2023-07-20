@@ -48,6 +48,32 @@ export function drawImage(
   }
 }
 
+export function addFilter(
+  canvas: HTMLCanvasElement,
+  brightness: number,
+  contrast: number,
+  saturate: number,
+) {
+  if (!!canvas) {
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    ctx.filter =
+      'brightness(' +
+      brightness +
+      '%) contrast(' +
+      contrast +
+      '%) saturate(' +
+      saturate +
+      '%)';
+  }
+}
+
+export function removeFilter(canvas: HTMLCanvasElement) {
+  if (!!canvas) {
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    ctx.filter = 'none';
+  }
+}
+
 export function putImageData(
   canvas: HTMLCanvasElement,
   imageData: ImageData,
