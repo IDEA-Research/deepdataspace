@@ -484,7 +484,8 @@ const usePolygon: ToolInstanceHook = ({
     };
     if (drawData.AIAnnotation) {
       if (object.type === EObjectType.Polygon) {
-        if (!isInCanvas(contentMouse)) return false;
+        if (!isInCanvas(contentMouse) || !isInCanvas(containerMouse))
+          return false;
         // add reference points
         const click = {
           isPositive: getPromptBoolean(event),

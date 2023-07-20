@@ -865,7 +865,11 @@ const useMask: ToolInstanceHook = ({
         break;
       }
       case ESubToolItem.AutoSegmentByClick: {
-        if (!isInCanvas(contentMouse) || !drawData.prompt.creatingMask?.point)
+        if (
+          !isInCanvas(contentMouse) ||
+          !isInCanvas(containerMouse) ||
+          !drawData.prompt.creatingMask?.point
+        )
           break;
         const promptItem: MaskPromptItem = {
           type: EMaskPromptType.Point,

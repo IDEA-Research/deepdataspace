@@ -21,7 +21,7 @@ export const FloatWrapper: React.FC<FloatWrapperProps> = ({
     <div
       // onMouseMove={mouseEventHandler}
       onMouseDown={mouseEventHandler}
-      // onMouseUp={mouseEventHandler}
+      onMouseUp={mouseEventHandler}
       style={{
         userSelect: 'none',
       }}
