@@ -669,6 +669,7 @@ export const judgeFocusOnObject = (
   mouse: CursorState,
   activeObjectIndex: number,
   objects: IAnnotationObject[],
+  focusFilter: (obj: IAnnotationObject) => boolean = () => true,
 ): number => {
   if (!isInCanvas(mouse)) {
     return -1;
@@ -677,6 +678,7 @@ export const judgeFocusOnObject = (
   // Judge focus on active object.
   if (
     objects[activeObjectIndex] &&
+    focusFilter(objects[activeObjectIndex]) &&
     judgeFocusOnSingleObject(mouse, objects[activeObjectIndex], clientSize)
   ) {
     return activeObjectIndex;
@@ -684,12 +686,39 @@ export const judgeFocusOnObject = (
 
   // Find the topmost instance by searching the objectList in reverse order.
   for (let index = objects.length - 1; index >= 0; index--) {
-    if (judgeFocusOnSingleObject(mouse, objects[index], clientSize)) {
+    if (
+      focusFilter(objects[index]) &&
+      judgeFocusOnSingleObject(mouse, objects[index], clientSize)
+    ) {
       return index;
     }
   }
 
   return -1;
+};
+
+export const judgeFocusOnPointAllObject = (
+  clientSize: ISize,
+  mouse: CursorState,
+  objects: IAnnotationObject[],
+  focusFilter: (obj: IAnnotationObject) => boolean = () => true,
+): number[] => {
+  if (!isInCanvas(mouse)) {
+    return [];
+  }
+
+  const results = [];
+  // Find the topmost instance by searching the objectList in reverse order.
+  for (let index = objects.length - 1; index >= 0; index--) {
+    if (
+      focusFilter(objects[index]) &&
+      judgeFocusOnSingleObject(mouse, objects[index], clientSize)
+    ) {
+      results.push(index);
+    }
+  }
+
+  return results;
 };
 
 export enum Direction {

@@ -1,11 +1,18 @@
 import { useRef, useState } from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
-import { DrawData, EditState, EditorMode, EObjectStatus } from '../type';
+import {
+  DrawData,
+  EditState,
+  EditorMode,
+  EObjectStatus,
+  IAnnotationObject,
+} from '../type';
 import {
   Direction,
   isInCanvas,
   judgeFocusOnElement,
   judgeFocusOnObject,
+  judgeFocusOnPointAllObject,
 } from '@/utils/compute';
 import {
   EBasicToolItem,
@@ -17,6 +24,8 @@ import { Updater } from 'use-immer';
 import { DATA } from '@/services/type';
 import { ToolInstanceHookReturn } from '../tools/base';
 import { useEventListener, useRafInterval } from 'ahooks';
+import styles from '../index.less';
+import { fixedFloatNum } from '@/utils/digit';
 
 interface IProps {
   visible: boolean;
@@ -28,9 +37,9 @@ interface IProps {
   clientSize: ISize;
   contentMouse: CursorState;
   categories: DATA.Category[];
+  labelColors: Record<string, string>;
   updateRender: (updateDrawData?: DrawData) => void;
   updateMouseCursor: (value: string, position?: Direction) => void;
-  setCurrSelectedObject: (index?: number) => void;
   objectHooksMap: Record<EObjectType, ToolInstanceHookReturn>;
   imagePos: React.MutableRefObject<IPoint>;
   containerMouse: CursorState;
@@ -43,14 +52,15 @@ const useMouseEvents = ({
   visible,
   mode,
   drawData,
+  setDrawData,
   editState,
   setEditState,
   clientSize,
   contentMouse,
   categories,
+  labelColors,
   updateRender,
   updateMouseCursor,
-  setCurrSelectedObject,
   objectHooksMap,
   imagePos,
   containerMouse,
@@ -152,16 +162,32 @@ const useMouseEvents = ({
     updateRender();
   };
 
+  const getFocusFilter = () => {
+    let focusFilter;
+    if (drawData.isBatchEditing) {
+      if (
+        drawData.selectedTool === EBasicToolItem.Rectangle &&
+        editState.isCtrlPressed
+      ) {
+        focusFilter = (obj: IAnnotationObject) =>
+          obj.status === EObjectStatus.Unchecked;
+      } else {
+        focusFilter = (obj: IAnnotationObject) =>
+          obj.status !== EObjectStatus.Unchecked;
+      }
+    }
+    return focusFilter;
+  };
+
   const updateFocusInfoWhenMouseMove = () => {
     if (!isInCanvas(containerMouse)) return;
-    const objectList = drawData.objectList.filter(
-      (item) => item.status !== EObjectStatus.Unchecked,
-    );
+
     const focusObjectIndex = judgeFocusOnObject(
       clientSize,
       contentMouse,
       drawData.activeObjectIndex,
-      objectList,
+      drawData.objectList,
+      getFocusFilter(),
     );
     /** If focus in active object */
     if (
@@ -208,6 +234,110 @@ const useMouseEvents = ({
     }
   };
 
+  const selectFocusObject = (index: number, event?: MouseEvent) => {
+    if (index < 0) return;
+    const isMouseRightClick = event?.button === 2;
+    if (isMouseRightClick) {
+      // check all focus object on point
+      const focusIndexs = judgeFocusOnPointAllObject(
+        clientSize,
+        contentMouse,
+        drawData.objectList,
+        getFocusFilter(),
+      );
+      if (focusIndexs.length > 1) {
+        setEditState((s) => {
+          s.foucsObjectAllIndexs = focusIndexs;
+        });
+      } else {
+        setEditState((s) => {
+          s.foucsObjectAllIndexs = [];
+        });
+      }
+      return;
+    }
+
+    setDrawData((s) => {
+      if (
+        s.selectedTool === EBasicToolItem.Rectangle &&
+        s.isBatchEditing &&
+        editState.isCtrlPressed
+      ) {
+        s.objectList[index].status = EObjectStatus.Checked;
+        setEditState((s) => {
+          s.focusObjectIndex = -1;
+        });
+      } else {
+        s.activeObjectIndex = index;
+        s.creatingObject = {
+          ...drawData.objectList[index],
+          currIndex: undefined,
+          startPoint: undefined,
+          tempMaskSteps: [],
+          maskStep: undefined,
+        };
+
+        if (
+          s.selectedTool !== EBasicToolItem.Drag &&
+          s.objectList[index] &&
+          EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
+        ) {
+          s.selectedTool = EBasicToolItem.Drag;
+        }
+      }
+    });
+  };
+
+  const mouseRightObjectsDropDownRender = () => {
+    if (!editState.foucsObjectAllIndexs.length) {
+      return <></>;
+    }
+    const stopPropagation: React.MouseEventHandler<HTMLDivElement> = (
+      event,
+    ) => {
+      event.stopPropagation();
+    };
+    const onFocusItem = (index: number) => {
+      setEditState((s) => {
+        s.focusObjectIndex = index;
+      });
+    };
+    const onSelectItem = (index: number) => {
+      selectFocusObject(index);
+      setEditState((s) => {
+        s.foucsObjectAllIndexs = [];
+      });
+    };
+    return (
+      <div
+        className={styles.dropdownOptions}
+        onMouseDown={stopPropagation}
+        onMouseUp={stopPropagation}
+        onMouseMove={stopPropagation}
+      >
+        {editState.foucsObjectAllIndexs.map((index) => (
+          <div
+            key={index}
+            className={styles.objectOption}
+            onMouseEnter={() => onFocusItem(index)}
+            onClick={() => onSelectItem(index)}
+          >
+            <div
+              className={styles.dot}
+              style={{
+                backgroundColor:
+                  labelColors[drawData.objectList[index]?.label] || '#fff',
+              }}
+            />
+            {drawData.objectList[index]?.label}
+            {drawData.objectList[index]?.conf &&
+              ` (${fixedFloatNum(drawData.objectList[index]?.conf || 0)})`}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const onMouseDown = (event: MouseEvent) => {
     if (
       !visible ||
@@ -216,6 +346,10 @@ const useMouseEvents = ({
       !isInCanvas(contentMouse)
     )
       return;
+
+    setEditState((s) => {
+      s.foucsObjectAllIndexs = [];
+    });
 
     // 1. Edit object
     if (drawData.creatingObject && drawData.activeObjectIndex > -1) {
@@ -257,7 +391,7 @@ const useMouseEvents = ({
     } else {
       if (editState.focusObjectIndex > -1) {
         // 3. Active object
-        setCurrSelectedObject();
+        selectFocusObject(editState.focusObjectIndex, event);
       } else {
         // 4. Drag object
         setEditState((s) => {
@@ -368,6 +502,11 @@ const useMouseEvents = ({
   useEventListener('mouseup', (event) => {
     onMouseUp(event);
   });
+
+  return {
+    selectFocusObject,
+    mouseRightObjectsDropDownRender,
+  };
 };
 
 export default useMouseEvents;

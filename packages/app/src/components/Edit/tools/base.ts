@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { drawRect } from '@/utils/draw';
-import { hexToRgba } from '@/utils/color';
 import { EElementType, LABELS_STROKE_DASH } from '@/constants';
 import {
   Direction,
@@ -35,6 +34,7 @@ export namespace ToolHooksFunc {
     strokeAlpha: number;
     fillAlpha: number;
     maskAlpha: number;
+    isFocus: boolean;
   }) => void;
 
   export type RenderCreatingObject = (params: {
@@ -121,21 +121,10 @@ export type ToolInstanceHook = (props: {
   onAiAnnotation: OnAiAnnotationFunc;
 }) => ToolInstanceHookReturn;
 
-export const renderRect = (
-  canvas: HTMLCanvasElement,
-  rect: IElement<IRect>,
-  color: string,
-  strokeAlpha: number,
-  fillAlpha: number,
-) => {
-  drawRect(
-    canvas,
-    rect,
-    hexToRgba(color, strokeAlpha),
-    2,
-    LABELS_STROKE_DASH[0],
-    hexToRgba(color, fillAlpha),
-  );
+export const getPromptBoolean = (event: MouseEvent): boolean => {
+  // Right Mouse Click / Lift Mouse Click + (Alt/Option) -> false
+  if (event.button === 2 || (event.button === 0 && event.altKey)) return false;
+  return true;
 };
 
 export const renderActiveRect = (
@@ -160,12 +149,6 @@ export const renderActiveRect = (
       '#fff',
     );
   });
-};
-
-export const getPromptBoolean = (event: MouseEvent): boolean => {
-  // Right Mouse Click / Lift Mouse Click + (Alt/Option) -> false
-  if (event.button === 2 || (event.button === 0 && event.altKey)) return false;
-  return true;
 };
 
 export const editBaseElementWhenMouseDown = ({

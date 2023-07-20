@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Button, Divider, Modal } from 'antd';
+import { Button, Divider, Dropdown, Modal, message } from 'antd';
 import {
   EObjectType,
   EElementType,
@@ -183,7 +183,6 @@ const Edit: React.FC<EditProps> = (props) => {
     updateObject,
     updateObjectWithoutHistory,
     updateAllObjectWithoutHistory,
-    setCurrSelectedObject,
   } = useObjects({
     annotations,
     setAnnotations,
@@ -321,23 +320,25 @@ const Edit: React.FC<EditProps> = (props) => {
     objectHooksMap,
   });
 
-  useMouseEvents({
-    visible,
-    mode,
-    drawData,
-    setDrawData,
-    editState,
-    setEditState,
-    clientSize,
-    contentMouse,
-    categories,
-    updateRender,
-    updateMouseCursor,
-    setCurrSelectedObject,
-    objectHooksMap,
-    imagePos,
-    containerMouse,
-  });
+  const { selectFocusObject, mouseRightObjectsDropDownRender } = useMouseEvents(
+    {
+      visible,
+      mode,
+      drawData,
+      setDrawData,
+      editState,
+      setEditState,
+      clientSize,
+      contentMouse,
+      categories,
+      labelColors,
+      updateRender,
+      updateMouseCursor,
+      objectHooksMap,
+      imagePos,
+      containerMouse,
+    },
+  );
 
   useShortcuts({
     visible,
@@ -556,34 +557,40 @@ const Edit: React.FC<EditProps> = (props) => {
         <div className={styles.container}>
           <div className={styles.leftSlider}></div>
           <div className={styles.centerContent}>
-            {CanvasContainer({
-              className: styles.editWrap,
-              children: (
-                <>
-                  <img
-                    ref={imgRef}
-                    src={list[current]?.urlFullRes}
-                    alt="pic"
-                    onLoad={onLoadImg}
-                  />
-                  <canvas
-                    ref={canvasRef}
-                    onContextMenu={(
-                      event: React.MouseEvent<HTMLCanvasElement>,
-                    ) => event.preventDefault()}
-                    draggable={false}
-                  />
-                  <canvas
-                    ref={activeCanvasRef}
-                    onContextMenu={(
-                      event: React.MouseEvent<HTMLCanvasElement>,
-                    ) => event.preventDefault()}
-                    draggable={false}
-                  />
-                  {renderPopoverMenu()}
-                </>
-              ),
-            })}
+            <Dropdown
+              dropdownRender={mouseRightObjectsDropDownRender}
+              trigger={['contextMenu']}
+              open={editState.foucsObjectAllIndexs.length > 0}
+            >
+              {CanvasContainer({
+                className: styles.editWrap,
+                children: (
+                  <>
+                    <img
+                      ref={imgRef}
+                      src={list[current]?.urlFullRes}
+                      alt="pic"
+                      onLoad={onLoadImg}
+                    />
+                    <canvas
+                      ref={canvasRef}
+                      onContextMenu={(
+                        event: React.MouseEvent<HTMLCanvasElement>,
+                      ) => event.preventDefault()}
+                      draggable={false}
+                    />
+                    <canvas
+                      ref={activeCanvasRef}
+                      onContextMenu={(
+                        event: React.MouseEvent<HTMLCanvasElement>,
+                      ) => event.preventDefault()}
+                      draggable={false}
+                    />
+                    {renderPopoverMenu()}
+                  </>
+                ),
+              })}
+            </Dropdown>
             {isAnnotEditorVisible && (
               <AnnotationEditor
                 hideTitle={drawData.creatingObject?.type === EObjectType.Mask}
@@ -603,6 +610,7 @@ const Edit: React.FC<EditProps> = (props) => {
             )}
             <SmartAnnotationControl
               drawData={drawData}
+              isCtrlPressed={editState.isCtrlPressed}
               aiLabels={aiLabels}
               categories={categories}
               setAiLabels={setAiLabels}
@@ -673,8 +681,15 @@ const Edit: React.FC<EditProps> = (props) => {
                       return obj;
                     },
                   );
-                  console.log('>>>>>', updateObjects);
                   s.objectList = updateObjects;
+                  const count = updateObjects.filter(
+                    (item) => item.status === EObjectStatus.Checked,
+                  ).length;
+                  message.success(
+                    localeText(`smartAnnotation.tip.annotationApplied`, {
+                      count,
+                    }),
+                  );
                 });
               }}
               onAcceptValidObjects={() => {
@@ -687,6 +702,20 @@ const Edit: React.FC<EditProps> = (props) => {
                       obj.status = EObjectStatus.Commited;
                       return obj;
                     });
+                  s.objectList = validObjs;
+                  s.isBatchEditing = false;
+                  s.activeObjectIndex = -1;
+                  s.creatingObject = undefined;
+                });
+                setAiLabels([]);
+              }}
+              onCancelBatchEdit={() => {
+                setDrawDataWithHistory((s) => {
+                  const validObjs = cloneDeep(drawData.objectList).filter(
+                    (obj) => {
+                      return obj.status === EObjectStatus.Commited;
+                    },
+                  );
                   s.objectList = validObjs;
                   s.isBatchEditing = false;
                   s.activeObjectIndex = -1;
@@ -753,7 +782,7 @@ const Edit: React.FC<EditProps> = (props) => {
               })
             }
             onActiveObject={(index) => {
-              setCurrSelectedObject(index);
+              selectFocusObject(index);
             }}
             onFocusElement={(index) =>
               setEditState((s) => {

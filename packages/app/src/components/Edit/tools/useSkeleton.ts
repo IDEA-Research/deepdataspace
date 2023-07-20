@@ -16,7 +16,6 @@ import {
 import {
   ToolInstanceHook,
   ToolHooksFunc,
-  renderRect,
   renderActiveRect,
   editBaseElementWhenMouseDown,
   updateEditingRectWhenMouseMove,
@@ -93,7 +92,14 @@ const useSkeleton: ToolInstanceHook = ({
     if (object.status === EObjectStatus.Unchecked) return;
     const { rect, keypoints } = object;
     if (rect && rect.visible) {
-      renderRect(canvasRef.current!, rect, color, strokeAlpha, fillAlpha);
+      drawRect(
+        canvasRef.current!,
+        rect,
+        hexToRgba(color, strokeAlpha),
+        2,
+        LABELS_STROKE_DASH[0],
+        hexToRgba(color, fillAlpha),
+      );
     }
     if (keypoints) {
       renderKeypoints(canvasRef.current!, keypoints, color, strokeAlpha);
@@ -172,7 +178,14 @@ const useSkeleton: ToolInstanceHook = ({
     const { rect, keypoints } = object;
     if (rect && rect.visible) {
       // editing
-      renderRect(activeCanvasRef.current!, rect, color, strokeAlpha, fillAlpha);
+      drawRect(
+        activeCanvasRef.current!,
+        rect,
+        hexToRgba(color, strokeAlpha),
+        2,
+        LABELS_STROKE_DASH[0],
+        hexToRgba(color, fillAlpha),
+      );
       renderActiveRect(activeCanvasRef.current!, rect);
     }
     if (keypoints) {
@@ -206,7 +219,9 @@ const useSkeleton: ToolInstanceHook = ({
 
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
+    event,
   }) => {
+    if (event?.button === 2) return false;
     if (
       editBaseElementWhenMouseDown({
         object,

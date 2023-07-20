@@ -115,6 +115,7 @@ export interface EditState {
     initPoint?: IPoint;
   };
   focusObjectIndex: number;
+  foucsObjectAllIndexs: number[];
   focusEleType: EElementType;
   focusEleIndex: number;
   focusPolygonInfo: {
@@ -123,6 +124,7 @@ export interface EditState {
     lineIndex: number;
   };
   imageCacheId?: string;
+  isCtrlPressed: boolean;
 }
 
 export const enum EditorMode {
@@ -161,6 +163,7 @@ export const DEFAULT_EDIT_STATE: EditState = {
   startRectResizeAnchor: undefined,
   startElementMovePoint: undefined,
   focusObjectIndex: -1,
+  foucsObjectAllIndexs: [],
   focusEleType: EElementType.Rect,
   focusEleIndex: -1,
   focusPolygonInfo: {
@@ -168,4 +171,5 @@ export const DEFAULT_EDIT_STATE: EditState = {
     pointIndex: -1,
     lineIndex: -1,
   },
+  isCtrlPressed: false,
 };

@@ -4,12 +4,13 @@ import { getRectFromPoints, translateRectCoord } from '@/utils/compute';
 import {
   ToolInstanceHook,
   ToolHooksFunc,
-  renderRect,
   renderActiveRect,
   editBaseElementWhenMouseDown,
   updateEditingRectWhenMouseMove,
 } from './base';
 import { EObjectStatus } from '../type';
+import { hexToRgba } from '@/utils/color';
+import { ANNO_FILL_ALPHA } from '../constants/render';
 
 const useRectangle: ToolInstanceHook = ({
   contentMouse,
@@ -29,11 +30,38 @@ const useRectangle: ToolInstanceHook = ({
     color,
     strokeAlpha,
     fillAlpha,
+    isFocus,
   }) => {
     const { rect } = object;
     if (rect && rect.visible) {
-      if (object.status === EObjectStatus.Unchecked) return;
-      renderRect(canvasRef.current!, rect, color, strokeAlpha, fillAlpha);
+      let lineDash = LABELS_STROKE_DASH[0];
+      let fill = fillAlpha;
+      if (drawData.isBatchEditing) {
+        if (
+          object.status === EObjectStatus.Unchecked &&
+          !editState.isCtrlPressed
+        )
+          return;
+        if (editState.isCtrlPressed) {
+          if (object.status !== EObjectStatus.Unchecked) {
+            lineDash = LABELS_STROKE_DASH[1];
+          } else {
+            if (isFocus) {
+              fill = ANNO_FILL_ALPHA.FOCUS;
+            } else {
+              fill = ANNO_FILL_ALPHA.CTRL_TO_SELECT;
+            }
+          }
+        }
+      }
+      drawRect(
+        canvasRef.current!,
+        rect,
+        hexToRgba(color, strokeAlpha),
+        2,
+        lineDash,
+        hexToRgba(color, fill),
+      );
     }
   };
 
@@ -79,7 +107,14 @@ const useRectangle: ToolInstanceHook = ({
   }) => {
     const { rect } = object;
     if (rect && rect.visible) {
-      renderRect(activeCanvasRef.current!, rect, color, strokeAlpha, fillAlpha);
+      drawRect(
+        activeCanvasRef.current!,
+        rect,
+        hexToRgba(color, strokeAlpha),
+        2,
+        LABELS_STROKE_DASH[0],
+        hexToRgba(color, fillAlpha),
+      );
       renderActiveRect(activeCanvasRef.current!, rect);
     }
   };
@@ -90,7 +125,9 @@ const useRectangle: ToolInstanceHook = ({
 
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
+    event,
   }) => {
+    if (event?.button === 2) return false;
     if (
       editBaseElementWhenMouseDown({
         object,

@@ -3,6 +3,7 @@ export const ANNO_FILL_ALPHA = {
   CREATING: 0,
   FOCUS: 0.5,
   ACTIVE: 0.2,
+  CTRL_TO_SELECT: 0.1,
   OTHER: 0,
 };
 

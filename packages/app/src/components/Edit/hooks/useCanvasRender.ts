@@ -173,6 +173,7 @@ const useCanvasRender = ({
         strokeAlpha,
         fillAlpha,
         maskAlpha,
+        isFocus,
       });
     });
   };

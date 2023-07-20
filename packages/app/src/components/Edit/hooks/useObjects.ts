@@ -1,9 +1,4 @@
-import {
-  EBasicToolItem,
-  EBasicToolTypeMap,
-  EElementType,
-  EObjectType,
-} from '@/constants';
+import { EElementType, EObjectType } from '@/constants';
 import { DATA } from '@/services/type';
 import { getSegmentationPoints } from '@/utils/annotation';
 import {
@@ -41,7 +36,6 @@ const useObjects = ({
   drawData,
   setDrawData,
   setDrawDataWithHistory,
-  editState,
   setEditState,
   clientSize,
   naturalSize,
@@ -211,28 +205,6 @@ const useObjects = ({
     });
   };
 
-  const setCurrSelectedObject = (index = editState.focusObjectIndex) => {
-    if (index < 0) return;
-    setDrawData((s) => {
-      s.activeObjectIndex = index;
-      s.creatingObject = {
-        ...drawData.objectList[index],
-        currIndex: undefined,
-        startPoint: undefined,
-        tempMaskSteps: [],
-        maskStep: undefined,
-      };
-
-      if (
-        s.selectedTool !== EBasicToolItem.Drag &&
-        s.objectList[index] &&
-        EBasicToolTypeMap[s.selectedTool] !== s.objectList[index].type
-      ) {
-        s.selectedTool = EBasicToolItem.Drag;
-      }
-    });
-  };
-
   return {
     initObjectList,
     addObject,
@@ -242,7 +214,6 @@ const useObjects = ({
     updateAllObject,
     updateObjectWithoutHistory,
     updateAllObjectWithoutHistory,
-    setCurrSelectedObject,
   };
 };
 

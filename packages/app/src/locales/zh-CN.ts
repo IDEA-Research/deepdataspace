@@ -116,6 +116,13 @@ export default {
   'smartAnnotation.msg.labelRequired': '请至少选择一个目标类别',
   'smartAnnotation.msg.confResults': '共有{count}条标注符合目标置信区间',
   'smartAnnotation.msg.applyConf': '已保留{count}条标注，其他标注已移除',
+  'smartAnnotation.detection.confidence': '置信度',
+  'smartAnnotation.back': '返回',
+  'smartAnnotation.tip': '提示',
+  'smartAnnotation.tip.ctrl': '按住ctrl进入回收未选标注模式',
+  'smartAnnotation.tip.recover': '回收未选标注',
+  'smartAnnotation.tip.overlayobject': '回收未选标注',
+  'smartAnnotation.tip.annotationApplied': '已添加{count}个标注对象',
 
   /** Editor */
   'editor.save': '保存',

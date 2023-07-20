@@ -114,3 +114,27 @@
 .container:hover {
   box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
 }
+
+.operationTip {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9;
+
+  .tipItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(60, 86, 248, 0.6);
+    border-radius: 5px;
+
+    span {
+      margin-right: 20px;
+      color: #fff;
+    }
+  }
+}

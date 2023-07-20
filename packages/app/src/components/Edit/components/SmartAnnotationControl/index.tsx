@@ -20,9 +20,12 @@ import CategoryCreator from '../CategoryCreator';
 import { DATA, SegmentEverythingParams } from '@/services/type';
 import { OnAiAnnotationFunc } from '../../hooks/useActions';
 import { useImmer } from 'use-immer';
+import { ReactComponent as MouseLeftIcon } from '@/assets/svg/mouse-left.svg';
+import { ReactComponent as MouseRightIcon } from '@/assets/svg/mouse-right.svg';
 
 interface IProps {
   drawData: DrawData;
+  isCtrlPressed: boolean;
   aiLabels: string[];
   categories: DATA.Category[];
   setAiLabels: (labels: string[]) => void;
@@ -34,10 +37,12 @@ interface IProps {
   onChangeConfidenceRange: (range: [number, number]) => void;
   onChangeLimitConf: (value: number) => void;
   onAcceptValidObjects: () => void;
+  onCancelBatchEdit: () => void;
 }
 
 const SmartAnnotationControl: React.FC<IProps> = ({
   drawData,
+  isCtrlPressed,
   aiLabels,
   categories,
   setAiLabels,
@@ -49,6 +54,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   onChangeConfidenceRange,
   onChangeLimitConf,
   onAcceptValidObjects,
+  onCancelBatchEdit,
 }) => {
   const { localeText } = useLocale();
 
@@ -104,7 +110,11 @@ const SmartAnnotationControl: React.FC<IProps> = ({
     // TODO
     if (
       drawData.selectedTool !== EBasicToolItem.Skeleton &&
-      drawData.selectedTool !== EBasicToolItem.Mask
+      drawData.selectedTool !== EBasicToolItem.Mask &&
+      !(
+        drawData.selectedTool === EBasicToolItem.Rectangle &&
+        drawData.AIAnnotation
+      )
     ) {
       event.stopPropagation();
     } else {
@@ -122,15 +132,54 @@ const SmartAnnotationControl: React.FC<IProps> = ({
     )
       return false;
 
+    if (
+      drawData.selectedTool === EBasicToolItem.Rectangle &&
+      drawData.isBatchEditing &&
+      isCtrlPressed
+    )
+      return false;
+
     return true;
-  }, [drawData.selectedTool, drawData.selectedSubTool, drawData.AIAnnotation]);
+  }, [
+    drawData.selectedTool,
+    drawData.selectedSubTool,
+    drawData.AIAnnotation,
+    drawData.isBatchEditing,
+    isCtrlPressed,
+  ]);
 
   const onApplyCurrMaskObjs = () => {
     onAcceptValidObjects();
   };
 
+  const aiDetectionTip = useMemo(() => {
+    if (drawData.isBatchEditing && isCtrlPressed) {
+      return [
+        {
+          text: localeText('smartAnnotation.tip.recover'),
+          logo: <MouseLeftIcon />,
+        },
+        {
+          text: localeText('smartAnnotation.tip.overlayobject'),
+          logo: <MouseRightIcon />,
+        },
+      ];
+    }
+    return [];
+  }, [drawData.isBatchEditing, isCtrlPressed]);
+
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
+      {aiDetectionTip.length > 0 && (
+        <div className={styles.operationTip}>
+          {aiDetectionTip.map((item) => (
+            <div key={item.text} className={styles.tipItem}>
+              <span>{item.text}</span>
+              {item.logo}
+            </div>
+          ))}
+        </div>
+      )}
       <Card
         id="smart-annotation-editor"
         className={classNames(styles.container, {
@@ -164,7 +213,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                 <div className={styles.paramControls}>
                   <div className={styles.paramItem}>
                     <div className={styles.title}>
-                      {localeText('editor.confidence')}:
+                      {localeText('smartAnnotation.detection.confidence')}:
                     </div>
                     <Slider
                       className={styles.slider}
@@ -183,15 +232,20 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                   </div>
                 </div>
                 <div className={styles.tipText}>
-                  <span>tips: </span>按住ctrl进入回收未选标注模式
+                  <span>{localeText('smartAnnotation.tip')}: </span>
+                  {localeText('smartAnnotation.tip.ctrl')}
                 </div>
-                <Button
-                  style={{ alignSelf: 'flex-end' }}
-                  type="primary"
-                  onClick={onAcceptValidObjects}
-                >
-                  {localeText('editor.save')}
-                </Button>
+                <div style={{ alignSelf: 'flex-end' }}>
+                  <Button
+                    style={{ marginRight: '10px' }}
+                    onClick={onCancelBatchEdit}
+                  >
+                    {localeText('smartAnnotation.back')}
+                  </Button>
+                  <Button type="primary" onClick={onAcceptValidObjects}>
+                    {localeText('editor.save')}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className={styles.item}>

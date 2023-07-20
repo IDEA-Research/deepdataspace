@@ -157,7 +157,7 @@ const useShortcuts = ({
 
   /** Delete Current Selected Object */
   useKeyPress(
-    EDITOR_SHORTCUTS[EShortcuts.DeleteCurrObject].shortcut,
+    'EDITOR_SHORTCUTS[EShortcuts.DeleteCurrObject].shortcut',
     (event) => {
       if (!visible || mode !== EditorMode.Edit) return;
       if (['Delete', 'Backspace'].includes(event.key)) {
@@ -167,6 +167,20 @@ const useShortcuts = ({
       }
     },
     { events: ['keyup'] },
+  );
+
+  /** Change isCtrlPressed state */
+  useKeyPress(
+    'ctrl',
+    (event: KeyboardEvent) => {
+      if (drawData.activeObjectIndex > -1) return;
+      setEditState((s) => {
+        s.isCtrlPressed = Boolean(event.type === 'keydown');
+        s.focusObjectIndex = -1;
+        s.foucsObjectAllIndexs = [];
+      });
+    },
+    { events: ['keydown', 'keyup'] },
   );
 
   return {};

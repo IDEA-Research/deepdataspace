@@ -123,6 +123,14 @@ export default {
   'smartAnnotation.msg.confResults': '{count} matching annotations shown',
   'smartAnnotation.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'smartAnnotation.detection.confidence': 'Confidence',
+  'smartAnnotation.back': 'Back',
+  'smartAnnotation.tip': 'Tip',
+  'smartAnnotation.tip.ctrl':
+    'Hold down Ctrl to enter the mode of recovering unselected annotations.',
+  'smartAnnotation.tip.recover': 'Recover unselected annotations',
+  'smartAnnotation.tip.overlayobject': 'View overlapping annotation objects',
+  'smartAnnotation.tip.annotationApplied': '{count} annotations applied.',
 
   /** Editor */
   'editor.save': 'Save',

@@ -45,6 +45,20 @@ const useToolActions = ({
   const { localeText } = useLocale();
 
   const onDeleteCurrObject = () => {
+    if (
+      drawData.isBatchEditing &&
+      drawData.objectList[drawData.activeObjectIndex]?.status !==
+        EObjectStatus.Commited
+    ) {
+      setDrawData((s) => {
+        s.objectList[s.activeObjectIndex].status = EObjectStatus.Unchecked;
+        s.creatingObject = undefined;
+        s.prompt = {};
+        s.activeObjectIndex = -1;
+      });
+      return;
+    }
+
     if (drawData.activeObjectIndex > -1) {
       removeObject(drawData.activeObjectIndex);
     }
@@ -89,9 +103,12 @@ const useToolActions = ({
         message.error(localeText('editor.anno.mask.translateToRleError'));
       }
     } else {
-      // onChangeObjectLabel(drawData.activeObjectIndex, label);
       const newObject = { ...drawData.objectList[drawData.activeObjectIndex] };
       newObject.label = label;
+      // batch editing set conf to 1
+      if (drawData.isBatchEditing) {
+        newObject.conf = 1;
+      }
       updateObject(newObject, drawData.activeObjectIndex);
     }
     setDrawData((s) => {

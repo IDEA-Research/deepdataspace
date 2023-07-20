@@ -276,7 +276,9 @@ const usePolygon: ToolInstanceHook = ({
 
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
+    event,
   }) => {
+    if (event?.button === 2) return false;
     if (
       editBaseElementWhenMouseDown({
         object,
