@@ -104,6 +104,12 @@ export interface DrawData {
   prompt: IPrompt;
 }
 
+export interface imageDisplayOptions {
+  brightness: number;
+  contrast: number;
+  saturate: number;
+}
+
 export interface EditState {
   isRequiring: boolean;
   allowMove: boolean;
@@ -125,6 +131,7 @@ export interface EditState {
   };
   imageCacheId?: string;
   isCtrlPressed: boolean;
+  imageDisplayOptions: imageDisplayOptions;
 }
 
 export const enum EditorMode {
@@ -156,6 +163,12 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   limitConf: 0,
 };
 
+export const DEFAULT_IMG_DISPLAY_OPTIONS: imageDisplayOptions = {
+  brightness: 100,
+  contrast: 100,
+  saturate: 100,
+};
+
 export const DEFAULT_EDIT_STATE: EditState = {
   isRequiring: false,
   allowMove: false,
@@ -172,4 +185,5 @@ export const DEFAULT_EDIT_STATE: EditState = {
     lineIndex: -1,
   },
   isCtrlPressed: false,
+  imageDisplayOptions: DEFAULT_IMG_DISPLAY_OPTIONS,
 };

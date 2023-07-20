@@ -9,8 +9,10 @@ import {
 import { translateAnnotCoord } from '@/utils/compute';
 import { EObjectType } from '@/constants';
 import {
+  addFilter,
   clearCanvas,
   drawImage,
+  removeFilter,
   resizeSmoothCanvas,
   setCanvasGlobalAlpha,
 } from '@/utils/draw';
@@ -188,12 +190,23 @@ const useCanvasRender = ({
     canvasRef.current.getContext('2d')!.imageSmoothingEnabled = false;
     clearCanvas(canvasRef.current);
 
+    // add filter before drawImage and apply for image only
+    addFilter(
+      canvasRef.current,
+      editState.imageDisplayOptions.brightness,
+      editState.imageDisplayOptions.contrast,
+      editState.imageDisplayOptions.saturate,
+    );
+
     drawImage(canvasRef.current, imgRef.current, {
       x: imagePos.current.x,
       y: imagePos.current.y,
       width: clientSize.width,
       height: clientSize.height,
     });
+
+    // remove filter just in case it may be applied on all canvas
+    removeFilter(canvasRef.current);
 
     const theDrawData = updateDrawData || drawData;
 
