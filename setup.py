@@ -15,7 +15,7 @@ install_requires = [
     "celery==5.2.7",
     "click==8.1.3",
     "cryptography==39.0.1",
-    "Django==4.1.9",
+    "Django==4.1.10",
     "djangorestframework==3.14.0",
     "django-cors-headers==3.13.0",
     "numpy==1.22.0",
