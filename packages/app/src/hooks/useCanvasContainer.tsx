@@ -19,7 +19,9 @@ interface IProps {
     left: number;
   };
   allowMove: boolean;
-  showMouseAim?: boolean;
+  isCustomCursorActive: boolean;
+  cursorSize: number;
+  showReferenceLine?: boolean;
   onClickBg?: React.MouseEventHandler<HTMLDivElement>;
 }
 
@@ -28,7 +30,9 @@ export default function useCanvasContainer({
   visible,
   minPadding = { top: 0, left: 0 },
   allowMove,
-  showMouseAim,
+  showReferenceLine,
+  isCustomCursorActive,
+  cursorSize,
   onClickBg,
 }: IProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -271,7 +275,7 @@ export default function useCanvasContainer({
         className={className}
       >
         {children}
-        {showMouseAim && !allowMove && isInCanvas(contentMouse) && (
+        {showReferenceLine && !allowMove && isInCanvas(contentMouse) && (
           <>
             {/* leftLine */}
             <div
@@ -319,6 +323,29 @@ export default function useCanvasContainer({
             />
           </>
         )}
+        {isCustomCursorActive &&
+          cursorSize > 0 &&
+          isInCanvas(contentMouse) &&
+          !allowMove && (
+            <div
+              style={{
+                position: 'fixed',
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.7)',
+                width: cursorSize * clientSize.scale,
+                height: cursorSize * clientSize.scale,
+                borderRadius: (cursorSize * clientSize.scale) / 2,
+                left: 0,
+                top: 0,
+                transformOrigin: 'top left',
+                transform: `translate(${
+                  containerMouse.clientX - (cursorSize * clientSize.scale) / 2
+                }px, ${
+                  containerMouse.clientY - (cursorSize * clientSize.scale) / 2
+                }px)`,
+              }}
+            />
+          )}
       </div>
     );
   };

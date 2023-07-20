@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Button, Divider, Modal } from 'antd';
-import { EObjectType, EElementType, EBasicToolItem } from '@/constants';
+import {
+  EObjectType,
+  EElementType,
+  EBasicToolItem,
+  ESubToolItem,
+} from '@/constants';
 import { Updater, useImmer } from 'use-immer';
 import { scaleDrawData } from '@/utils/compute';
 import { DATA } from '@/services/type';
@@ -108,6 +113,24 @@ const Edit: React.FC<EditProps> = (props) => {
   const activeCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  const isCustomCursorActive = useMemo(() => {
+    return (
+      drawData.selectedTool === EBasicToolItem.Mask &&
+      [
+        ESubToolItem.AutoEdgeStitching,
+        ESubToolItem.AutoSegmentByStroke,
+        ESubToolItem.BrushAdd,
+        ESubToolItem.BrushErase,
+      ].includes(drawData.selectedSubTool)
+    );
+  }, [drawData.selectedTool, drawData.selectedSubTool]);
+
+  const showReferenceLine = useMemo(() => {
+    return (
+      drawData.selectedTool !== EBasicToolItem.Drag && !isCustomCursorActive
+    );
+  }, [drawData.selectedTool, isCustomCursorActive]);
+
   const {
     scale,
     naturalSize,
@@ -125,11 +148,13 @@ const Edit: React.FC<EditProps> = (props) => {
     visible,
     allowMove: editState.allowMove,
     isRequiring: editState.isRequiring,
-    showMouseAim: drawData.selectedTool !== EBasicToolItem.Drag,
+    showReferenceLine,
     minPadding: {
       top: 30,
-      left: 30,
+      left: 80,
     },
+    isCustomCursorActive,
+    cursorSize: drawData.brushSize,
   });
 
   const [preClientSize, clearPreClientSize] =
