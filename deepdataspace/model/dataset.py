@@ -12,6 +12,9 @@ import time
 import uuid
 from typing import Dict
 
+from pymongo.collection import Collection
+from pymongo.typings import _DocumentType
+
 from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import FileReadMode
@@ -72,6 +75,13 @@ class DataSet(BaseModel):
     group_name: str
        The group name associated with this dataset.
     """
+
+    @classmethod
+    def get_collection(cls, *args, **kwargs) -> Collection[_DocumentType]:
+        """
+        Datasets are stored in the `datasets` collection.
+        """
+        return cls.db["datasets"]
 
     # the mandatory fields
     name: str  # the dataset name
