@@ -296,29 +296,29 @@ class LabelProjectRoles:
 
 
 class LabelTaskStatus:
-    Waiting = "waiting"  # the task is waiting for manager to assign leaders
-    Working = "working"  # leaders are working on the task
-    Reviewing = "reviewing"  # the task is completed, waiting for qa
-    Rejected = "rejected"  # the task is rejected by manager in qa
-    Accepted = "accepted"  # the task is accepted by manager in qa
+    Waiting = "waiting"  #: the task is waiting for manager to assign leaders
+    Working = "working"  #: leaders are working on the task
+    Reviewing = "reviewing"  #: the task is completed, waiting for qa
+    Rejected = "rejected"  #: the task is rejected by manager in qa
+    Accepted = "accepted"  #: the task is accepted by manager in qa
 
     ALL_ = {Waiting, Working, Reviewing, Rejected, Accepted}
 
 
 class LabelTaskImageStatus:
-    Labeling = "labeling"  # waiting for labeler to label, or rejected and wait for labeler to re-label
-    Reviewing = "reviewing"  # labeled by labeler, waiting for reviewer to review
-    Rejected = "rejected"  # rejected by reviewer
-    Accepted = "accepted"  # accepted by reviewer
+    Labeling = "labeling"  #: waiting for labeler to label, or rejected and wait for labeler to re-label
+    Reviewing = "reviewing"  #: labeled by labeler, waiting for reviewer to review
+    Rejected = "rejected"  #: rejected by reviewer
+    Accepted = "accepted"  #: accepted by reviewer
 
     ALL_ = {Labeling, Reviewing, Rejected, Accepted}
     WaitForLabeling_ = {Labeling, Rejected}
 
 
 class LabelTaskLabelStatus:
-    Reviewing = "reviewing"  # labeled by labeler, waiting for reviewer to review
-    Rejected = "rejected"  # rejected by reviewer
-    Accepted = "accepted"  # accepted by reviewer
+    Reviewing = "reviewing"  #: labeled by labeler, waiting for reviewer to review
+    Rejected = "rejected"  #: rejected by reviewer
+    Accepted = "accepted"  #: accepted by reviewer
 
     ALL_ = {Reviewing, Rejected, Accepted}
 

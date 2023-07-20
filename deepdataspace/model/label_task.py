@@ -47,31 +47,47 @@ logger = logging.getLogger("io.model.label_task")
 
 
 def current_ts():
+    """
+    Get the current timestamp in millisecond.
+    """
     return int(time.time() * 1000)
 
 
 def gen_uuid():
+    """
+    Generate a uuid.
+    """
     return uuid.uuid4().hex
 
 
 class LabelProjectError(APIException):
+    """
+    The label project related error.
+    """
     pass
 
 
 class LabelTaskError(APIException):
+    """
+    The label task related error.
+    """
     pass
 
 
 class LabelProject(BaseModel):
     """
-    The label project model.
-    Each label project is associated with one or more datasets, and one project owner and several managers.
-    The project will distribute the datasets to label tasks, which are labeled by labelers and reviewed by reviewers,
+    | The label project model.
+    | Each label project is associated with one or more datasets, and one project owner and several managers.
+    | The project will distribute the datasets to label tasks, which are labeled by labelers and reviewed by reviewers,
     which are lead by label leaders and review leaders.
     """
 
     @classmethod
     def get_collection(cls, *args, **kwargs) -> Collection[_DocumentType]:
+        """
+        Label projects are stored in the "label_projects" collection.
+        """
+
         return cls.db["label_projects"]
 
     # the mandatory fields
