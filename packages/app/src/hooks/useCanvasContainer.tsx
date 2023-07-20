@@ -282,10 +282,14 @@ export default function useCanvasContainer({
               style={{
                 position: 'fixed',
                 backgroundColor: '#fff',
-                height: 1,
-                left: containerMouse.elementPosX,
-                bottom: window.innerHeight - containerMouse.clientY - 1,
                 width: containerMouse.elementX - 18,
+                height: 1,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.elementPosX}px, -${
+                  window.innerHeight - containerMouse.clientY - 1
+                }px)`,
               }}
             />
             {/* rightLine */}
@@ -294,9 +298,13 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 height: 1,
-                left: containerMouse.clientX + 18,
-                bottom: window.innerHeight - containerMouse.clientY - 1,
                 width: containerMouse.elementW - containerMouse.elementX - 18,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.clientX + 18}px, -${
+                  window.innerHeight - containerMouse.clientY - 1
+                }px)`,
               }}
             />
             {/* upLine */}
@@ -305,9 +313,12 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 width: 1,
-                bottom: window.innerHeight - containerMouse.clientY + 18,
-                left: containerMouse.clientX - 1,
                 height: containerMouse.elementY - 18,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.clientX - 1}px, 
+                  -${window.innerHeight - containerMouse.clientY + 18}px)`,
               }}
             />
             {/* downLine */}
@@ -316,9 +327,10 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 width: 1,
-                bottom: 0,
-                left: containerMouse.clientX - 1,
                 height: containerMouse.elementH - containerMouse.elementY - 18,
+                left: 0,
+                bottom: 0,
+                transform: `translate(${containerMouse.clientX - 1}px)`,
               }}
             />
           </>
