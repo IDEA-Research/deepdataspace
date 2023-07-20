@@ -26,13 +26,16 @@ _batch_update_queue = {}  # a dict of batch update queue for every collection, {
 
 
 def current_ts():
+    """
+    Get current timestamp in millisecond.
+    """
     return int(time.time() * 1000)
 
 
 class BaseModel(_Base):
     """
-    Base model for all models.
-    Every model represents a mongodb collection.
+    | Base model for all models.
+    | Every model represents a mongodb collection.
     """
 
     class Config:
@@ -377,9 +380,9 @@ class BaseModel(_Base):
     @classmethod
     def get_cls_id(cls):
         """
-        Get the class id.
-        This is used to generate a unique name for this model.
-        Most of the time, this is the same as the class name. But it can be overridden in some cases.
+        | Get the class id.
+        | This is used to generate a unique name for this model.
+        | Most of the time, this is the same as the class name. But it can be overridden in some cases.
         """
 
         return cls.__name__

@@ -12,6 +12,9 @@ import time
 import uuid
 from typing import Dict
 
+from pymongo.collection import Collection
+from pymongo.typings import _DocumentType
+
 from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import FileReadMode
@@ -35,11 +38,49 @@ def current_ts():
 
 class DataSet(BaseModel):
     """
-    DataSet is a collection of images.
+    | DataSet is a collection of images.
+    | This only saves metadata of the dataset, not the images.
+    | Every dataset has a corresponding individual collection to save the images.
+
+    Attributes:
+    -----------
+    name: str
+       The dataset name.
+    id: str
+       The dataset id.
+    path: str
+       The dataset directory path.
+    type: str
+       The dataset type, see :class:`deepdataspace.constants.DatasetType`.
+    status: str
+       The current status of the dataset, with default being `DatasetStatus.Waiting`. See :class:`deepdataspace.constants.DatasetStatus`.
+    detail_status: dict
+       Detailed status of every importer/processor. See :class:`deepdataspace.constants.DatasetStatus`.
+    flag_export_link: str
+       The dataset flag export link.
+    object_types: list
+       List indicating what kind of objects this dataset contains. See :class:`deepdataspace.constants.AnnotationType`.
+    num_images: int
+       The number of images in this dataset.
+    files: dict
+       Dictionary containing the relevant files of this dataset.
+    cover_url: str
+       The cover image URL.
+    description: str
+       The dataset description.
+    description_func: callable
+       A function used to generate the description for this dataset.
+    group_id: str
+       The group id associated with this dataset.
+    group_name: str
+       The group name associated with this dataset.
     """
 
     @classmethod
-    def get_collection(cls):
+    def get_collection(cls, *args, **kwargs) -> Collection[_DocumentType]:
+        """
+        Datasets are stored in the `datasets` collection.
+        """
         return cls.db["datasets"]
 
     # the mandatory fields

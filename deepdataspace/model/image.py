@@ -32,32 +32,70 @@ logger = logging.getLogger("io.model.image")
 
 class ImageModel(BaseModel):
     """
-    Image is the element of a dataset.
-    Each image contains a list of objects.
-
-    The image model is designed differently from other models.
-    In the normal condition, every model refers to one and only one mongodb collection.
-    But the image model refers to multiple mongodb collections, one for each dataset.
-    This will improve the performance of the image query for large datasets.
-    But this also changes the behaviors of ImageModel:
+    | Image is the element of a dataset.
+    | Each image contains a list of objects.
+    |
+    | The image model is designed differently from other models.
+    | In the normal condition, every model refers to one and only one mongodb collection.
+    | But the image model refers to multiple mongodb collections, one for each dataset.
+    | This will improve the performance of the image query for large datasets.
+    | But this also changes the behaviors of ImageModel:
     - The ImageModel class is created dynamically before accessing the mongodb collection.
     - While creating the ImageModel class, the dataset id is passed in as a class attribute 'belong_dataset'.
     - The get_collection and get_cls_id methods will decide the return value along with the 'belong_dataset'.
 
-    So the image model is designed to be used in this way:
-    IModel = Image(dataset_id='xxxx') # the additional step to create the ImageModel class dynamically
-    image = IModel(...)
-    image.save()
+    | So the image model is designed to be used in this way:
+    .. code-block:: python
 
-    DataSet A stores in Collection_DataSet
-    DataSet B stores in Collection_DataSet
+        IModel = Image(dataset_id='xxxx') # the additional step to create the ImageModel class dynamically
+        image = IModel(...)
+        image.save()
 
-    Image A belongs to DataSet A, stores in Collection_Image_A
-    Image B belongs to DataSet A, stores in Collection_Image_A
+    | Let's say we have two datasets, A and B:
+    - Both dataSet A and B are stored in collection "datasets"
+    - Images belong to DataSet A are stored in collection ``f"images@{dataset_A.id}"``
+    - Images belong to DataSet B are stored in collection ``f"images@{dataset_B.id}"``
 
-    Image A belongs to DataSet B, stores in Collection_Image_B
-    Image B belongs to DataSet B, stores in Collection_Image_B
-
+    Attributes:
+    -----------
+    id: int
+        The image id.
+    idx: int
+        The image sorting field.
+    url: str
+        The image URL.
+    dataset_id: str
+        Which dataset this image belongs to.
+    type: str
+        What kind of dataset this image belongs to. Default is None. See :class:`deepdataspace.constants.DatasetType`.
+    url_full_res: str
+        The image URL of full resolution. Default is an empty string.
+    objects: List[Object]
+        The objects in this image. Default is an empty list.
+    width: int
+        The image width. Default is None.
+    height: int
+        The image height. Default is None.
+    metadata: str
+        The image metadata. Default is "{}".
+    flag: int
+        The image flag, values can be 0,1,2. Default is 0.
+    flag_ts: int
+        The image flag timestamp. Default is 0.
+    num_fn: dict
+        fn counter of image in the format {"label_id": {90:x, 80: y, ..., 10: z}}. Default is an empty dict.
+    num_fn_cat: dict
+        fn counter of image categorized, in the format {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}. Default is an empty dict.
+    num_fp: dict
+        fp counter of image in the format {"label_id": {90:x, 80: y, ..., 10: z}}. Default is an empty dict.
+    num_fp_cat: dict
+        fp counter of image categorized, in the format {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}. Default is an empty dict.
+    label_confirm: dict
+        Confirm status of every label sets, where confirm can be:
+        0 = not confirmed,
+        1 = confirmed,
+        2 = refine required.
+        Format is {"label_id": {"confirm": int, "confirm_ts": int}}. Default is an empty dict.
     """
 
     @classmethod

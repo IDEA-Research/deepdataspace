@@ -23,10 +23,22 @@ IntegrationError = type("IntegrationError", (Exception,), {})
 class UserToken(BaseModel):
     """
     The session token for a logged-in user.
+
+    Attributes:
+    -----------
+    id: str
+        The token id.
+    user_id: str
+        The user id this token bond to.
+    expire: int
+        The token expire timestamp, in second.
     """
 
     @classmethod
     def get_collection(cls, *args, **kwargs):
+        """
+        User tokens are stored in the "user_tokens" collection.
+        """
         return cls.db["user_tokens"]
 
     id: str  # the token id
@@ -36,16 +48,32 @@ class UserToken(BaseModel):
 
 class User(BaseModel):
     """
-    The user data model.
+    The user model.
+
+    Attributes:
+    -----------
+    id: str
+        The user id.
+    name: str
+        The username.
+    password: str
+        The password, encrypted.
+    status: str
+        The user status, active or inactive, see :class:`deepdataspace.constants.UserStatus`.
+    is_staff: bool
+        Is this user a staff?
     """
 
     @classmethod
     def get_collection(cls, *args, **kwargs):
+        """
+        Users are stored in the "users" collection.
+        """
         return cls.db["users"]
 
     id: str  # the user id
     name: str  # the username
-    password: str  # the password
+    password: str  # the password, encrypted.
     status: str  # the user status
     is_staff: bool = False
 
@@ -85,20 +113,36 @@ class User(BaseModel):
 
     @classmethod
     def delete_user(cls, username: str):
+        """
+        Delete users by username.
+        """
+
         user_id = get_str_md5(username)
         User.delete_many({"id": user_id})
 
     def reset_password(self):
+        """
+        Reset user password to a random one.
+        """
+
         password = gen_password(10)
         self.set_password(password)
         self.delete_all_token()
 
     def ban_user(self):
+        """
+        Ban a user, set user status to inactive.
+        """
+
         self.status = UserStatus.InActive
         self.delete_all_token()
         self.save()
 
     def unban_user(self):
+        """
+        Unban a user, set user status to active.
+        """
+
         self.status = UserStatus.Active
         self.save()
 
@@ -117,9 +161,17 @@ class User(BaseModel):
         return None
 
     def get_password(self):
+        """
+        Get the decrypted password.
+        """
+
         return decrypt(self.password, SECRET_KEY)
 
     def set_password(self, password: str):
+        """
+        Set the password for a user. store it in encrypted format.
+        """
+
         password = encrypt(password, SECRET_KEY)
         self.password = password
         self.save()
@@ -157,7 +209,7 @@ class User(BaseModel):
     def delete_all_token(self):
         """
         Delete all session for current user.
-        This is required if the user is banned.
+        This method must be called after banning the user.
         """
 
         UserToken.delete_many({"user_id": self.id})
