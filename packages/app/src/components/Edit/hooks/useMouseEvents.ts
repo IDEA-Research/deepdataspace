@@ -27,7 +27,6 @@ interface IProps {
   setEditState: Updater<EditState>;
   clientSize: ISize;
   contentMouse: CursorState;
-  isAIPoseEstimation: boolean;
   categories: DATA.Category[];
   updateRender: (updateDrawData?: DrawData) => void;
   updateMouseCursor: (value: string, position?: Direction) => void;
@@ -48,7 +47,6 @@ const useMouseEvents = ({
   setEditState,
   clientSize,
   contentMouse,
-  isAIPoseEstimation,
   categories,
   updateRender,
   updateMouseCursor,
@@ -156,11 +154,14 @@ const useMouseEvents = ({
 
   const updateFocusInfoWhenMouseMove = () => {
     if (!isInCanvas(containerMouse)) return;
+    const objectList = drawData.objectList.filter(
+      (item) => item.status !== EObjectStatus.Unchecked,
+    );
     const focusObjectIndex = judgeFocusOnObject(
       clientSize,
       contentMouse,
       drawData.activeObjectIndex,
-      drawData.objectList,
+      objectList,
     );
     /** If focus in active object */
     if (
@@ -181,7 +182,7 @@ const useMouseEvents = ({
       });
     } else if (
       drawData.selectedTool === EBasicToolItem.Drag ||
-      isAIPoseEstimation
+      drawData.isBatchEditing
     ) {
       setEditState((s) => {
         s.focusObjectIndex = focusObjectIndex;
@@ -230,7 +231,10 @@ const useMouseEvents = ({
     }
 
     // 2. Create object
-    if (drawData.selectedTool !== EBasicToolItem.Drag && !isAIPoseEstimation) {
+    if (
+      drawData.selectedTool !== EBasicToolItem.Drag &&
+      !drawData.isBatchEditing
+    ) {
       const objectType = EBasicToolTypeMap[drawData.selectedTool];
       if (
         mode === EditorMode.Edit &&

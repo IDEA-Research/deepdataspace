@@ -170,12 +170,12 @@ const useToolActions = ({
         displayAIModeUnavailableModal();
         return;
       }
-      if (mode !== EditorMode.Edit) return;
+      if (mode !== EditorMode.Edit || drawData.isBatchEditing) return;
       setDrawData((s) => {
         s.AIAnnotation = active;
       });
     },
-    [mode],
+    [mode, drawData.isBatchEditing],
   );
 
   return {

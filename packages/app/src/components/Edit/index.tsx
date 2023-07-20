@@ -108,12 +108,6 @@ const Edit: React.FC<EditProps> = (props) => {
   const activeCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const isAIPoseEstimation = useMemo(() => {
-    return (
-      drawData.AIAnnotation && drawData.selectedTool === EBasicToolItem.Skeleton
-    );
-  }, [drawData.AIAnnotation, drawData.selectedTool]);
-
   const {
     scale,
     naturalSize,
@@ -311,7 +305,6 @@ const Edit: React.FC<EditProps> = (props) => {
     setEditState,
     clientSize,
     contentMouse,
-    isAIPoseEstimation,
     categories,
     updateRender,
     updateMouseCursor,
@@ -484,7 +477,10 @@ const Edit: React.FC<EditProps> = (props) => {
 
   const isAnnotEditorVisible =
     mode === EditorMode.Edit &&
-    !isAIPoseEstimation &&
+    !(
+      drawData.isBatchEditing &&
+      drawData.selectedTool === EBasicToolItem.Skeleton
+    ) &&
     !(
       drawData.selectedTool === EBasicToolItem.Polygon &&
       drawData.AIAnnotation &&
