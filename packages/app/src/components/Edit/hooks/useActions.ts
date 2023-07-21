@@ -137,7 +137,7 @@ const useActions = ({
 
       if (result) {
         const { objects } = result;
-        const limitConf = 0.5; // TODO: add real limitConf
+        const limitConf = 0.1; // TODO: add real limitConf
         const newObjects = objects.map((item) => {
           // mouse.elementW is not necessarily identical to the size during initialization transformation
           const rect = {
@@ -163,7 +163,6 @@ const useActions = ({
             (obj) => obj.status === EObjectStatus.Commited,
           );
           s.objectList = [...commitedObjects, ...newObjects];
-          console.log('>>>>>', [...commitedObjects, ...newObjects]);
           if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
             s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
           }

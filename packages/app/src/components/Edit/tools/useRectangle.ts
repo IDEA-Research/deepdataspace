@@ -1,4 +1,4 @@
-import { drawRect } from '@/utils/draw';
+import { drawRect, shadeEverythingButRect } from '@/utils/draw';
 import { EObjectType, LABELS_STROKE_DASH } from '@/constants';
 import { getRectFromPoints, translateRectCoord } from '@/utils/compute';
 import {
@@ -46,11 +46,9 @@ const useRectangle: ToolInstanceHook = ({
           if (object.status !== EObjectStatus.Unchecked) {
             lineDash = LABELS_STROKE_DASH[1];
           } else {
-            if (isFocus) {
-              fill = ANNO_FILL_ALPHA.FOCUS;
-            } else {
-              fill = ANNO_FILL_ALPHA.CTRL_TO_SELECT;
-            }
+            fill = isFocus
+              ? ANNO_FILL_ALPHA.DEFAULT
+              : ANNO_FILL_ALPHA.CTRL_TO_SELECT;
           }
         }
       }
@@ -62,6 +60,11 @@ const useRectangle: ToolInstanceHook = ({
         lineDash,
         hexToRgba(color, fill),
       );
+
+      // draw ctrlpressed rect mask
+      if (drawData.isBatchEditing && editState.isCtrlPressed && isFocus) {
+        shadeEverythingButRect(activeCanvasRef.current!, rect, '#000', 0.6);
+      }
     }
   };
 

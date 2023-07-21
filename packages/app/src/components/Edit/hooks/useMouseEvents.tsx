@@ -245,7 +245,7 @@ const useMouseEvents = ({
         drawData.objectList,
         getFocusFilter(),
       );
-      if (focusIndexs.length > 1) {
+      if (focusIndexs.length > 0) {
         setEditState((s) => {
           s.foucsObjectAllIndexs = focusIndexs;
         });
@@ -314,13 +314,14 @@ const useMouseEvents = ({
         onMouseDown={stopPropagation}
         onMouseUp={stopPropagation}
         onMouseMove={stopPropagation}
+        onContextMenu={(event) => event.preventDefault()}
       >
         {editState.foucsObjectAllIndexs.map((index) => (
           <div
             key={index}
             className={styles.objectOption}
             onMouseEnter={() => onFocusItem(index)}
-            onClick={() => onSelectItem(index)}
+            onMouseDown={() => onSelectItem(index)}
           >
             <div
               className={styles.dot}
@@ -330,7 +331,7 @@ const useMouseEvents = ({
               }}
             />
             {drawData.objectList[index]?.label}
-            {drawData.objectList[index]?.conf &&
+            {drawData.isBatchEditing &&
               ` (${fixedFloatNum(drawData.objectList[index]?.conf || 0)})`}
           </div>
         ))}

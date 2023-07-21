@@ -135,48 +135,49 @@ const useCanvasRender = ({
     updateCreatingPromptRender(theDrawData);
   };
 
+  const renderObject = (object: IAnnotationObject, isFocus: boolean) => {
+    const canvasCoordObject = translateAnnotCoord(object, {
+      x: -imagePos.current.x,
+      y: -imagePos.current.y,
+    });
+    const { label, type } = canvasCoordObject;
+    // Color styles
+    const color = labelColors[label] || '#fff';
+    const [fillAlpha, strokeAlpha, maskAlpha] = isFocus
+      ? [ANNO_FILL_ALPHA.FOCUS, ANNO_STROKE_ALPHA.FOCUS, ANNO_MASK_ALPHA.FOCUS]
+      : [
+          ANNO_FILL_ALPHA.DEFAULT,
+          ANNO_STROKE_ALPHA.DEFAULT,
+          ANNO_MASK_ALPHA.DEFAULT,
+        ];
+
+    // Change globalAlpha when creating / editing object
+    setCanvasGlobalAlpha(canvasRef.current!, drawData.creatingObject ? 0.3 : 1);
+
+    objectHooksMap[type].renderObject({
+      object: canvasCoordObject,
+      color,
+      strokeAlpha,
+      fillAlpha,
+      maskAlpha,
+      isFocus,
+    });
+  };
+
   const renderObjectList = (
     list: IAnnotationObject[],
     activeObjectIndex: number,
   ) => {
+    // render normal objects
     list.forEach((obj, index) => {
-      if (obj.hidden || index === activeObjectIndex) return;
-
-      const canvasCoordObject = translateAnnotCoord(obj, {
-        x: -imagePos.current.x,
-        y: -imagePos.current.y,
-      });
-      const { label, type } = canvasCoordObject;
-      const isFocus = editState.focusObjectIndex === index;
-
-      // Color styles
-      const color = labelColors[label] || '#fff';
-      const [fillAlpha, strokeAlpha, maskAlpha] = isFocus
-        ? [
-            ANNO_FILL_ALPHA.FOCUS,
-            ANNO_STROKE_ALPHA.FOCUS,
-            ANNO_MASK_ALPHA.FOCUS,
-          ]
-        : [
-            ANNO_FILL_ALPHA.DEFAULT,
-            ANNO_STROKE_ALPHA.DEFAULT,
-            ANNO_MASK_ALPHA.DEFAULT,
-          ];
-
-      // Change globalAlpha when creating / editing object
-      setCanvasGlobalAlpha(
-        canvasRef.current!,
-        drawData.creatingObject ? 0.3 : 1,
-      );
-
-      objectHooksMap[type].renderObject({
-        object: canvasCoordObject,
-        color,
-        strokeAlpha,
-        fillAlpha,
-        maskAlpha,
-        isFocus,
-      });
+      if (
+        obj.hidden ||
+        index === activeObjectIndex ||
+        index === editState.focusObjectIndex
+      ) {
+        return;
+      }
+      renderObject(obj, false);
     });
   };
 
@@ -214,7 +215,12 @@ const useCanvasRender = ({
     renderObjectList(theDrawData.objectList, theDrawData.activeObjectIndex);
 
     // draw creating object
-    updateRenderActiveCanvas(updateDrawData);
+    updateRenderActiveCanvas(theDrawData);
+
+    // render focus object
+    if (editState.focusObjectIndex > -1) {
+      renderObject(theDrawData.objectList[editState.focusObjectIndex], true);
+    }
   };
 
   return {
