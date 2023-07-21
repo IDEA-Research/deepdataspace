@@ -121,11 +121,7 @@ const useActions = ({
       s.isRequiring = requiring;
     });
 
-  const requestAiDetection = async (
-    drawData: DrawData,
-    source: string,
-    aiLabels: string[],
-  ) => {
+  const requestAiDetection = async (source: string, aiLabels: string[]) => {
     try {
       setLoading(true);
       const result = await fetchModelResults<EnumModelType.Detection>(
@@ -137,8 +133,8 @@ const useActions = ({
       );
 
       if (result) {
-        const { objects } = result;
-        const limitConf = 0.1; // TODO: add real limitConf
+        const { objects, suggestThreshold } = result;
+        const limitConf = suggestThreshold || 0;
         const newObjects = objects.map((item) => {
           // mouse.elementW is not necessarily identical to the size during initialization transformation
           const rect = {
@@ -150,13 +146,12 @@ const useActions = ({
             type: EObjectType.Rectangle,
             hidden: false,
             status:
-              item.score >= limitConf
+              item.normalizedScore >= limitConf
                 ? EObjectStatus.Checked
                 : EObjectStatus.Unchecked,
-            conf: item.score,
+            conf: item.normalizedScore,
           };
         });
-        console.log('newObjects >>>', newObjects);
         setDrawDataWithHistory((s) => {
           s.isBatchEditing = true;
           s.limitConf = limitConf;
@@ -168,7 +163,6 @@ const useActions = ({
             s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
           }
         });
-        // updateAllObject([...drawData.objectList, ...newObjects]);
         message.success(localeText('smartAnnotation.msg.success'));
       }
     } catch (error: any) {
@@ -764,7 +758,7 @@ const useActions = ({
       const aiType = type || EBasicToolTypeMap[drawData.selectedTool];
       switch (aiType) {
         case EObjectType.Rectangle: {
-          await requestAiDetection(drawData, imgSrc, aiLabels);
+          await requestAiDetection(imgSrc, aiLabels);
           break;
         }
         case EObjectType.Skeleton: {

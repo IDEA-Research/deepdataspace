@@ -130,7 +130,7 @@ export default {
   'smartAnnotation.back': 'Back',
   'smartAnnotation.tip': 'Tip',
   'smartAnnotation.tip.ctrl':
-    'Hold down Ctrl to enter the mode of recovering unselected annotations.',
+    'Press on Ctrl to enter the mode of recovering unselected annotations.',
   'smartAnnotation.tip.recover': 'Recover unselected annotations',
   'smartAnnotation.tip.overlayobject': 'View overlapping annotation objects',
   'smartAnnotation.tip.annotationApplied': '{count} annotations applied.',

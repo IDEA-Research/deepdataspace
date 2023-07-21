@@ -273,7 +273,9 @@ export interface FetchAIDetectionRsp {
     categoryName: string;
     boundingBox: IBoundingBox;
     score: number;
+    normalizedScore: number;
   }>;
+  suggestThreshold: number;
 }
 
 export interface FetchAIPolygonSegmentRsp {
