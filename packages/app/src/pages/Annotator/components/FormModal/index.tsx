@@ -1,6 +1,7 @@
 import { DATA } from '@/services/type';
 import { DeleteOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
+  Alert,
   Button,
   Form,
   Input,
@@ -237,9 +238,15 @@ export const FormModal: React.FC<IProps> = ({ open, setOpen }: IProps) => {
           });
       }}
     >
+      <Alert
+        message={localeText('annotator.notice')}
+        type="info"
+        showIcon
+        style={{ margin: '20px 0' }}
+      />
       <Form layout="vertical" form={form} requiredMark={false}>
         <Form.Item
-          style={{ margin: '30px 0' }}
+          style={{ marginBottom: '30px' }}
           label={<h4>{localeText('annotator.formModal.importImages')}</h4>}
           name="fileList"
           valuePropName="fileList"
