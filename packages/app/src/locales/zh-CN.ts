@@ -100,12 +100,15 @@ export default {
   'smartAnnotation.detection.name': '智能目标检测',
   'smartAnnotation.segmentation.name': '智能图像分割(多边形)',
   'smartAnnotation.pose.name': '智能姿态估计',
-  'smartAnnotation.mask.name': '智能全景分割（SAM）',
+  'smartAnnotation.mask.name': '智能全景分割',
   'smartAnnotation.annotate': '生成标注',
+  'smartAnnotation.retry': '重新生成',
   'smartAnnotation.modelTyle': '模型类型',
   'smartAnnotation.detection.input': '选择或输入类别',
   'smartAnnotation.pose.input': '选择模版',
   'smartAnnotation.pose.apply': '保留当前结果',
+  'smartAnnotation.minArea': '最小分割面积',
+  'smartAnnotation.iouThres': 'IoU阈值',
   'smartAnnotation.segmentation.tipsInitial':
     '提示：在目标对象周围拉一个包围框或单击其中心点，生成初始结果。',
   'smartAnnotation.segmentation.tipsNext':

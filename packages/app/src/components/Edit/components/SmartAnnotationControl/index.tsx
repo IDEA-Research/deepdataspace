@@ -8,7 +8,7 @@ import {
 } from '@/constants';
 import { CloseOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons/lib/components/Icon';
-import { Button, Card, Select, Slider } from 'antd';
+import { Button, Card, Select, Slider, Space } from 'antd';
 import classNames from 'classnames';
 import { useMemo } from 'react';
 import { DrawData } from '../../type';
@@ -26,9 +26,11 @@ import { ReactComponent as MouseRightIcon } from '@/assets/svg/mouse-right.svg';
 interface IProps {
   drawData: DrawData;
   isCtrlPressed: boolean;
+  naturalSize: ISize;
   aiLabels: string[];
   categories: DATA.Category[];
   setAiLabels: (labels: string[]) => void;
+  forceChangeTool: (tool: EBasicToolItem, subtool: ESubToolItem) => void;
   onCreateCategory: (name: string) => void;
   onExitAIAnnotation: () => void;
   onAiAnnotation: OnAiAnnotationFunc;
@@ -45,6 +47,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   isCtrlPressed,
   aiLabels,
   categories,
+  naturalSize,
   setAiLabels,
   onCreateCategory,
   onExitAIAnnotation,
@@ -55,6 +58,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   onChangeLimitConf,
   onAcceptValidObjects,
   onCancelBatchEdit,
+  forceChangeTool,
 }) => {
   const { localeText } = useLocale();
 
@@ -107,18 +111,17 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   }, [drawData.selectedTool, categories]);
 
   const mouseEventHandler = (event: React.MouseEvent) => {
-    // TODO
-    if (
-      drawData.selectedTool !== EBasicToolItem.Skeleton &&
-      drawData.selectedTool !== EBasicToolItem.Mask &&
-      !(
-        drawData.selectedTool === EBasicToolItem.Rectangle &&
-        drawData.AIAnnotation
+    if (event.type === 'mouseup' && 
+      (
+        drawData.selectedTool === EBasicToolItem.Skeleton ||
+        (drawData.selectedTool === EBasicToolItem.Mask && drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything) ||
+        (drawData.selectedTool === EBasicToolItem.Rectangle) 
       )
     ) {
-      event.stopPropagation();
-    } else {
       event.preventDefault();
+      return;
+    } else {
+      event.stopPropagation();
     }
   };
 
@@ -150,6 +153,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
 
   const onApplyCurrMaskObjs = () => {
     onAcceptValidObjects();
+    forceChangeTool(EBasicToolItem.Drag, ESubToolItem.PenAdd);
   };
 
   const aiDetectionTip = useMemo(() => {
@@ -167,6 +171,9 @@ const SmartAnnotationControl: React.FC<IProps> = ({
     }
     return [];
   }, [drawData.isBatchEditing, isCtrlPressed]);
+  const imageArea = useMemo(() => {
+    return naturalSize.width * naturalSize.height;
+  }, [naturalSize]);
 
   return (
     <FloatWrapper eventHandler={mouseEventHandler}>
@@ -201,7 +208,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
               icon={<CloseOutlined />}
               shape="circle"
               size="small"
-              onClick={onExitAIAnnotation}
+              onClick={() => {
+                onExitAIAnnotation();
+                forceChangeTool(drawData.selectedTool, ESubToolItem.PenAdd);
+              }}
             ></Button>
           </div>
         }
@@ -394,7 +404,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
             drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything && (
               <>
                 <div id={'param-controls'} className={styles.paramControls}>
-                  <div className={styles.paramItem}>
+                  {/* <div className={styles.paramItem}>
                     <div className={styles.title}>{'虚拟点击密度'}</div>
                     <Slider
                       className={styles.slider}
@@ -412,21 +422,25 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                           document.getElementById('param-controls'),
                       }}
                     />
-                  </div>
+                  </div> */}
                   <div className={styles.paramItem}>
-                    <div className={styles.title}>{'IoU阈值'}</div>
+                    <div className={styles.title}>
+                      {localeText('smartAnnotation.iouThres')}
+                    </div>
                     <Slider
                       className={styles.slider}
-                      value={samParams.predIouThresh}
+                      value={1 - samParams.predIouThresh!}
                       onChange={(val) =>
                         setSamParams((s) => {
-                          s.predIouThresh = val;
+                          s.predIouThresh = 1 - val;
                         })
                       }
                       min={0}
-                      max={1}
+                      max={0.99}
                       step={0.01}
+                      reverse
                       tooltip={{
+                        formatter: (val) => `${Math.floor((1 - val!) * 100)}%`,
                         //@ts-ignore
                         getPopupContainer: () =>
                           document.getElementById('param-controls'),
@@ -434,18 +448,22 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                     />
                   </div>
                   <div className={styles.paramItem}>
-                    <div className={styles.title}>{'最小分割面积'}</div>
+                    <div className={styles.title}>
+                      {localeText('smartAnnotation.minArea')}
+                    </div>
                     <Slider
                       className={styles.slider}
-                      value={samParams.minMaskRegionArea}
+                      value={samParams.minMaskRegionArea! / imageArea}
                       onChange={(val) =>
                         setSamParams((s) => {
-                          s.minMaskRegionArea = val;
+                          s.minMaskRegionArea = val * imageArea;
                         })
                       }
-                      min={10}
-                      max={1000}
+                      min={0.01}
+                      max={0.3}
+                      step={0.01}
                       tooltip={{
+                        formatter: (val) => `${Math.ceil(val! * 100)}%`,
                         //@ts-ignore
                         getPopupContainer: () =>
                           document.getElementById('param-controls'),
@@ -454,7 +472,10 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                   </div>
                 </div>
                 {drawData.isBatchEditing ? (
-                  <div className={styles.actions}>
+                  <Space
+                    className={styles.actions}
+                    style={{ justifyContent: 'flex-end' }}
+                  >
                     <Button
                       onClick={() =>
                         onAiAnnotation({
@@ -463,12 +484,12 @@ const SmartAnnotationControl: React.FC<IProps> = ({
                         })
                       }
                     >
-                      {localeText('smartAnnotation.annotate')}
+                      {localeText('smartAnnotation.retry')}
                     </Button>
                     <Button type="primary" onClick={onApplyCurrMaskObjs}>
                       {localeText('editor.annotsEditor.finish')}
                     </Button>
-                  </div>
+                  </Space>
                 ) : (
                   <Button
                     style={{ alignSelf: 'flex-end' }}

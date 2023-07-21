@@ -115,15 +115,27 @@ const Edit: React.FC<EditProps> = (props) => {
   const imgRef = useRef<HTMLImageElement>(null);
 
   const isCustomCursorActive = useMemo(() => {
-    return (
-      drawData.selectedTool === EBasicToolItem.Mask &&
-      [
-        ESubToolItem.AutoEdgeStitching,
-        ESubToolItem.AutoSegmentByStroke,
-        ESubToolItem.BrushAdd,
-        ESubToolItem.BrushErase,
-      ].includes(drawData.selectedSubTool)
-    );
+    const isToolWithSize = [
+      ESubToolItem.AutoEdgeStitching,
+      ESubToolItem.AutoSegmentByStroke,
+      ESubToolItem.BrushAdd,
+      ESubToolItem.BrushErase,
+    ].includes(drawData.selectedSubTool);
+
+    if (
+      drawData.creatingObject &&
+      drawData.activeObjectIndex > -1 &&
+      drawData.creatingObject.type === EObjectType.Mask
+    ) {
+      return isToolWithSize;
+    }
+    if (
+      drawData.selectedTool !== EBasicToolItem.Drag &&
+      !drawData.isBatchEditing
+    ) {
+      return isToolWithSize;
+    }
+    return false;
   }, [drawData.selectedTool, drawData.selectedSubTool]);
 
   const showReferenceLine = useMemo(() => {
@@ -258,6 +270,7 @@ const Edit: React.FC<EditProps> = (props) => {
     onCloseAnnotationEditor,
     selectTool,
     selectSubTool,
+    forceChangeTool,
     setBrushSize,
     activeAIAnnotation,
   } = useToolActions({
@@ -613,6 +626,7 @@ const Edit: React.FC<EditProps> = (props) => {
               drawData={drawData}
               isCtrlPressed={editState.isCtrlPressed}
               aiLabels={aiLabels}
+              naturalSize={naturalSize}
               categories={categories}
               setAiLabels={setAiLabels}
               onExitAIAnnotation={() => {
@@ -626,6 +640,7 @@ const Edit: React.FC<EditProps> = (props) => {
                   s.prompt = {};
                 });
               }}
+              forceChangeTool={forceChangeTool}
               onAiAnnotation={onAiAnnotation}
               onSaveCurrCreate={() => {
                 addObject({
@@ -771,8 +786,9 @@ const Edit: React.FC<EditProps> = (props) => {
                     selectedSubTool={drawData.selectedSubTool}
                     isAIAnnotationActive={drawData.AIAnnotation}
                     isSegEverythingAvailable={
-                      drawData.objectList.length === 0 &&
-                      !drawData.creatingObject
+                      (drawData.objectList.length === 0 &&
+                        !drawData.creatingObject) ||
+                      drawData.isBatchEditing
                     }
                     brushSize={drawData.brushSize}
                     onChangeSubTool={(type) => {

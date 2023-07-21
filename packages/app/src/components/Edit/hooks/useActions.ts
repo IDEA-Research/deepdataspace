@@ -47,6 +47,7 @@ import { EQaAction } from '@/pages/Project/constants';
 import { ANNO_FILL_COLOR } from '../constants/render';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { ModalStaticFunctions } from 'antd/es/modal/confirm';
+import { createColorList } from '@/utils/color';
 
 interface IProps {
   mode: EditorMode;
@@ -687,18 +688,24 @@ const useActions = ({
         reqParams,
       );
       if (result && result.rleList?.length > 0) {
-        const maskObjects: IAnnotationObject[] = result.rleList.map((item) => {
-          const color = labelColors[latestLabel] || '#fff';
-          return {
-            type: EObjectType.Mask,
-            hidden: false,
-            label: latestLabel,
-            maskRle: item.maskRle,
-            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
-            conf: 1,
-            status: EObjectStatus.Checked,
-          };
-        });
+        const colorList = createColorList(result.rleList.length);
+        const maskObjects: IAnnotationObject[] = result.rleList.map(
+          (item, index) => {
+            return {
+              type: EObjectType.Mask,
+              hidden: false,
+              label: latestLabel,
+              maskRle: item.maskRle,
+              maskCanvasElement: rleToCanvas(
+                item.maskRle,
+                naturalSize,
+                colorList[index],
+              ),
+              conf: 1,
+              status: EObjectStatus.Checked,
+            };
+          },
+        );
         setDrawDataWithHistory((s) => {
           s.objectList = maskObjects;
           s.isBatchEditing = true;

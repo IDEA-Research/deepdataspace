@@ -107,11 +107,14 @@ export default {
   'smartAnnotation.detection.input': 'Select or enter categories',
   'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
-  'smartAnnotation.mask.name': 'Intelligent Panoramic Segmentation (SAM)',
+  'smartAnnotation.mask.name': 'Intelligent Panoramic Segmentation',
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
+  'smartAnnotation.retry': 'Retry',
   'smartAnnotation.modelTyle': 'Model Type',
+  'smartAnnotation.minArea': 'Minimum Area',
+  'smartAnnotation.iouThres': 'IoU Threshold',
   'smartAnnotation.segmentation.tipsInitial':
     'Tips: Draw a bounding box around your target or click the center of it to generate initial segmentation.',
   'smartAnnotation.segmentation.tipsNext':

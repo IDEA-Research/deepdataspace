@@ -148,7 +148,12 @@ const useToolActions = ({
   };
 
   const selectSubTool = (tool: ESubToolItem) => {
-    if (mode !== EditorMode.Edit) return;
+    if (
+      mode !== EditorMode.Edit ||
+      tool === drawData.selectedSubTool ||
+      drawData.isBatchEditing
+    )
+      return;
     setDrawData((s) => {
       s.selectedSubTool = tool;
     });
@@ -159,6 +164,13 @@ const useToolActions = ({
         drawData.creatingObject.label || editState.latestLabel || '',
       );
     }
+  };
+
+  const forceChangeTool = (tool: EBasicToolItem, subtool: ESubToolItem) => {
+    setDrawData((s) => {
+      s.selectedTool = tool;
+      s.selectedSubTool = subtool;
+    });
   };
 
   const setBrushSize = (size: number) => {
@@ -201,6 +213,7 @@ const useToolActions = ({
     onCloseAnnotationEditor,
     selectTool,
     selectSubTool,
+    forceChangeTool,
     setBrushSize,
     activeAIAnnotation,
     displayAIModeUnavailableModal,

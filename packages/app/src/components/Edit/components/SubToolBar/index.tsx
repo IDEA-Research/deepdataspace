@@ -228,16 +228,6 @@ export const SubToolBar: React.FC<IProps> = ({
             </div>
           </>
         )}
-        {/* <Button
-          type="primary"
-          className={classNames(styles.action)}
-          onClick={(event) => {
-            event.preventDefault();
-            onFinish();
-          }}
-        >
-          {localeText('editor.annotsEditor.finish')}
-        </Button> */}
       </div>
     </FloatWrapper>
   );

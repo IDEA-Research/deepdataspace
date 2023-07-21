@@ -218,6 +218,7 @@ export async function pollTaskResults<T extends EnumModelType>(
     const fetchTaskResultsRequest = [
       EnumModelType.SegmentByMask,
       EnumModelType.MaskEdgeStitching,
+      EnumModelType.SegmentEverything,
     ].includes(type)
       ? fetchMaskTaskResults
       : fetchTaskResults;
