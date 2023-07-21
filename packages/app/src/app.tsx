@@ -118,9 +118,16 @@ export const request: RequestConfig = {
         config.data = humps.decamelizeKeys(config.data);
       }
       if (config.headers) {
-        const token = localStorage.getItem(STORAGE_KEY.AUTH_TOKEN);
-        if (token) {
-          config.headers['Token'] = token;
+        if (
+          process.env.MODEL_API_PATH &&
+          config.url?.includes(process.env.MODEL_API_PATH)
+        ) {
+          config.headers['Token'] = process.env.MODEL_API_TOKEN || '';
+        } else {
+          const token = localStorage.getItem(STORAGE_KEY.AUTH_TOKEN);
+          if (token) {
+            config.headers['Token'] = token;
+          }
         }
       }
       return { ...config };

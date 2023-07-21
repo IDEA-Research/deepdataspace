@@ -78,6 +78,8 @@ export default {
   /** Annotator */
   'annotator.setting': 'Setting',
   'annotator.export': 'Export Annotation',
+  'annotator.notice':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
   'annotator.formModal.title': 'Before you start',
   'annotator.formModal.importImages': 'Import Images',
   'annotator.formModal.imageTips':
@@ -121,6 +123,10 @@ export default {
   'smartAnnotation.msg.confResults': '{count} matching annotations shown',
   'smartAnnotation.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'smartAnnotation.rateLimit.title': 'Tips',
+  'smartAnnotation.rateLimit.content':
+    'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
+  'smartAnnotation.rateLimit.okText': 'OK',
 
   /** Editor */
   'editor.save': 'Save',
@@ -225,6 +231,7 @@ export default {
   'proj.table.action': 'Action',
   'proj.table.action.accept': 'Accept',
   'proj.table.action.reject': 'Reject',
+  'proj.table.action.reject.tips': 'Are you sure to reject this project?',
   'proj.table.action.edit': 'Edit',
   'proj.table.action.init': 'Init',
   'proj.table.action.info': 'info',
@@ -247,6 +254,7 @@ export default {
   'proj.table.detail.action.restart': 'Restart',
   'proj.table.detail.action.accept': 'Accept',
   'proj.table.detail.action.reject': 'Reject',
+  'proj.table.detail.action.reject.tips': 'Are you sure to reject this task?',
   'proj.table.detail.action.view': 'View',
   'proj.table.detail.action.startLabel': 'Start Label',
   'proj.table.detail.action.startReview': 'Start Review',
@@ -456,4 +464,141 @@ export default {
   'requestConfig.requestError.msg': 'Request error, please retry.',
   'requestConfig.errorContent.msg':
     'Request contains sensitive content, please check.',
+
+  'errCode.PartialSuccessBatchAssignLeaders':
+    'Batch assign leaders partially success.',
+  'errCode.PartialSuccessBatchAssignWorkers':
+    'Batch assign workers partially success.',
+  'errCode.BadRequest': 'Bad request.',
+  'errCode.ParameterMissing': 'Parameter missing.',
+  'errCode.ParameterIsInvalid': 'Parameter is invalid.',
+  'errCode.AnnotationNotListOfObj': 'Annotation must be a list of object.',
+  'errCode.AnnotationMissingCatName':
+    'Annotation object missing category name.',
+  'errCode.AnnotationMissingBBox': 'Annotation object missing bounding box.',
+  'errCode.AnnotationBBoxFormatError':
+    'Annotation object bounding box format error.',
+  'errCode.AnnotationFormatError': 'Annotation object format error.',
+  'errCode.FlagGroupsNotListOfObj': 'flag_groups must be a list of object.',
+  'errCode.FlagObjectMissingFlag': 'flag object missing flag.',
+  'errCode.FlagObjectFlagValueInvalid':
+    'flag object flag value invalid, must be one of [0, 1, 2].',
+  'errCode.FlagObjectMissingIDs': 'flag object missing ids.',
+  'errCode.FlagObjectIDsNotList': 'flag object ids must be a list.',
+  'errCode.LabelSetNameInvalid':
+    "label set name can't be GroundTruth and UserAnnotation.",
+  'errCode.LabelSetNameConflicts': 'target label set name is already taken.',
+  'errCode.UserNotFoundForLabelProject': 'user not found for label project.',
+  'errCode.UserNotActiveForLabelProject': 'user not active for label project.',
+  'errCode.DatasetNotFoundForLabelProject':
+    'dataset not found for label project.',
+  'errCode.LabelTaskNotFoundForLabelProject':
+    'label task not found for label project.',
+  'errCode.CreateLabelProjectRequireManager':
+    "managers can't be empty when creating label project.",
+  'errCode.CreateLabelProjectRequireDataset':
+    "datasets can't be empty when creating label project.",
+  'errCode.CreateLabelProjectRequireCategory':
+    "categories can't be empty when creating label project.",
+  'errCode.CreateLabelProjectDatasetOccupied':
+    'dataset is occupied by other label project.',
+  'errCode.EditLabelProjectRequireManager':
+    "managers can't be empty when editing label project.",
+  'errCode.InitLabelProjectMustBeWaiting':
+    'label project must be in status of waiting for init.',
+  'errCode.InitLabelProjectTaskConfigError':
+    'batch_size, label_times, review_times must be set at the same time.',
+  'errCode.QALabelProjectActionError':
+    "qa action error, must be 'accept' or 'reject'.",
+  'errCode.QALabelProjectMustBeReviewing':
+    'label project must be in status of reviewing.',
+  'errCode.ExportLabelProjectMustBeAccepted':
+    'label project must be in status of accepted.',
+  'errCode.LeaderIDIsRequired':
+    'labeler_leader_id and reviewer_leader_id can not be empty at the same time.',
+  'errCode.LabelerIDIsRequired':
+    'labeler_ids and reviewer_ids can not be empty at the same time.',
+  'errCode.LabelProjectRoleIsNotTaskLevel':
+    'label project role is not task level, so it cannot be bounded to a task.',
+  'errCode.CantReplaceRoleWithTheSameUser':
+    "can't replace role with the same user.",
+  'errCode.OldUserDoesNotHaveTheTaskRole':
+    'old user does not have the task role to be replaced.',
+  'errCode.NewUserAlreadyHaveTheTaskRole':
+    'new user already have the task role.',
+  'errCode.CantTransferRoleBetweenDifferentTask':
+    "can't transfer role between different task.",
+  'errCode.CantTransferRoleToDifferentKind':
+    "can't transfer role to different kind.",
+  'errCode.RestartLabelTaskMustBeRejected':
+    'label task must be in status of rejected.',
+  'errCode.QALabelTaskActionError':
+    "qa action error, must be 'accept', 'reject' or 'force_accept'.",
+  'errCode.AcceptLabelTaskMustBeReviewing':
+    'label task must be in status of reviewing.',
+  'errCode.RejectLabelTaskMustBeReviewing':
+    'label task must be in status of reviewing.',
+  'errCode.ForceAcceptLabelTaskMustBeRejected':
+    'label task must be in status of rejected.',
+  'errCode.LabelAnnotationMissingFields': 'label annotation missing fields.',
+  'errCode.LabelAnnotationFieldValueInvalid':
+    'label annotation field value invalid.',
+  'errCode.LabelImageRequireTaskStatusWorking':
+    'label image require task status be working.',
+  'errCode.LabelImageRequireUnfinishedReviewing':
+    'label image require unfinished reviewing.',
+  'errCode.ReviewImageRequireTaskStatusWorking':
+    'review image require task status be working.',
+  'errCode.ReviewImageRequireFinishedLabeling':
+    'review image require finished labeling.',
+  'errCode.ReviewImageTargetLabelNotFound':
+    'review image target label not found.',
+  'errCode.ReviewImageFoundExistedReview': 'image has already been reviewed.',
+  'errCode.CantDeleteAllOwnersOfLabelProject':
+    "can't delete all owners of label project.",
+  'errCode.NumOfTaskLeaderMismatchesConfig':
+    'num of task leader mismatches config.',
+  'errCode.TaskDoesNotRequireReviewer': 'task does not require reviewer.',
+  'errCode.NumOfTaskLabelerMismatchesConfig':
+    'num of task labeler mismatches config.',
+  'errCode.NumOfTaskReviewerMismatchesConfig':
+    'num of task reviewer mismatches config.',
+  'errCode.TryInitRoleForTaskWithActiveRoles':
+    "can't init roles for task with active roles.",
+  'errCode.TaskRoleNotOfLeaderKind': 'task role not of leader kind.',
+  'errCode.Unauthorized': 'Unauthorized.',
+  'errCode.Forbidden': 'Forbidden.',
+  'errCode.UserAuthenticationFailed': 'User authentication failed.',
+  'errCode.UserCantViewLabelProjectTask': "User can't view label project.",
+  'errCode.UserCantViewLabelProjectRole': "User can't view label project role.",
+  'errCode.UserCantCreateLabelProject': "User can't create label project.",
+  'errCode.UserCantViewLabelProject': "User can't view label project.",
+  'errCode.UserCantEditLabelProject': "User can't edit label project.",
+  'errCode.UserCantInitLabelProject': "User can't init label project.",
+  'errCode.UserCantQALabelProject': "User can't QA label project.",
+  'errCode.UserCantExportLabelProject': "User can't export label project.",
+  'errCode.UserCantAssignLabelTaskLeader':
+    "User can't assign label task leader.",
+  'errCode.UserCantAssignLabelTaskWorker':
+    "User can't assign label task worker.",
+  'errCode.UserCantRestartLabelTask': "User can't restart label task.",
+  'errCode.UserCantQALabelTask': "User can't QA label task.",
+  'errCode.UserCantLabelTaskImage': "User can't label task image.",
+  'errCode.UserCantReviewTaskImage': "User can't review task image.",
+  'errCode.NotFound': 'Not found.',
+  'errCode.DatasetNotFound': 'Dataset not found.',
+  'errCode.DatasetNotReadable': 'Dataset not readable.',
+  'errCode.DatasetMissingEmbdFile': 'Dataset missing embedding file.',
+  'errCode.DatasetImageNotFound': 'Dataset image not found.',
+  'errCode.DatasetHasNoFNFPData': 'Dataset has no FN/FP data.',
+  'errCode.DatasetLabelNotFound': 'Dataset label not found.',
+  'errCode.DatasetFNFPPrecisionNotFound': 'Dataset FN/FP precision not found.',
+  'errCode.DatasetSubsetNotFound': 'Dataset subset not found.',
+  'errCode.LabelProjectNotFound': 'Label project not found.',
+  'errCode.LabelProjectRoleNotFound': 'Label project role not found.',
+  'errCode.LabelProjectTaskNotFound': 'Label project task not found.',
+  'errCode.LabelTaskImageNotFound': 'Label task image not found.',
+  'errCode.TokenExceedsRateLimit': 'Token exceeds Rate Limit.',
+  'errCode.InternalError': 'Internal error.',
+  'errCode.FailedToCloneLabelSet': 'Failed to clone label set.',
 };

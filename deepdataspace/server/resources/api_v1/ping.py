@@ -9,8 +9,8 @@ import time
 
 from deepdataspace.globals import Redis
 from deepdataspace.model import DataSet
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
 from deepdataspace.task import ping
 
 logger = logging.getLogger("django")

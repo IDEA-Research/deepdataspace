@@ -144,7 +144,7 @@ class DDS(metaclass=SingletonMeta):
             return
 
         os.makedirs(sample_dir, exist_ok=True)
-        sample_url = "https://deepdataspace.oss-cn-shenzhen.aliyuncs.com/install_files/datasets/dataset-samples.zip"
+        sample_url = f"{self.dl_prefix}/datasets/dataset-samples.zip"
         with progress_log(f"Downloading sample datasets"):
             download_by_requests(sample_url, sample_file)
 

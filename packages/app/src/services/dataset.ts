@@ -1,6 +1,8 @@
 import { IMG_FLAG } from '@/constants';
 import { request } from '@umijs/max';
 import { API, EnumModelType, EnumTaskStatus, ModelParam } from './type';
+import { Modal } from 'antd';
+import { globalLocaleText } from '@/locales/helper';
 
 // function sleep(time: number) {
 //   return new Promise((resolve) => setTimeout(resolve, time));
@@ -175,7 +177,9 @@ async function fetchTaskUuid(
       data: {
         ...params,
       },
-      ...(options || {}),
+      ...(options || {
+        hideCodeErrorMsg: true,
+      }),
     },
   );
 }
@@ -229,6 +233,17 @@ export async function fetchModelResults<T extends EnumModelType>(
     const result = await pollTaskResults<T>(taskUuid);
     return result;
   } catch (error: any) {
-    throw new Error(error.message);
+    // status 429 indicates warning for rate limit of AI annotate request
+    if (error.response.status === 429) {
+      Modal.info({
+        title: globalLocaleText('smartAnnotation.rateLimit.title'),
+        centered: true,
+        content: globalLocaleText('smartAnnotation.rateLimit.content'),
+        okText: globalLocaleText('smartAnnotation.rateLimit.okText'),
+        onOk: () => {},
+      });
+    } else {
+      throw new Error(error.message);
+    }
   }
 }

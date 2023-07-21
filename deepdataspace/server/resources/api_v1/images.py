@@ -7,14 +7,15 @@ RESTful API for images.
 import json
 
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelType
 from deepdataspace.model import DataSet
 from deepdataspace.model.image import Image
-from deepdataspace.server.resources.common import Argument
-from deepdataspace.server.resources.common import BaseAPIView
-from deepdataspace.server.resources.common import format_response
-from deepdataspace.server.resources.common import parse_arguments
-from deepdataspace.server.resources.common import raise_exception
+from deepdataspace.utils.http import Argument
+from deepdataspace.utils.http import BaseAPIView
+from deepdataspace.utils.http import format_response
+from deepdataspace.utils.http import parse_arguments
+from deepdataspace.utils.http import raise_exception
 
 
 def concat_url(prefix, path):
@@ -50,9 +51,10 @@ class ImagesView(BaseAPIView):
 
         dataset = DataSet.find_one({"_id": dataset_id})
         if dataset is None:
-            raise_exception(404, f"dataset_id[{dataset_id}] not found")
+            raise_exception(ErrCode.DatasetNotFound, f"dataset_id[{dataset_id}] not found")
         if dataset.status in DatasetStatus.DontRead_:
-            raise_exception(404, f"dataset_id[{dataset_id}] is in status [{dataset.status}] now, try again later")
+            raise_exception(ErrCode.DatasetNotReadable,
+                            f"dataset_id[{dataset_id}] is in status [{dataset.status}] now, try again later")
 
         filters = {}
         if category_id is not None:

@@ -18,8 +18,3 @@ from deepdataspace.model.label_task import TaskRole
 from deepdataspace.model.object import Object
 from deepdataspace.model.user import User
 from deepdataspace.model.user import UserToken
-
-
-__all__ = [
-    "DataSet",
-]
