@@ -78,6 +78,8 @@ export default {
   /** Annotator */
   'annotator.setting': 'Setting',
   'annotator.export': 'Export Annotation',
+  'annotator.notice':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
   'annotator.formModal.title': 'Before you start',
   'annotator.formModal.importImages': 'Import Images',
   'annotator.formModal.imageTips':

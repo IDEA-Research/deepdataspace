@@ -77,6 +77,8 @@ export default {
   'annotator.export': '导出标注',
   'annotator.formModal.title': '开始之前',
   'annotator.formModal.importImages': '导入图片',
+  'annotator.notice':
+    '快速标注模式不会上传任何图片或保存标注结果，为了防止数据丢失，建议您在离开前点击工作区右上方"导出标注"按钮，将标注结果保存到本地。',
   'annotator.formModal.imageTips':
     '注意：最多导入{count}张图片，每张图片不超过{size}MB。',
   'annotator.formModal.categories': '导入标注类别',
