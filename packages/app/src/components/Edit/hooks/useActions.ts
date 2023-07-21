@@ -135,23 +135,25 @@ const useActions = ({
       if (result) {
         const { objects, suggestThreshold } = result;
         const limitConf = suggestThreshold || 0;
-        const newObjects = objects.map((item) => {
-          // mouse.elementW is not necessarily identical to the size during initialization transformation
-          const rect = {
-            ...translateBoundingBoxToRect(item.boundingBox, clientSize),
-          };
-          return {
-            rect: { ...rect, visible: true },
-            label: item.categoryName,
-            type: EObjectType.Rectangle,
-            hidden: false,
-            status:
-              item.normalizedScore >= limitConf
-                ? EObjectStatus.Checked
-                : EObjectStatus.Unchecked,
-            conf: item.normalizedScore,
-          };
-        });
+        const newObjects = objects
+          .map((item) => {
+            // mouse.elementW is not necessarily identical to the size during initialization transformation
+            const rect = {
+              ...translateBoundingBoxToRect(item.boundingBox, clientSize),
+            };
+            return {
+              rect: { ...rect, visible: true },
+              label: item.categoryName,
+              type: EObjectType.Rectangle,
+              hidden: false,
+              status:
+                item.normalizedScore >= limitConf
+                  ? EObjectStatus.Checked
+                  : EObjectStatus.Unchecked,
+              conf: item.normalizedScore,
+            };
+          })
+          .reverse();
         setDrawDataWithHistory((s) => {
           s.isBatchEditing = true;
           s.limitConf = limitConf;

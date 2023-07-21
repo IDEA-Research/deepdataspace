@@ -218,7 +218,10 @@ const useCanvasRender = ({
     updateRenderActiveCanvas(theDrawData);
 
     // render focus object
-    if (editState.focusObjectIndex > -1) {
+    if (
+      editState.focusObjectIndex > -1 &&
+      theDrawData.objectList[editState.focusObjectIndex]
+    ) {
       renderObject(theDrawData.objectList[editState.focusObjectIndex], true);
     }
   };

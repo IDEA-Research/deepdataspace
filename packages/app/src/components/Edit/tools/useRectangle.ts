@@ -35,7 +35,9 @@ const useRectangle: ToolInstanceHook = ({
     const { rect } = object;
     if (rect && rect.visible) {
       let lineDash = LABELS_STROKE_DASH[0];
+      let stroke = strokeAlpha;
       let fill = fillAlpha;
+      let thickness = 2;
       if (drawData.isBatchEditing) {
         if (
           object.status === EObjectStatus.Unchecked &&
@@ -45,6 +47,8 @@ const useRectangle: ToolInstanceHook = ({
         if (editState.isCtrlPressed) {
           if (object.status !== EObjectStatus.Unchecked) {
             lineDash = LABELS_STROKE_DASH[1];
+            thickness = 1.5;
+            stroke = 0.8;
           } else {
             fill = isFocus
               ? ANNO_FILL_ALPHA.DEFAULT
@@ -55,8 +59,8 @@ const useRectangle: ToolInstanceHook = ({
       drawRect(
         canvasRef.current!,
         rect,
-        hexToRgba(color, strokeAlpha),
-        2,
+        hexToRgba(color, stroke),
+        thickness,
         lineDash,
         hexToRgba(color, fill),
       );

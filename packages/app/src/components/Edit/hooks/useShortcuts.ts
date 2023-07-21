@@ -171,7 +171,7 @@ const useShortcuts = ({
 
   /** Change isCtrlPressed state */
   useKeyPress(
-    'ctrl',
+    ['ctrl', 'meta'],
     (event: KeyboardEvent) => {
       if (drawData.activeObjectIndex > -1) return;
       setEditState((s) => {

@@ -124,7 +124,7 @@ export default {
   'smartAnnotation.tip': '提示',
   'smartAnnotation.tip.ctrl': '按住ctrl进入回收未选标注模式',
   'smartAnnotation.tip.recover': '回收未选标注',
-  'smartAnnotation.tip.overlayobject': '回收未选标注',
+  'smartAnnotation.tip.overlayobject': '查看重叠的标注对象',
   'smartAnnotation.tip.annotationApplied': '已添加{count}个标注对象',
 
   /** Editor */
