@@ -111,12 +111,12 @@ const SmartAnnotationControl: React.FC<IProps> = ({
   }, [drawData.selectedTool, categories]);
 
   const mouseEventHandler = (event: React.MouseEvent) => {
-    if (event.type === 'mouseup' && 
-      (
-        drawData.selectedTool === EBasicToolItem.Skeleton ||
-        (drawData.selectedTool === EBasicToolItem.Mask && drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything) ||
-        (drawData.selectedTool === EBasicToolItem.Rectangle) 
-      )
+    if (
+      event.type === 'mouseup' &&
+      (drawData.selectedTool === EBasicToolItem.Skeleton ||
+        (drawData.selectedTool === EBasicToolItem.Mask &&
+          drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything) ||
+        drawData.selectedTool === EBasicToolItem.Rectangle)
     ) {
       event.preventDefault();
       return;
@@ -171,6 +171,7 @@ const SmartAnnotationControl: React.FC<IProps> = ({
     }
     return [];
   }, [drawData.isBatchEditing, isCtrlPressed]);
+
   const imageArea = useMemo(() => {
     return naturalSize.width * naturalSize.height;
   }, [naturalSize]);

@@ -175,6 +175,8 @@ const useShortcuts = ({
     (event: KeyboardEvent) => {
       if (drawData.activeObjectIndex > -1) return;
       setEditState((s) => {
+        const targetPressed = event.type === 'keydown';
+        if (s.isCtrlPressed === targetPressed) return s;
         s.isCtrlPressed = Boolean(event.type === 'keydown');
         s.focusObjectIndex = -1;
         s.foucsObjectAllIndexs = [];
