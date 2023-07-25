@@ -1492,3 +1492,43 @@ export const getVisibleAreaForImage = (
     ymax,
   };
 };
+
+export const getMaskInfoByCanvas = (
+  canvas: HTMLCanvasElement,
+): {
+  area: number;
+  bbox: IBoundingBox;
+} => {
+  const ctx = canvas.getContext('2d');
+
+  const imageData = ctx!.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const width = imageData.width;
+  const height = imageData.height;
+
+  let xmin = width;
+  let ymin = height;
+  let xmax = 0;
+  let ymax = 0;
+  let area = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha > 0) {
+      const x = (i / 4) % width;
+      const y = Math.floor(i / 4 / width);
+      area++;
+      xmin = Math.min(xmin, x);
+      ymin = Math.min(ymin, y);
+      xmax = Math.max(xmax, x);
+      ymax = Math.max(ymax, y);
+    }
+  }
+
+  const bbox = { xmin, ymin, xmax, ymax };
+
+  return {
+    area,
+    bbox,
+  };
+};
