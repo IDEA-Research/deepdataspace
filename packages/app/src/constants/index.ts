@@ -1,5 +1,5 @@
 import { ReactComponent as RectIcon } from '@/assets/svg/rectangle.svg';
-import { ReactComponent as SkeletonIcon } from '@/assets/svg/keypoints.svg';
+import { ReactComponent as SkeletonIcon } from '@/assets/svg/point.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/magic.svg';
 import { ReactComponent as PolygonIcon } from '@/assets/svg/polygon.svg';
 import { ReactComponent as CustomIcon } from '@/assets/svg/custom.svg';
