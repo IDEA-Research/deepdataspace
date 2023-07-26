@@ -1,4 +1,4 @@
-import { ReactComponent as RectIcon } from '@/assets/svg/rect.svg';
+import { ReactComponent as RectIcon } from '@/assets/svg/rectangle.svg';
 import { ReactComponent as SkeletonIcon } from '@/assets/svg/keypoints.svg';
 import { ReactComponent as MagicIcon } from '@/assets/svg/magic.svg';
 import { ReactComponent as PolygonIcon } from '@/assets/svg/polygon.svg';

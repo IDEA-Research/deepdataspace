@@ -9,11 +9,11 @@ import { ReactComponent as PenAddIcon } from '@/assets/svg/pen-add.svg';
 import { ReactComponent as PenEraseIcon } from '@/assets/svg/pen-erase.svg';
 import { ReactComponent as BrushAddIcon } from '@/assets/svg/brush-add.svg';
 import { ReactComponent as BrushEraseIcon } from '@/assets/svg/brush-erase.svg';
-import { ReactComponent as DashBoxIcon } from '@/assets/svg/dash-box.svg';
-import { ReactComponent as ClickIcon } from '@/assets/svg/click.svg';
-import { ReactComponent as MagicBrushIcon } from '@/assets/svg/star-stick.svg';
-import { ReactComponent as MagicIcon } from '@/assets/svg/auto-awesome.svg';
-import { ReactComponent as StrokeIcon } from '@/assets/svg/signature.svg';
+import { ReactComponent as MagicBoxIcon } from '@/assets/svg/magic-box.svg';
+import { ReactComponent as ClickIcon } from '@/assets/svg/magic-click.svg';
+import { ReactComponent as EdgeStitchIcon } from '@/assets/svg/edge-stitch.svg';
+import { ReactComponent as SegmentEverythingIcon } from '@/assets/svg/segment-everything.svg';
+import { ReactComponent as StrokeIcon } from '@/assets/svg/magic-brush.svg';
 import { useLocale } from '@/locales/helper';
 import { useMemo } from 'react';
 import { useKeyPress } from 'ahooks';
@@ -79,7 +79,7 @@ export const SubToolBar: React.FC<IProps> = ({
       {
         key: ESubToolItem.AutoSegmentByBox,
         name: localeText('editor.subtoolbar.mask.box'),
-        icon: <Icon component={DashBoxIcon} />,
+        icon: <Icon component={MagicBoxIcon} />,
         available: true,
       },
       {
@@ -97,13 +97,13 @@ export const SubToolBar: React.FC<IProps> = ({
       {
         key: ESubToolItem.AutoEdgeStitching,
         name: localeText('editor.subtoolbar.mask.edgeStitch'),
-        icon: <Icon component={MagicBrushIcon} />,
+        icon: <Icon component={EdgeStitchIcon} />,
         available: true,
       },
       {
         key: ESubToolItem.AutoSegmentEverything,
         name: localeText('editor.subtoolbar.mask.sam'),
-        icon: <Icon component={MagicIcon} />,
+        icon: <Icon component={SegmentEverythingIcon} />,
         available: isSegEverythingAvailable,
         description: isSegEverythingAvailable
           ? localeText('editor.subtoolbar.mask.sam.desc')

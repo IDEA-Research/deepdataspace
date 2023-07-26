@@ -21,17 +21,22 @@
     margin: 0.25rem 0;
     border: 0;
     background-color: transparent;
-    color: #fff;
     border-radius: 5px;
+
+    svg {
+      scale: 1.2;
+    }
   }
 
   .btn:hover {
+    color: @colorPrimary;
     background-color: @colorPrimary;
     transform: scale(1.2);
   }
 
   .btnActive {
-    background-color: #236bf7;
+    color: @colorPrimary;
+    background-color: @colorPrimary;
   }
 
   .divider {

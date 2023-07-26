@@ -11,7 +11,7 @@ import {
   EDITOR_TOOL_ICON,
 } from '@/constants';
 import { FloatWrapper } from '@/components/FloatWrapper';
-import { ReactComponent as DragToolIcon } from '@/assets/svg/hand.svg';
+import { ReactComponent as DragToolIcon } from '@/assets/svg/drag.svg';
 import { useKeyPress } from 'ahooks';
 import {
   EDITOR_SHORTCUTS,
