@@ -2,7 +2,6 @@ import VirtualList from 'rc-virtual-list';
 import { useCallback, useEffect, useState } from 'react';
 import { LabelImageFile } from '@/types/annotator';
 import styles from './index.less';
-
 interface IProps {
   images: LabelImageFile[];
   selected: number;

@@ -76,3 +76,35 @@
     width: 1px;
   }
 }
+
+.dropdownOptions {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 5px;
+  overflow: hidden;
+
+  .objectOption {
+    position: relative;
+    padding: 5px 10px 5px 20px;
+    min-width: 120px;
+    user-select: none;
+    cursor: pointer;
+
+    &:hover {
+      color: @colorPrimary;
+      background-color: #e2e6f9;
+    }
+
+    .dot {
+      position: absolute;
+      top: 50%;
+      left: 8px;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: red;
+    }
+  }
+}

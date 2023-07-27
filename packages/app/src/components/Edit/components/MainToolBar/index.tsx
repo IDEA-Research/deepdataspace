@@ -11,7 +11,7 @@ import {
   EDITOR_TOOL_ICON,
 } from '@/constants';
 import { FloatWrapper } from '@/components/FloatWrapper';
-import { ReactComponent as DragToolIcon } from '@/assets/svg/hand.svg';
+import { ReactComponent as DragToolIcon } from '@/assets/svg/drag.svg';
 import { useKeyPress } from 'ahooks';
 import {
   EDITOR_SHORTCUTS,
@@ -37,15 +37,17 @@ interface IProps {
   onActiveAIAnnotation: (active: boolean) => void;
   undo: () => void;
   redo: () => void;
+  deleteAll: () => void;
 }
 
-export const SideToolBar: React.FC<IProps> = ({
+export const MainToolBar: React.FC<IProps> = ({
   selectedTool,
   isAIAnnotationActive,
   onChangeSelectedTool,
   onActiveAIAnnotation,
   undo,
   redo,
+  deleteAll,
 }) => {
   const { localeText } = useLocale();
 
@@ -78,6 +80,13 @@ export const SideToolBar: React.FC<IProps> = ({
       icon: <Icon component={OBJECT_ICON[EObjectType.Skeleton]} />,
       description: localeText('editor.toolbar.skeleton.desc'),
     },
+    {
+      key: EBasicToolItem.Mask,
+      name: localeText('editor.toolbar.mask'),
+      shortcut: EDITOR_SHORTCUTS[EShortcuts.MaskTool],
+      icon: <Icon component={OBJECT_ICON[EObjectType.Mask]} />,
+      description: localeText('editor.toolbar.mask.desc'),
+    },
   ];
 
   const smartTools: TToolItem<EActionToolItem>[] = [
@@ -108,6 +117,14 @@ export const SideToolBar: React.FC<IProps> = ({
       shortcut: EDITOR_SHORTCUTS[EShortcuts.Redo],
       handler: redo,
       description: localeText('editor.toolbar.redo.desc'),
+    },
+    {
+      key: EActionToolItem.DeleteAll,
+      name: localeText('editor.toolbar.deleteAll'),
+      icon: <Icon component={EDITOR_TOOL_ICON[EActionToolItem.DeleteAll]} />,
+      shortcut: EDITOR_SHORTCUTS[EShortcuts.DeleteAll],
+      handler: deleteAll,
+      description: localeText('editor.toolbar.deleteAll.desc'),
     },
   ];
 
@@ -179,12 +196,24 @@ export const SideToolBar: React.FC<IProps> = ({
     },
   );
 
+  /** Delete All */
+  useKeyPress(
+    EDITOR_SHORTCUTS[EShortcuts.DeleteAll].shortcut,
+    (event: KeyboardEvent) => {
+      event.preventDefault();
+      deleteAll();
+    },
+    {
+      exactMatch: true,
+    },
+  );
+
   const popoverContent = (
     item: TToolItem<EBasicToolItem | EActionToolItem>,
   ) => {
     const icon = getIconFromShortcut(item.shortcut.shortcut);
     return (
-      <div className={styles.container}>
+      <div className={styles['popover-container']}>
         <div>
           <span className={styles.title}>{item.name}</span>
           <span className={styles.key}>{icon}</span>
@@ -197,7 +226,7 @@ export const SideToolBar: React.FC<IProps> = ({
 
   return (
     <FloatWrapper>
-      <div className={styles.sideToolbar}>
+      <div className={styles.container}>
         {basicTools.map((item) => (
           <Popover
             placement="right"

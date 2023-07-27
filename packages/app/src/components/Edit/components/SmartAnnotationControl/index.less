@@ -2,7 +2,7 @@
   position: absolute;
   right: 1rem;
   top: 1rem;
-  width: 400px;
+  width: 375px;
   box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
   opacity: 0;
   transition: opacity 0.15s ease;
@@ -55,6 +55,31 @@
       width: 100%;
     }
 
+    .paramControls {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+
+      .paramItem {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+
+        .title {
+          width: 100px;
+        }
+
+        .select {
+          flex: 1;
+        }
+
+        .slider {
+          align-self: flex-end;
+          flex: 1;
+        }
+      }
+    }
+
     .instruction {
       font-size: 13px;
     }
@@ -63,6 +88,20 @@
       display: flex;
       justify-content: space-between;
       width: 100%;
+    }
+
+    .columnItem {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .tipText {
+      span {
+        font-weight: bold;
+      }
     }
   }
 }
@@ -74,4 +113,28 @@
 
 .container:hover {
   box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
+}
+
+.operationTip {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9;
+
+  .tipItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(60, 86, 248, 0.6);
+    border-radius: 5px;
+
+    span {
+      margin-right: 20px;
+      color: #fff;
+    }
+  }
 }

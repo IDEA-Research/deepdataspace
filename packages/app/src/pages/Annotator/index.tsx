@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useModel } from '@umijs/max';
 import styles from './index.less';
-import Edit, { EditorMode } from '@/components/Edit';
+import Edit from '@/components/Edit';
+import { EditorMode } from '@/components/Edit/type';
 import { ImageList } from './components/ImageList';
 import { Button } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
@@ -35,9 +36,37 @@ const Page: React.FC = () => {
     };
   }, []);
 
+  // local test
+  useEffect(
+    () => {
+      // if(images.length > 0 && categories.length > 0) {
+      //   localStorage.setItem('images', JSON.stringify(images));
+      //   localStorage.setItem('categories', JSON.stringify(categories));
+      //   console.log('>>> save localStorage');
+      // }
+      const images = localStorage.getItem('images');
+      const categories = localStorage.getItem('categories');
+      if (images && categories) {
+        setImages(JSON.parse(images));
+        setCategories(JSON.parse(categories));
+        setModalOpen(false);
+      }
+    },
+    // [images, categories]
+    [],
+  );
+
   return (
     <div className={styles.container}>
-      <div className={styles.left}>
+      <div
+        className={styles.left}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
+        onMouseUp={(event) => {
+          event.stopPropagation();
+        }}
+      >
         <Button
           type="primary"
           icon={<SettingOutlined />}
@@ -76,7 +105,11 @@ const Page: React.FC = () => {
           }}
         />
       </div>
-      <div className={styles.modal}>
+      <div
+        className={styles.modal}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
         <FormModal open={openModal} setOpen={setModalOpen} />
       </div>
     </div>

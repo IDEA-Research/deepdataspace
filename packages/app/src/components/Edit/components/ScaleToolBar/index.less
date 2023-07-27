@@ -19,6 +19,7 @@
     background-color: transparent;
     color: #fff;
     border-radius: 5px;
+    box-shadow: unset;
   }
 
   .btn:hover {
@@ -46,19 +47,63 @@
     margin: 0 8px;
     border-left: 1px solid #bbb;
   }
+}
 
-  .resetBtn {
-    width: auto;
-    height: 32px;
-    margin: 0 0.25rem;
-    border: 0;
-    background-color: transparent;
+.popOverWrap {
+  border-radius: 10px;
+
+  :global {
+    .ant-popover-inner {
+      padding: 0;
+    }
+  }
+
+  .popContainer {
+    border-radius: 10px;
     color: #fff;
-    border-radius: 5px;
+    padding-bottom: 8px;
 
-    &:hover {
+    .popHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      border-bottom: 1px solid rgba(107, 114, 128);
+      padding: 8px 8px 8px 16px;
+      margin-bottom: 8px;
+    }
+
+    .btn {
+      width: 24px;
+      height: 24px;
+      margin: 0 0.25rem;
+      border: 0;
+      background-color: transparent;
+      color: #fff;
+      box-shadow: unset;
+      font-size: 12px;
+    }
+
+    .btn:hover {
       background-color: @colorPrimary;
-      transform: scale(1.1);
+      transform: scale(1.2);
+
+      svg {
+        fill: #000;
+      }
+    }
+
+    .option {
+      display: flex;
+      flex-flow: column nowrap;
+      padding: 4px 16px;
+      width: 240px;
+
+      :global {
+        .ant-slider {
+          margin: 5px 8px;
+        }
+      }
     }
   }
 }

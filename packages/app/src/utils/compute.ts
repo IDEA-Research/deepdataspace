@@ -1,13 +1,14 @@
 import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
-import { IAnnotationObject } from '@/components/Edit';
+import {
+  DrawData,
+  IAnnotationObject,
+  MaskPromptItem,
+} from '@/components/Edit/type';
 import { DATA } from '@/services/type';
 import { CursorState } from 'ahooks/lib/useMouse';
-import {
-  getCanvasPoint,
-  getNaturalPoint,
-  getSegmentationPoints,
-} from './annotation';
+import { getCanvasPoint, getNaturalPoint } from './annotation';
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
+import { cloneDeep } from 'lodash';
 
 /**
  * translate points to rect
@@ -402,7 +403,7 @@ const isPointOnLine = (line: ILine, mouse: CursorState): boolean => {
     Math.pow(line.end.x - line.start.x, 2) +
       Math.pow(line.end.y - line.start.y, 2),
   );
-  const buffer = 5;
+  const buffer = 0.75;
   return (
     distanceFromStart + distanceFromEnd >= lineLength - buffer &&
     distanceFromStart + distanceFromEnd <= lineLength + buffer
@@ -419,18 +420,162 @@ export const getLimitRectFromPoints = (points: IPoint[]): IRect => {
   };
 };
 
+export const getLinesFromPolygon = (polygon: IPolygon): ILine[] => {
+  const lines: ILine[] = [];
+  for (let i = 0; i < polygon.length; i++) {
+    const startPoint = polygon[i];
+    const endPoint = polygon[(i + 1) % polygon.length];
+    lines.push({ start: startPoint, end: endPoint });
+  }
+  return lines;
+};
+
+export const judgeFocusOnSingleObject = (
+  mouse: CursorState,
+  object: IAnnotationObject,
+  clientSize?: ISize,
+): boolean => {
+  if (object.hidden) {
+    return false;
+  }
+
+  const mousePoint = {
+    x: mouse.elementX,
+    y: mouse.elementY,
+  };
+
+  switch (object.type) {
+    case EObjectType.Rectangle: {
+      if (
+        object.rect &&
+        isPointInside(
+          expandRect(object.rect, { x: 8, y: 8 }),
+          mousePoint,
+          EElementType.Rect,
+        )
+      ) {
+        return true;
+      }
+      break;
+    }
+    case EObjectType.Polygon: {
+      if (object.polygon) {
+        const { group } = object.polygon!;
+        const isInside = group.some((polygon) =>
+          isPointInside(polygon, mousePoint, EElementType.Polygon),
+        );
+        if (isInside) return true;
+        const isInsidePoints = group.some((polygon) => {
+          return polygon.some((point) => {
+            return isPointOnPoint(point, mouse);
+          });
+        });
+        if (isInsidePoints) return true;
+        const isOnLines = group.some((polygon) => {
+          const lines = getLinesFromPolygon(polygon);
+          return lines.some((line) => {
+            return isPointOnLine(line, mouse);
+          });
+        });
+        if (isOnLines) return true;
+      }
+      break;
+    }
+    case EObjectType.Skeleton: {
+      if (object.keypoints?.points) {
+        const validPoints = object.keypoints?.points.filter(
+          (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
+        );
+        const limitRect = getLimitRectFromPoints(validPoints);
+        const isInside = isPointInside(
+          limitRect,
+          mousePoint,
+          EElementType.Rect,
+        );
+        if (isInside) return true;
+      }
+      if (object.rect) {
+        if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
+          return true;
+        }
+      }
+      break;
+    }
+    case EObjectType.Custom: {
+      if (object.keypoints?.points) {
+        const validPoints = object.keypoints?.points.filter(
+          (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
+        );
+        const limitRect = getLimitRectFromPoints(validPoints);
+        const isInside = isPointInside(
+          limitRect,
+          mousePoint,
+          EElementType.Rect,
+        );
+        if (isInside) {
+          return true;
+        }
+      }
+      if (object.polygon) {
+        const { group } = object.polygon;
+        const isInside = group.some((polygon) =>
+          isPointInside(polygon, mousePoint, EElementType.Polygon),
+        );
+        if (isInside) {
+          return true;
+        }
+      }
+      if (object.rect) {
+        if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
+          return true;
+        }
+      }
+      break;
+    }
+    case EObjectType.Mask: {
+      if (object.maskCanvasElement) {
+        const tempCtx = object.maskCanvasElement.getContext('2d');
+        if (!tempCtx || !clientSize) break;
+
+        // get target pixel data
+        const pixelData = tempCtx.getImageData(
+          (mousePoint.x * object.maskCanvasElement.width) / clientSize.width,
+          (mousePoint.y * object.maskCanvasElement.height) / clientSize.height,
+          1,
+          1,
+        ).data;
+        if (pixelData[3] > 0) {
+          return true;
+        }
+      }
+      break;
+    }
+  }
+  return false;
+};
+
 export const judgeFocusOnElement = (
   mouse: CursorState,
   object: IAnnotationObject,
 ): {
   focusEleIndex: number;
   focusEleType: EElementType;
+  focusPolygonInfo: {
+    index: number;
+    pointIndex: number;
+    lineIndex: number;
+  };
 } => {
-  let focusEleType = EElementType.Rect;
+  let focusEleType = EElementType.None;
   let focusEleIndex = -1;
+  let focusPolygonInfo = {
+    index: -1,
+    pointIndex: -1,
+    lineIndex: -1,
+  };
 
   if (!isInCanvas(mouse) || object.hidden) {
-    return { focusEleType, focusEleIndex };
+    return { focusEleType, focusEleIndex, focusPolygonInfo };
   }
 
   if (object.keypoints?.points) {
@@ -444,13 +589,42 @@ export const judgeFocusOnElement = (
         focusEleType = EElementType.Circle;
         focusEleIndex = j;
 
-        return { focusEleType, focusEleIndex };
+        return { focusEleType, focusEleIndex, focusPolygonInfo };
       }
     }
   }
 
   if (object.polygon && object.polygon.visible) {
     const { group } = object.polygon;
+    // find point in polygon
+    for (let i = 0; i < group.length; i++) {
+      const pointIndex = group[i].findIndex((point) => {
+        return isPointOnPoint(point, mouse);
+      });
+      if (pointIndex > -1) {
+        focusPolygonInfo.index = i;
+        focusPolygonInfo.pointIndex = pointIndex;
+        return {
+          focusEleType: EElementType.Polygon,
+          focusEleIndex: 0,
+          focusPolygonInfo,
+        };
+      }
+    }
+    // find line in polygon
+    for (let i = 0; i < group.length; i++) {
+      const lines = getLinesFromPolygon(group[i]);
+      const lineIndex = lines.findIndex((line) => isPointOnLine(line, mouse));
+      if (lineIndex > -1) {
+        focusPolygonInfo.index = i;
+        focusPolygonInfo.lineIndex = lineIndex;
+        return {
+          focusEleType: EElementType.Polygon,
+          focusEleIndex: 0,
+          focusPolygonInfo,
+        };
+      }
+    }
     const polygonIdx = group.findIndex((polygon) =>
       isPointInside(
         polygon,
@@ -462,16 +636,12 @@ export const judgeFocusOnElement = (
       ),
     );
     if (polygonIdx > -1) {
-      const pointFocusIdx = group[polygonIdx].findIndex((point) => {
-        return isPointOnPoint(point, mouse);
-      });
-      if (pointFocusIdx > -1) {
-        focusEleIndex = 0;
-        focusEleType = EElementType.Circle;
-      }
-      focusEleType = EElementType.Polygon;
-      focusEleIndex = 0;
-      return { focusEleType, focusEleIndex };
+      focusPolygonInfo.index = polygonIdx;
+      return {
+        focusEleType: EElementType.Polygon,
+        focusEleIndex: 0,
+        focusPolygonInfo,
+      };
     }
   }
 
@@ -488,121 +658,67 @@ export const judgeFocusOnElement = (
   ) {
     focusEleType = EElementType.Rect;
     focusEleIndex = 0;
-    return { focusEleType, focusEleIndex };
+    return { focusEleType, focusEleIndex, focusPolygonInfo };
   }
 
-  return { focusEleType, focusEleIndex };
+  return { focusEleType, focusEleIndex, focusPolygonInfo };
 };
 
 export const judgeFocusOnObject = (
+  clientSize: ISize,
   mouse: CursorState,
+  activeObjectIndex: number,
   objects: IAnnotationObject[],
+  focusFilter: (obj: IAnnotationObject) => boolean = () => true,
 ): number => {
-  let focusObjIndex = -1;
-
   if (!isInCanvas(mouse)) {
-    return focusObjIndex;
+    return -1;
+  }
+
+  // Judge focus on active object.
+  if (
+    objects[activeObjectIndex] &&
+    focusFilter(objects[activeObjectIndex]) &&
+    judgeFocusOnSingleObject(mouse, objects[activeObjectIndex], clientSize)
+  ) {
+    return activeObjectIndex;
   }
 
   // Find the topmost instance by searching the objectList in reverse order.
   for (let index = objects.length - 1; index >= 0; index--) {
-    const object = objects[index];
-    if (object.hidden) {
-      continue;
-    }
-
-    const mousePoint = {
-      x: mouse.elementX,
-      y: mouse.elementY,
-    };
-
-    switch (object.type) {
-      case EObjectType.Rectangle: {
-        if (
-          object.rect &&
-          isPointInside(
-            expandRect(object.rect, { x: 8, y: 8 }),
-            mousePoint,
-            EElementType.Rect,
-          )
-        ) {
-          focusObjIndex = index;
-        }
-        break;
-      }
-      case EObjectType.Polygon: {
-        if (object.polygon) {
-          const { group } = object.polygon!;
-          const isInside = group.some((polygon) =>
-            isPointInside(polygon, mousePoint, EElementType.Polygon),
-          );
-          if (isInside) focusObjIndex = index;
-        }
-        break;
-      }
-      case EObjectType.Skeleton: {
-        if (object.keypoints?.points) {
-          const validPoints = object.keypoints?.points.filter(
-            (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
-          );
-          const limitRect = getLimitRectFromPoints(validPoints);
-          const isInside = isPointInside(
-            limitRect,
-            mousePoint,
-            EElementType.Rect,
-          );
-          if (isInside) focusObjIndex = index;
-        }
-        if (object.rect) {
-          if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        break;
-      }
-      case EObjectType.Custom: {
-        if (object.keypoints?.points) {
-          const validPoints = object.keypoints?.points.filter(
-            (point) => point.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible,
-          );
-          const limitRect = getLimitRectFromPoints(validPoints);
-          const isInside = isPointInside(
-            limitRect,
-            mousePoint,
-            EElementType.Rect,
-          );
-          if (isInside) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        if (object.polygon) {
-          const { group } = object.polygon;
-          const isInside = group.some((polygon) =>
-            isPointInside(polygon, mousePoint, EElementType.Polygon),
-          );
-          if (isInside) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        if (object.rect) {
-          if (isPointInside(object.rect, mousePoint, EElementType.Rect)) {
-            focusObjIndex = index;
-            break;
-          }
-        }
-        break;
-      }
-    }
-
-    if (focusObjIndex > -1) {
-      return focusObjIndex;
+    if (
+      focusFilter(objects[index]) &&
+      judgeFocusOnSingleObject(mouse, objects[index], clientSize)
+    ) {
+      return index;
     }
   }
 
-  return focusObjIndex;
+  return -1;
+};
+
+export const judgeFocusOnPointAllObject = (
+  clientSize: ISize,
+  mouse: CursorState,
+  objects: IAnnotationObject[],
+  focusFilter: (obj: IAnnotationObject) => boolean = () => true,
+): number[] => {
+  if (!isInCanvas(mouse)) {
+    return [];
+  }
+
+  const results = [];
+  // Find the topmost instance by searching the objectList in reverse order.
+  for (let index = objects.length - 1; index >= 0; index--) {
+    if (
+      focusFilter(objects[index]) &&
+      judgeFocusOnSingleObject(mouse, objects[index], clientSize)
+    ) {
+      results.push(index);
+    }
+  }
+
+  return results;
 };
 
 export enum Direction {
@@ -715,52 +831,6 @@ export const getAnchorUnderMouseByRect = (
     }
   }
   return null;
-};
-
-export const getLinesFromPolygon = (polygon: IPolygon): ILine[] => {
-  const lines: ILine[] = [];
-  for (let i = 0; i < polygon.length; i++) {
-    const startPoint = polygon[i];
-    const endPoint = polygon[(i + 1) % polygon.length];
-    lines.push({ start: startPoint, end: endPoint });
-  }
-  return lines;
-};
-
-export const getFocusPartInPolygonGroup = (
-  polygonGroup: IPolygonGroup,
-  mouse: CursorState,
-): {
-  index: number;
-  pointIndex: number;
-  lineIndex: number;
-} => {
-  let index = -1;
-  let pointIndex = -1;
-  let lineIndex = -1;
-
-  index = polygonGroup.group.findIndex((polygon) =>
-    isPointInside(
-      polygon,
-      { x: mouse.elementX, y: mouse.elementY },
-      EElementType.Polygon,
-    ),
-  );
-
-  if (index === -1) {
-    return { index, pointIndex, lineIndex };
-  }
-  const polygon = polygonGroup.group[index];
-  pointIndex = polygon.findIndex((point) => isPointOnPoint(point, mouse, 8));
-  if (pointIndex > -1) {
-    return { index, pointIndex, lineIndex };
-  }
-  const lines = getLinesFromPolygon(polygon);
-  lineIndex = lines.findIndex((line) => isPointOnLine(line, mouse));
-  if (lineIndex > -1) {
-    return { index, lineIndex, pointIndex };
-  }
-  return { index, lineIndex, pointIndex };
 };
 
 export const getAnchorFixRectPoint = (
@@ -888,6 +958,8 @@ export const getObjectType = (obj: IAnnotationObject): EObjectType => {
     return EObjectType.Polygon;
   } else if (obj.keypoints && !obj.polygon) {
     return EObjectType.Skeleton;
+  } else if (obj.maskRle) {
+    return EObjectType.Mask;
   }
   return EObjectType.Custom;
 };
@@ -935,86 +1007,6 @@ export const isValidBBox = (bbox: IBoundingBox) => {
   return true;
 };
 
-export const translateAnnotationsToObjects = ({
-  annotations,
-  objectsFilter,
-  naturalSize,
-  clientSize,
-  needNormalizeBbox = true,
-}: {
-  annotations: DATA.BaseObject[];
-  objectsFilter?: (objects: DATA.BaseObject[]) => DATA.BaseObject[];
-  naturalSize: ISize;
-  clientSize: ISize;
-  needNormalizeBbox?: boolean;
-}): IAnnotationObject[] => {
-  const objects = objectsFilter ? objectsFilter(annotations) : annotations;
-  const objectList = objects.map((obj) => {
-    let {
-      categoryName,
-      boundingBox,
-      points,
-      lines,
-      pointNames,
-      pointColors,
-      segmentation,
-    } = obj;
-
-    const newObj: IAnnotationObject = {
-      label: categoryName || '',
-      type: EObjectType.Rectangle,
-      hidden: false,
-      conf: 1,
-    };
-
-    // TODO: Ignore fields with bbox values of 0.
-    if (boundingBox && isValidBBox(boundingBox)) {
-      const rect = needNormalizeBbox
-        ? translateBoundingBoxToRect(boundingBox, clientSize)
-        : translateAbsBBoxToRect(boundingBox);
-      Object.assign(newObj, { rect: { visible: true, ...rect } });
-    }
-    if (
-      points &&
-      points.length > 0 &&
-      lines &&
-      lines.length > 0 &&
-      pointNames &&
-      pointColors
-    ) {
-      const pointObjs: IElement<IPoint>[] = translatePointsToPointObjs(
-        points,
-        pointNames,
-        pointColors,
-        naturalSize,
-        clientSize,
-      );
-      Object.assign(newObj, {
-        keypoints: {
-          points: pointObjs,
-          lines,
-        },
-      });
-    }
-    if (segmentation) {
-      const group = getSegmentationPoints(
-        segmentation,
-        naturalSize,
-        clientSize,
-      );
-      const polygon: IElement<IPolygonGroup> = {
-        group,
-        visible: true,
-      };
-      Object.assign(newObj, { polygon });
-    }
-    newObj.type = getObjectType(newObj);
-    return newObj;
-  });
-
-  return objectList;
-};
-
 export const translateObjectsToAnnotations = (
   objectList: IAnnotationObject[],
   naturalSize: ISize,
@@ -1022,7 +1014,7 @@ export const translateObjectsToAnnotations = (
   needNormalizeBbox: boolean = true,
 ): DATA.BaseObject[] => {
   const annotations = objectList.map((obj) => {
-    const { label, rect, keypoints, polygon } = obj;
+    const { label, rect, keypoints, polygon, maskRle } = obj;
     const annoObj = {
       categoryName: label,
     };
@@ -1062,10 +1054,33 @@ export const translateObjectsToAnnotations = (
         segmentation,
       });
     }
+    if (maskRle) {
+      Object.assign(annoObj, {
+        maskRle,
+      });
+    }
     return annoObj;
   });
 
   return annotations;
+};
+
+export const getClosestPointOnLineSegment = (
+  point: IPoint,
+  lineStart: IPoint,
+  lineEnd: IPoint,
+) => {
+  const ap = { x: point.x - lineStart.x, y: point.y - lineStart.y };
+  const ab = { x: lineEnd.x - lineStart.x, y: lineEnd.y - lineStart.y };
+  const ab2: number = ab.x * ab.x + ab.y * ab.y;
+  const ap_ab: number = ap.x * ab.x + ap.y * ab.y;
+  let t: number = ap_ab / ab2;
+  if (t < 0 || isNaN(t)) {
+    t = 0;
+  } else if (t > 1) {
+    t = 1;
+  }
+  return { x: lineStart.x + ab.x * t, y: lineStart.y + ab.y * t };
 };
 
 export const getMidPointFromTwoPoints = (p1: IPoint, p2: IPoint): IPoint => {
@@ -1252,4 +1267,268 @@ export const translateAnnotCoord = (
   }
 
   return newAnnoObj;
+};
+
+/**
+ * Scale obj to curSize
+ * @param obj
+ * @param preSize
+ * @param curSize
+ * @returns
+ */
+export const scaleObject = (
+  obj: IAnnotationObject,
+  preSize: ISize,
+  curSize: ISize,
+) => {
+  const newObj = { ...obj };
+
+  if (newObj.rect) {
+    const newRect = translateRectZoom(newObj.rect, preSize, curSize);
+    newObj.rect = { ...newObj.rect, ...newRect };
+  }
+  if (newObj.keypoints) {
+    const { points, lines } = newObj.keypoints;
+    const newPoints = points.map((point) => {
+      const newPoint = translatePointZoom(point, preSize, curSize);
+      return { ...point, ...newPoint };
+    });
+    newObj.keypoints = { points: newPoints, lines };
+  }
+  if (newObj.polygon) {
+    const newGroups = newObj.polygon.group.map((polygon) => {
+      return polygon.map((point) => {
+        return translatePointZoom(point, preSize, curSize);
+      });
+    });
+    newObj.polygon = { ...newObj.polygon, group: newGroups };
+  }
+  return newObj;
+};
+
+const scalePromptItem = (
+  promptItem: MaskPromptItem,
+  preSize: ISize,
+  curSize: ISize,
+): MaskPromptItem => {
+  const { point, startPoint, rect, stroke } = promptItem;
+  const scaledPromptItem = { ...promptItem };
+  if (point) {
+    Object.assign(scaledPromptItem, {
+      point: translatePointZoom(point, preSize, curSize),
+    });
+  }
+  if (startPoint) {
+    Object.assign(scaledPromptItem, {
+      startPoint: translatePointZoom(startPoint, preSize, curSize),
+    });
+  }
+  if (rect) {
+    Object.assign(scaledPromptItem, {
+      rect: translateRectZoom(rect, preSize, curSize),
+    });
+  }
+  if (stroke) {
+    Object.assign(scaledPromptItem, {
+      stroke: stroke.map((point) => {
+        return translatePointZoom(point, preSize, curSize);
+      }),
+    });
+  }
+  return scaledPromptItem;
+};
+
+/**
+ * Scale draw data
+ * @param preSize
+ * @param curSize
+ */
+export const scaleDrawData = (
+  theDrawData: DrawData,
+  preSize: ISize,
+  curSize: ISize,
+) => {
+  const updateDrawData = cloneDeep(theDrawData);
+  updateDrawData.objectList = updateDrawData.objectList.map((obj) => {
+    return scaleObject(obj, preSize, curSize);
+  });
+
+  if (updateDrawData.creatingObject) {
+    updateDrawData.creatingObject = scaleObject(
+      updateDrawData.creatingObject,
+      preSize,
+      curSize,
+    );
+    if (updateDrawData.creatingObject.startPoint) {
+      updateDrawData.creatingObject.startPoint = translatePointZoom(
+        updateDrawData.creatingObject.startPoint,
+        preSize,
+        curSize,
+      );
+    }
+    if (updateDrawData.creatingObject.maskStep) {
+      const newPoints = updateDrawData.creatingObject.maskStep.points.map(
+        (point) => {
+          return translatePointZoom(point, preSize, curSize);
+        },
+      );
+      updateDrawData.creatingObject = {
+        ...updateDrawData.creatingObject,
+        maskStep: {
+          ...updateDrawData.creatingObject.maskStep,
+          points: newPoints,
+        },
+      };
+    }
+    if (updateDrawData.creatingObject.tempMaskSteps) {
+      const newSteps = updateDrawData.creatingObject.tempMaskSteps.map(
+        (step) => {
+          return {
+            ...step,
+            points: step.points.map((point) =>
+              translatePointZoom(point, preSize, curSize),
+            ),
+          };
+        },
+      );
+      updateDrawData.creatingObject = {
+        ...updateDrawData.creatingObject,
+        tempMaskSteps: newSteps,
+      };
+    }
+  }
+
+  if (updateDrawData.prompt.segmentationClicks) {
+    updateDrawData.prompt.segmentationClicks =
+      updateDrawData.prompt.segmentationClicks.map((click) => {
+        if (click.point) {
+          const newPoint = translatePointZoom(click.point, preSize, curSize);
+          return {
+            ...click,
+            point: newPoint,
+          };
+        }
+        return click;
+      });
+  }
+
+  if (updateDrawData.prompt.creatingMask) {
+    updateDrawData.prompt.creatingMask = scalePromptItem(
+      updateDrawData.prompt.creatingMask,
+      preSize,
+      curSize,
+    );
+  }
+
+  if (updateDrawData.prompt.maskPrompts) {
+    updateDrawData.prompt.maskPrompts = updateDrawData.prompt.maskPrompts?.map(
+      (item) => {
+        return scalePromptItem(item, preSize, curSize);
+      },
+    );
+  }
+
+  if (updateDrawData.prompt.activeRectWhileLoading) {
+    updateDrawData.prompt.activeRectWhileLoading = translateRectZoom(
+      updateDrawData.prompt.activeRectWhileLoading,
+      preSize,
+      curSize,
+    );
+  }
+
+  return updateDrawData;
+};
+
+export const getVisibleAreaForImage = (
+  imagePos: IPoint,
+  clientSize: ISize,
+  containerMouse: CursorState,
+) => {
+  const { x: imageX, y: imageY } = imagePos;
+  const { width: imageWidth, height: imageHeight } = clientSize;
+  const { elementW: containerWidth, elementH: containerHeight } =
+    containerMouse;
+
+  if (
+    imageX > containerWidth ||
+    imageY > containerHeight ||
+    imageX + imageWidth <= 0 ||
+    imageY + imageHeight <= 0
+  ) {
+    return {
+      xmin: 0,
+      ymin: 0,
+      xmax: 0,
+      ymax: 0,
+    };
+  }
+
+  const leftTopPoint = {
+    x: Math.max(0, imageX),
+    y: Math.max(0, imageY),
+  };
+  const rightBottonPoint = {
+    x: Math.min(imageX + imageWidth, containerWidth),
+    y: Math.min(imageY + imageHeight, containerHeight),
+  };
+
+  const newCoordOrigin = {
+    x: imagePos.x,
+    y: imagePos.y,
+  };
+  const { x: xmin, y: ymin } = translatePointCoord(
+    leftTopPoint,
+    newCoordOrigin,
+  );
+  const { x: xmax, y: ymax } = translatePointCoord(
+    rightBottonPoint,
+    newCoordOrigin,
+  );
+
+  return {
+    xmin,
+    ymin,
+    xmax,
+    ymax,
+  };
+};
+
+export const getMaskInfoByCanvas = (
+  canvas: HTMLCanvasElement,
+): {
+  area: number;
+  bbox: IBoundingBox;
+} => {
+  const ctx = canvas.getContext('2d');
+
+  const imageData = ctx!.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const width = imageData.width;
+  const height = imageData.height;
+
+  let xmin = width;
+  let ymin = height;
+  let xmax = 0;
+  let ymax = 0;
+  let area = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3];
+    if (alpha > 0) {
+      const x = (i / 4) % width;
+      const y = Math.floor(i / 4 / width);
+      area++;
+      xmin = Math.min(xmin, x);
+      ymin = Math.min(ymin, y);
+      xmax = Math.max(xmax, x);
+      ymax = Math.max(ymax, y);
+    }
+  }
+
+  const bbox = { xmin, ymin, xmax, ymax };
+
+  return {
+    area,
+    bbox,
+  };
 };
