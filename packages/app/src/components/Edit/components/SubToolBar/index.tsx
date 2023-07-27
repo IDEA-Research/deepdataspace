@@ -12,7 +12,7 @@ import { ReactComponent as BrushEraseIcon } from '@/assets/svg/brush-erase.svg';
 import { ReactComponent as MagicBoxIcon } from '@/assets/svg/magic-box.svg';
 import { ReactComponent as ClickIcon } from '@/assets/svg/magic-click.svg';
 import { ReactComponent as EdgeStitchIcon } from '@/assets/svg/edge-stitch.svg';
-import { ReactComponent as SegmentEverythingIcon } from '@/assets/svg/segment-everything.svg';
+// import { ReactComponent as SegmentEverythingIcon } from '@/assets/svg/segment-everything.svg';
 import { ReactComponent as StrokeIcon } from '@/assets/svg/magic-brush.svg';
 import { useLocale } from '@/locales/helper';
 import { useMemo } from 'react';
@@ -100,15 +100,15 @@ export const SubToolBar: React.FC<IProps> = ({
         icon: <Icon component={EdgeStitchIcon} />,
         available: true,
       },
-      {
-        key: ESubToolItem.AutoSegmentEverything,
-        name: localeText('editor.subtoolbar.mask.sam'),
-        icon: <Icon component={SegmentEverythingIcon} />,
-        available: isSegEverythingAvailable,
-        description: isSegEverythingAvailable
-          ? localeText('editor.subtoolbar.mask.sam.desc')
-          : localeText('editor.subtoolbar.mask.sam.notAllow'),
-      },
+      // {
+      //   key: ESubToolItem.AutoSegmentEverything,
+      //   name: localeText('editor.subtoolbar.mask.sam'),
+      //   icon: <Icon component={SegmentEverythingIcon} />,
+      //   available: isSegEverythingAvailable,
+      //   description: isSegEverythingAvailable
+      //     ? localeText('editor.subtoolbar.mask.sam.desc')
+      //     : localeText('editor.subtoolbar.mask.sam.notAllow'),
+      // },
     ];
   }, [isSegEverythingAvailable]);
 

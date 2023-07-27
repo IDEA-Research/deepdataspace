@@ -770,6 +770,7 @@ const Edit: React.FC<EditProps> = (props) => {
             {mode === EditorMode.Edit && (
               <>
                 <MainToolBar
+                  isSeperate={isSeperate}
                   selectedTool={drawData.selectedTool}
                   isAIAnnotationActive={drawData.AIAnnotation}
                   onChangeSelectedTool={(type) => {

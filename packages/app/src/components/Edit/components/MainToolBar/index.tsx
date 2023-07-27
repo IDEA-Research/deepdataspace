@@ -31,6 +31,7 @@ type TToolItem<T> = {
 };
 
 interface IProps {
+  isSeperate: boolean;
   selectedTool: EToolType;
   isAIAnnotationActive: boolean;
   onChangeSelectedTool: (type: EToolType) => void;
@@ -41,6 +42,7 @@ interface IProps {
 }
 
 export const MainToolBar: React.FC<IProps> = ({
+  isSeperate,
   selectedTool,
   isAIAnnotationActive,
   onChangeSelectedTool,
@@ -80,13 +82,17 @@ export const MainToolBar: React.FC<IProps> = ({
       icon: <Icon component={OBJECT_ICON[EObjectType.Skeleton]} />,
       description: localeText('editor.toolbar.skeleton.desc'),
     },
-    {
-      key: EBasicToolItem.Mask,
-      name: localeText('editor.toolbar.mask'),
-      shortcut: EDITOR_SHORTCUTS[EShortcuts.MaskTool],
-      icon: <Icon component={OBJECT_ICON[EObjectType.Mask]} />,
-      description: localeText('editor.toolbar.mask.desc'),
-    },
+    ...(!isSeperate
+      ? [
+          {
+            key: EBasicToolItem.Mask,
+            name: localeText('editor.toolbar.mask'),
+            shortcut: EDITOR_SHORTCUTS[EShortcuts.MaskTool],
+            icon: <Icon component={OBJECT_ICON[EObjectType.Mask]} />,
+            description: localeText('editor.toolbar.mask.desc'),
+          },
+        ]
+      : []),
   ];
 
   const smartTools: TToolItem<EActionToolItem>[] = [
