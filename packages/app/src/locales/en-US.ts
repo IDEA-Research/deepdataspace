@@ -107,11 +107,16 @@ export default {
   'smartAnnotation.infoModal.action': 'Visit Our Website',
   'smartAnnotation.detection.name': 'Intelligent Object Detection',
   'smartAnnotation.detection.input': 'Select or enter categories',
-  'smartAnnotation.segmentation.name': 'Intelligent Segmentation',
+  'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
+  'smartAnnotation.mask.name': 'Intelligent Panoramic Segmentation',
   'smartAnnotation.pose.input': 'Select template',
   'smartAnnotation.pose.apply': 'Apply Results',
   'smartAnnotation.annotate': 'Auto-Annotate',
+  'smartAnnotation.retry': 'Retry',
+  'smartAnnotation.modelTyle': 'Model Type',
+  'smartAnnotation.minArea': 'Minimum Area',
+  'smartAnnotation.iouThres': 'IoU Threshold',
   'smartAnnotation.segmentation.tipsInitial':
     'Tips: Draw a bounding box around your target or click the center of it to generate initial segmentation.',
   'smartAnnotation.segmentation.tipsNext':
@@ -127,6 +132,14 @@ export default {
   'smartAnnotation.rateLimit.content':
     'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
   'smartAnnotation.rateLimit.okText': 'OK',
+  'smartAnnotation.detection.confidence': 'Confidence',
+  'smartAnnotation.back': 'Back',
+  'smartAnnotation.tip': 'Tip',
+  'smartAnnotation.tip.ctrl':
+    'Press on Ctrl to enter the mode of recovering unselected annotations.',
+  'smartAnnotation.tip.recover': 'Recover unselected annotations',
+  'smartAnnotation.tip.overlayobject': 'View overlapping annotation objects',
+  'smartAnnotation.tip.annotationApplied': '{count} annotations applied.',
 
   /** Editor */
   'editor.save': 'Save',
@@ -151,14 +164,31 @@ export default {
   'editor.annotsList.convertToSmartMode': 'Convert To Intelligent Segmentation',
   'editor.toolbar.undo': 'Undo',
   'editor.toolbar.redo': 'Redo',
+  'editor.toolbar.deleteAll': 'Mark Null',
   'editor.toolbar.rectangle': 'Rectangle',
   'editor.toolbar.polygon': 'Polygon',
   'editor.toolbar.skeleton': 'Skeleton (Human Body)',
   'editor.toolbar.aiAnno': 'Intelligent Annotate',
   'editor.toolbar.drag': 'Drag / Select Tool',
+  'editor.toolbar.mask': 'Mask',
+  'editor.subtoolbar.mask.penAdd': 'Pen Add',
+  'editor.subtoolbar.mask.penErase': 'Pen Erase',
+  'editor.subtoolbar.mask.brushAdd': 'Brush Add',
+  'editor.subtoolbar.mask.brushErase': 'Brush Erase',
+  'editor.subtoolbar.mask.box': 'Interactive Segmentation - Box Tool',
+  'editor.subtoolbar.mask.click': 'Interactive Segmentation - Click Tool',
+  'editor.subtoolbar.mask.stroke': 'Interactive Segmentation - Brush Tool',
+  'editor.subtoolbar.mask.sam': 'Segment Everything',
+  'editor.subtoolbar.mask.sam.desc': 'Perform panoptic segmentation by SAM',
+  'editor.subtoolbar.mask.sam.notAllow': 'Unavailable when any instance exists',
+  'editor.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
   'editor.zoomTool.reset': 'Reset Zoom',
   'editor.zoomIn': 'Zoom In',
   'editor.zoomOut': 'Zoom Out',
+  'editor.imgDisplayTool.title': 'Display Options',
+  'editor.imgDisplayTool.brightness': 'Brightness',
+  'editor.imgDisplayTool.contrast': 'Contrast',
+  'editor.imgDisplayTool.saturate': 'Saturation',
   'editor.toolbar.undo.desc': 'Undo the previous action.',
   'editor.toolbar.redo.desc': 'Redo the previous action.',
   'editor.toolbar.rectangle.desc':
@@ -168,9 +198,12 @@ export default {
   'editor.toolbar.skeleton.desc':
     'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
   'editor.toolbar.aiAnno.desc':
-    'Activate this mode under any of Rectangle / Polygon / Skeleton tools for auto-generating corresponding annotations.',
+    'Activate this mode under any of Rectangle / Polygon / Skeleton / Mask tools for auto-generating corresponding annotations.',
+  'editor.toolbar.mask.desc':
+    'Use Pen or Brush tool to draw a pixel-level segmentation.',
   'editor.toolbar.drag.desc':
     'Drag the image or select & edit individual annotations.',
+  'editor.toolbar.deleteAll.desc': 'Remove all objects of present image',
   'editor.annotsEditor.title': 'Annotation Editor',
   'editor.annotsEditor.delete': 'Delete',
   'editor.annotsEditor.finish': 'Finish',
@@ -185,11 +218,13 @@ export default {
   'editor.shortcuts.tools.polygon': 'Polygon Tool',
   'editor.shortcuts.tools.skeleton': 'Skeleton Tool',
   'editor.shortcuts.tools.drag': 'Drag / Select Tool',
+  'editor.shortcuts.tools.mask': 'Mask Tool',
   'editor.shortcuts.general': 'General Controls',
   'editor.shortcuts.general.smart':
     'Activate / Deactivate Intelligent Annotate',
   'editor.shortcuts.general.undo': 'Undo',
   'editor.shortcuts.general.redo': 'Redo',
+  'editor.shortcuts.general.deleteAll': 'Remove all objects of cureent image',
   'editor.shortcuts.general.next': 'Next Image',
   'editor.shortcuts.general.prev': 'Previous Image',
   'editor.shortcuts.general.save': 'Save',
@@ -218,6 +253,9 @@ export default {
   'editor.annotsList.point.notInImage': 'Not In Image',
   'editor.annotsList.point.notVisible': 'Not Visible',
   'editor.annotsList.point.visible': 'Visible',
+  'editor.anno.mask.emptyWarning':
+    'Please add at least one valid Mask annotation.',
+  'editor.anno.mask.translateToRleError': 'Error converting Mask format.',
 
   /** projects */
   'proj.title': 'Projects',

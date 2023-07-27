@@ -8,10 +8,10 @@ import {
   saveLabelTaskLabels,
   saveLabelTaskReviews,
 } from '@/services/project';
-import { EQaAction, ETaskImageStatus } from '../constants';
+import { EQaAction, ETaskImageStatus, ETaskStatus } from '../constants';
 import { useMemo } from 'react';
 import { message } from 'antd';
-import { EditorMode } from '@/components/Edit';
+import { EditorMode } from '@/components/Edit/type';
 import { useModel } from '@umijs/max';
 import { EProjectRole } from './auth';
 import { getUrlQueryVal } from '@/utils/url';
@@ -22,6 +22,7 @@ const DEFAULT_PAGE_SIZE = 100;
 
 interface PageState {
   status: ETaskImageStatus;
+  taskStatus: ETaskStatus;
   roleId?: string;
 }
 
@@ -66,6 +67,7 @@ export default () => {
   });
   const [pageState, setPageState] = useImmer<PageState>({
     status: ETaskImageStatus.Labeling,
+    taskStatus: ETaskStatus.Working,
   });
   const projectId = useMemo(
     () => getUrlQueryVal('projectId') || '',

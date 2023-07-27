@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Updater } from 'use-immer';
 import { getCategoryColors } from '@/utils/color';
 import { DATA } from '@/services/type';
-import { DrawData, EditorMode, IAnnotationObject } from '..';
+import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
 import { EElementType, KEYPOINTS_VISIBLE_TYPE } from '@/constants';
 import { cloneDeep } from 'lodash';
 
@@ -13,7 +13,12 @@ interface IProps {
   setCategories?: Updater<DATA.Category[]>;
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
-  updateObject: (object: IAnnotationObject, index: number) => void;
+  editState: EditState;
+  updateObjectWithoutHistory: (
+    object: IAnnotationObject,
+    index: number,
+  ) => void;
+  updateAllObjectWithoutHistory: (objectList: IAnnotationObject[]) => void;
 }
 
 export default function useLabels({
@@ -22,7 +27,9 @@ export default function useLabels({
   setCategories,
   drawData,
   setDrawData,
-  updateObject,
+  editState,
+  updateObjectWithoutHistory,
+  updateAllObjectWithoutHistory,
 }: IProps) {
   const [aiLabels, setAiLabels] = useState<string[]>([]);
   const labelColors = useMemo(
@@ -55,49 +62,36 @@ export default function useLabels({
 
   const curObjects = drawData.objectList;
 
-  const onChangeObjectLabel = (index: number, label: string) => {
-    setDrawData((s) => {
-      s.latestLabel = label;
-    });
-    const newObject = { ...drawData.objectList[index] };
-    newObject.label = label;
-    updateObject(newObject, index);
-  };
-
   const onChangeObjectHidden = (index: number, hidden: boolean) => {
-    setDrawData((s) => {
-      if (s.objectList[index]) {
-        s.objectList[index].hidden = hidden;
-      }
-    });
+    const newObject = { ...drawData.objectList[index] };
+    newObject.hidden = hidden;
+    updateObjectWithoutHistory(newObject, index);
   };
 
   const onChangeCategoryHidden = (category: string, hidden: boolean) => {
-    setDrawData((s) => {
-      s.objectList.forEach((item) => {
-        if (item.label === category) item.hidden = hidden;
-      });
+    const updatedObjects = drawData.objectList.map((item) => {
+      const temp = { ...item };
+      if (temp.label === category) temp.hidden = hidden;
+      return temp;
     });
+    updateAllObjectWithoutHistory(updatedObjects);
   };
 
   const onChangeElementVisible = (eleType: EElementType, visible: boolean) => {
+    const newObject = { ...drawData.objectList[editState.focusObjectIndex] };
     switch (eleType) {
       case EElementType.Rect: {
-        setDrawData((s) => {
-          const rect = s.objectList[s.focusObjectIndex]?.rect;
-          if (rect) {
-            rect.visible = visible;
-          }
-        });
+        if (newObject.rect) {
+          newObject.rect.visible = visible;
+          updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
+        }
         break;
       }
       case EElementType.Polygon: {
-        setDrawData((s) => {
-          const polygon = s.objectList[s.focusObjectIndex]?.polygon;
-          if (polygon) {
-            polygon.visible = visible;
-          }
-        });
+        if (newObject.polygon) {
+          newObject.polygon.visible = visible;
+          updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
+        }
         break;
       }
     }
@@ -110,12 +104,14 @@ export default function useLabels({
    * @param {KEYPOINTS_VISIBLE_TYPE} visible - The visibility value for the keypoint.
    */
   const onChangePointVisible = (visible: KEYPOINTS_VISIBLE_TYPE) => {
-    const newObject = cloneDeep(drawData.objectList[drawData.focusObjectIndex]);
-    const point = newObject.keypoints?.points?.[drawData.focusEleIndex];
+    const newObject = cloneDeep(
+      drawData.objectList[editState.focusObjectIndex],
+    );
+    const point = newObject.keypoints?.points?.[editState.focusEleIndex];
     if (point) {
       point.visible = visible;
     }
-    updateObject(newObject, drawData.focusObjectIndex);
+    updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
   };
 
   const onChangeActiveClass = (name: string) => {
@@ -138,7 +134,6 @@ export default function useLabels({
     setAiLabels,
     labelColors,
     curObjects,
-    onChangeObjectLabel,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     onChangeElementVisible,
