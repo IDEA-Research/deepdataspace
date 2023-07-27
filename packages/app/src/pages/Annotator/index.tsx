@@ -63,6 +63,9 @@ const Page: React.FC = () => {
         onMouseDown={(event) => {
           event.stopPropagation();
         }}
+        onMouseUp={(event) => {
+          event.stopPropagation();
+        }}
       >
         <Button
           type="primary"
@@ -102,7 +105,11 @@ const Page: React.FC = () => {
           }}
         />
       </div>
-      <div className={styles.modal}>
+      <div
+        className={styles.modal}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
         <FormModal open={openModal} setOpen={setModalOpen} />
       </div>
     </div>

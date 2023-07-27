@@ -133,7 +133,7 @@ const Edit: React.FC<EditProps> = (props) => {
       drawData.selectedTool !== EBasicToolItem.Drag &&
       !drawData.isBatchEditing
     ) {
-      return isToolWithSize;
+      return drawData.selectedTool === EBasicToolItem.Mask && isToolWithSize;
     }
     return false;
   }, [drawData.selectedTool, drawData.selectedSubTool]);

@@ -156,6 +156,7 @@ const useObjects = ({
     setDrawDataWithHistory((s) => {
       s.objectList = [];
       s.creatingObject = undefined;
+      s.prompt = {};
     });
     setEditState((s) => {
       s.focusObjectIndex = -1;

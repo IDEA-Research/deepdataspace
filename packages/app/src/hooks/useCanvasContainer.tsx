@@ -337,6 +337,7 @@ export default function useCanvasContainer({
         )}
         {isCustomCursorActive &&
           cursorSize > 0 &&
+          isInCanvas(containerMouse) &&
           isInCanvas(contentMouse) &&
           !allowMove && (
             <div
