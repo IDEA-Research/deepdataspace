@@ -4,7 +4,7 @@ export default defineConfig({
   outputPath: 'docs-dist',
   favicons: ['/favicon.png'],
   themeConfig: {
-    name: 'DDS-Component',
+    name: 'dds-components',
     logo: '/favicon.png',
     nav: [
       { title: 'Guide', link: '/guide' },

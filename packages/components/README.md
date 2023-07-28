@@ -1,4 +1,4 @@
-# dds-component
+# dds-components
 
 [![dumi](https://img.shields.io/static/v1?label=dumi&message=2.1&color=green)](https://d.umijs.org/)
 
@@ -7,7 +7,7 @@
 
 ```sh
 # Add dependencies in package.json
-"dds-component": "workspace:^"
+"dds-components": "workspace:^"
 
 # Use component in code
 

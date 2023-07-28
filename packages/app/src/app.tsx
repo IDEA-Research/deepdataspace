@@ -4,7 +4,7 @@ import humps from 'humps';
 import { message } from 'antd';
 import { RequestConfig, RunTimeLayoutConfig, history } from '@umijs/max';
 import { ErrorBoundary, ErrorBoundaryProps } from '@sentry/react';
-import { RunningErrorTip } from 'dds-component';
+import { RunningErrorTip } from 'dds-components';
 import { STORAGE_KEY } from './constants';
 import { globalLocaleText } from '@/locales/helper';
 import { matchErrorMsg } from '@/services/errorCode';
