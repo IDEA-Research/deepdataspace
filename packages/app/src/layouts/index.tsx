@@ -8,7 +8,7 @@ import {
   useModel,
   getLocale,
 } from '@umijs/max';
-import { GlobalLoading, LangSelector } from 'dds-component';
+import { GlobalLoading, LangSelector } from 'dds-components';
 import { STORAGE_KEY } from '@/constants';
 import LoginModal from '@/components/LoginModal';
 import {

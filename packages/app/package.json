@@ -27,7 +27,7 @@
     "classnames": "^2.3.1",
     "clientjs": "^0.2.1",
     "copy-to-clipboard": "^3.3.3",
-    "dds-component": "workspace:^",
+    "dds-components": "workspace:^",
     "enquire-js": "^0.2.1",
     "html-to-image": "^1.10.8",
     "html2canvas": "^1.4.1",

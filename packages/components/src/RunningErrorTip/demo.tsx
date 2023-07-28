@@ -1,4 +1,4 @@
-import { RunningErrorTip } from 'dds-component';
+import { RunningErrorTip } from 'dds-components';
 import React from 'react';
 
 export default () => {

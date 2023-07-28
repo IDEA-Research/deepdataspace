@@ -82,7 +82,7 @@ export const MainToolBar: React.FC<IProps> = ({
       icon: <Icon component={OBJECT_ICON[EObjectType.Skeleton]} />,
       description: localeText('editor.toolbar.skeleton.desc'),
     },
-    ...(!isSeperate
+    ...(isSeperate
       ? [
           {
             key: EBasicToolItem.Mask,
