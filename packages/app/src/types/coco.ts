@@ -25,7 +25,7 @@ export namespace COCO {
     id: number;
     image_id: number;
     category_id?: number;
-    segmentation: number[][];
+    segmentation: number[][] | number[]; // polygons or RLE format
     area: number;
     bbox: number[];
     iscrowd?: number;

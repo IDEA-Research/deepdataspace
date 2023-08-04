@@ -1,6 +1,1 @@
-<svg width="17" height="17" viewBox="0 0 19 19" fill="#fff" xmlns="http://www.w3.org/2000/svg">
-  <path d="M4 16V7M4 16H14M4 16L13.5 6.5" stroke="#fff" fill="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-  <rect x="2" y="3" width="4" height="4" rx="2" stroke="#fff" fill="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></rect>
-  <rect x="14" y="14" width="4" height="4" rx="2" stroke="#fff" fill="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></rect>
-  <rect x="13" y="3" width="4" height="4" rx="2" stroke="#fff" fill="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></rect>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34.02 34.02"><defs><style>.cls-1{fill:none;}.cls-2{fill:#fcfeff;}</style></defs><rect class="cls-1" x="3.09" y="2.83" width="28.35" height="28.35"/><polygon class="cls-2" points="15.32 17.73 6.04 16.79 6.25 14.85 14.37 15.67 22.41 4.66 24.04 5.8 15.32 17.73"/><polygon class="cls-2" points="14.05 29.21 12.07 28.94 14.03 15.31 29.42 21.64 28.64 23.43 15.65 18.09 14.05 29.21"/><ellipse class="cls-2" cx="5.91" cy="15.82" rx="2.55" ry="2.48"/><ellipse class="cls-2" cx="22.88" cy="5.56" rx="2.72" ry="2.65"/><ellipse class="cls-2" cx="13.13" cy="28.45" rx="2.8" ry="2.74"/><ellipse class="cls-2" cx="29.01" cy="22.01" rx="2.55" ry="2.48"/><ellipse class="cls-2" cx="15.24" cy="16.7" rx="3.56" ry="3.47"/></svg>

@@ -6,11 +6,24 @@ export const rgbArrayToHex = (rgb: (number | string)[]) => {
     .padStart(2, '0')}${rgb[2].toString(16).padStart(2, '0')}`.toUpperCase();
 };
 
-/** Convert hexadecimal to RGB array. */
+/** Convert RGB string to hexadecimal. */
 export const rgbToHex = (rgb: string) => {
   const arr = /^rgba?\((\d+),\s*(\d+),\s*(\d+)\)$/i.exec(rgb);
   if (!arr) return 'transparent';
   return rgbArrayToHex(arr);
+};
+
+/** Convert hexadecimal to RGB array. */
+export const hexToRgbArray = (hex: string) => {
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  const formatHex = hex.replace(shorthandRegex, (m, r, g, b) => {
+    return r + r + g + g + b + b;
+  });
+  const arr = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formatHex);
+  if (!arr) {
+    return [0, 0, 0];
+  }
+  return [parseInt(arr[1], 16), parseInt(arr[2], 16), parseInt(arr[3], 16)];
 };
 
 /** Convert hexadecimal to RGBA string. */

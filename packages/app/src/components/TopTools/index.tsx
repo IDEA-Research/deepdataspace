@@ -46,7 +46,12 @@ const TopTools: React.FC<IProps> = (props) => {
     );
 
   return (
-    <div className={classNames(styles.topTools, className)}>
+    <div
+      className={classNames(styles.topTools, className)}
+      onMouseDown={(event) => {
+        event.stopPropagation();
+      }}
+    >
       <div className={styles.rowWrap}>{renderTools(leftTools)}</div>
       <div className={styles.progress}>{children}</div>
       <div className={styles.rowWrap}>{renderTools(rightTools)}</div>

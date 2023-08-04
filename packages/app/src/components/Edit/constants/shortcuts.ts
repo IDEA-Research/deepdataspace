@@ -18,10 +18,12 @@ export enum EShortcuts {
   PolygonTool,
   SkeletonTool,
   DragTool,
+  MaskTool,
   /** General Actions */
   SmartAnnotation,
   Undo,
   Redo,
+  DeleteAll,
   NextImage,
   PreviousImage,
   Save,
@@ -60,6 +62,12 @@ export const EDITOR_SHORTCUTS: Record<EShortcuts, TShortcutItem> = {
     shortcut: ['s'],
     descTextKey: 'editor.shortcuts.tools.skeleton',
   },
+  [EShortcuts.MaskTool]: {
+    name: 'MaskTool',
+    type: EShortcutType.Tool,
+    shortcut: ['m'],
+    descTextKey: 'editor.shortcuts.tools.mask',
+  },
   [EShortcuts.DragTool]: {
     name: 'DragTool',
     type: EShortcutType.Tool,
@@ -83,6 +91,12 @@ export const EDITOR_SHORTCUTS: Record<EShortcuts, TShortcutItem> = {
     type: EShortcutType.GeneralAction,
     shortcut: ['ctrl.shift.z', 'meta.shift.z'],
     descTextKey: 'editor.shortcuts.general.redo',
+  },
+  [EShortcuts.DeleteAll]: {
+    name: 'DeleteAll',
+    type: EShortcutType.GeneralAction,
+    shortcut: ['ctrl.shift.d', 'meta.shift.d'],
+    descTextKey: 'editor.shortcuts.general.deleteAll',
   },
   [EShortcuts.Save]: {
     name: 'Save',

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useEventListener, useMouse } from 'ahooks';
+import { useEventListener, useMouse, useSize } from 'ahooks';
 import { useImmer } from 'use-immer';
 import { isInCanvas } from '@/utils/compute';
 import { zoomImgSize } from '@/utils/annotation';
@@ -19,7 +19,9 @@ interface IProps {
     left: number;
   };
   allowMove: boolean;
-  showMouseAim?: boolean;
+  isCustomCursorActive: boolean;
+  cursorSize: number;
+  showReferenceLine?: boolean;
   onClickBg?: React.MouseEventHandler<HTMLDivElement>;
 }
 
@@ -28,12 +30,14 @@ export default function useCanvasContainer({
   visible,
   minPadding = { top: 0, left: 0 },
   allowMove,
-  showMouseAim,
+  showReferenceLine,
+  isCustomCursorActive,
+  cursorSize,
   onClickBg,
 }: IProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const containerMouse = useMouse(containerRef.current);
+  const containerSize = useSize(() => containerRef.current);
+  const containerMouse = useMouse(() => containerRef.current); // delayed get size when move don't move
 
   /** The original size of image */
   const [naturalSize, setNaturalSize] = useState<ISize>({
@@ -66,9 +70,6 @@ export default function useCanvasContainer({
     | undefined
   >(undefined);
 
-  // Whether the mouse is moving
-  const movedRef = useRef<boolean>(false);
-
   const contentMouse = useMemo(() => {
     return {
       ...containerMouse,
@@ -82,10 +83,9 @@ export default function useCanvasContainer({
   const [movingImgAnchor, setMovingImgAnchor] = useImmer<IPoint | null>(null);
 
   const initClientSizeToFit = (naturalSize: ISize) => {
-    const containerWidth = containerMouse.elementW;
-    const containerHeight = containerMouse.elementH;
-
-    if (naturalSize && containerWidth && containerHeight) {
+    if (naturalSize && containerSize) {
+      const containerWidth = containerSize.width;
+      const containerHeight = containerSize.height;
       const [width, height, scale] = zoomImgSize(
         naturalSize.width,
         naturalSize.height,
@@ -108,11 +108,13 @@ export default function useCanvasContainer({
   /** Initial position to fit container */
   useEffect(() => {
     initClientSizeToFit(naturalSize);
-  }, [naturalSize, containerMouse.elementW, containerMouse.elementH]);
+  }, [naturalSize, containerSize]);
 
   const adaptImagePosWhileZoom = () => {
-    const containerWidth = containerMouse.elementW;
-    const containerHeight = containerMouse.elementH;
+    if (!containerSize) return;
+
+    const containerWidth = containerSize?.width;
+    const containerHeight = containerSize?.height;
 
     // Default zoom center
     let posRatioX = 0.5;
@@ -143,29 +145,21 @@ export default function useCanvasContainer({
         ? Math.min(MAX_SCALE, fixedFloatNum(s.scale + step, 2))
         : Math.max(MIN_SCALE, fixedFloatNum(s.scale - step, 2));
 
-      // Record the starting zoom scale ratio.
+      // update scale center
       if (
-        isZoomBtn ||
-        !contentMouse.elementX ||
-        !containerMouse.elementX ||
-        !clientSize.width
-      ) {
-        // Center zoom.
-        lastScalePosRef.current = undefined;
-      } else if (
         !lastScalePosRef.current ||
-        (movedRef.current &&
-          (containerMouse.elementX !== lastScalePosRef.current.mouseX ||
-            containerMouse.elementY !== lastScalePosRef.current.mouseY))
+        containerMouse.elementX !== lastScalePosRef.current.mouseX ||
+        containerMouse.elementY !== lastScalePosRef.current.mouseY
       ) {
-        // Focus zoom && Mouse move
-        lastScalePosRef.current = {
-          posRatioX: contentMouse.elementX / clientSize.width,
-          posRatioY: contentMouse.elementY / clientSize.height,
-          mouseX: containerMouse.elementX,
-          mouseY: containerMouse.elementY,
-        };
-        movedRef.current = false;
+        if (!isZoomBtn) {
+          const scalePos = {
+            posRatioX: contentMouse.elementX / clientSize.width,
+            posRatioY: contentMouse.elementY / clientSize.height,
+            mouseX: containerMouse.elementX,
+            mouseY: containerMouse.elementY,
+          };
+          lastScalePosRef.current = scalePos;
+        }
       }
 
       s.scale = scale;
@@ -212,52 +206,48 @@ export default function useCanvasContainer({
     }
   }, [visible]);
 
-  useEventListener(
-    'mousedown',
-    () => {
-      if (!visible || !containerRef.current) return;
-      setMovingImgAnchor({
-        x: contentMouse.elementX,
-        y: contentMouse.elementY,
-      });
-    },
-    { target: () => containerRef.current },
-  );
+  const [isMousePress, setMousePress] = useState(false);
 
-  useEventListener(
-    'mousemove',
-    () => {
-      if (!visible) return;
-      movedRef.current = true;
-      if (movingImgAnchor && allowMove) {
-        const offsetX = contentMouse.elementX - movingImgAnchor.x;
-        const offsetY = contentMouse.elementY - movingImgAnchor.y;
-        const { x, y } = imagePos.current;
-        imagePos.current = {
-          x: x + offsetX,
-          y: y + offsetY,
-        };
-      }
-    },
-    { target: () => containerRef.current },
-  );
+  useEventListener('mousedown', () => {
+    setMousePress(true);
+    if (!visible || !containerRef.current) return;
+    setMovingImgAnchor({
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    });
+  });
 
-  useEventListener(
-    'mouseup',
-    () => {
-      if (!visible || !allowMove) return;
-      // Stop moving the image.
-      if (movingImgAnchor) {
-        setMovingImgAnchor(null);
-        return;
-      }
-    },
-    { target: () => containerRef.current },
-  );
+  useEventListener('mousemove', () => {
+    if (!visible) return;
+    if (movingImgAnchor && allowMove && isMousePress) {
+      const offsetX = contentMouse.elementX - movingImgAnchor.x;
+      const offsetY = contentMouse.elementY - movingImgAnchor.y;
+      const { x, y } = imagePos.current;
+      imagePos.current = {
+        x: x + offsetX,
+        y: y + offsetY,
+      };
+    }
+  });
+
+  useEventListener('mouseup', () => {
+    setMousePress(false);
+    if (!visible || !allowMove) return;
+    // Stop moving the image.
+    if (movingImgAnchor) {
+      setMovingImgAnchor(null);
+      return;
+    }
+  });
 
   useEffect(() => {
     if (!allowMove) {
       setMovingImgAnchor(null);
+    } else {
+      setMovingImgAnchor({
+        x: contentMouse.elementX,
+        y: contentMouse.elementY,
+      });
     }
   }, [allowMove]);
 
@@ -285,17 +275,21 @@ export default function useCanvasContainer({
         className={className}
       >
         {children}
-        {showMouseAim && !allowMove && isInCanvas(contentMouse) && (
+        {showReferenceLine && !allowMove && isInCanvas(contentMouse) && (
           <>
             {/* leftLine */}
             <div
               style={{
                 position: 'fixed',
                 backgroundColor: '#fff',
-                height: 1,
-                left: containerMouse.elementPosX,
-                bottom: window.innerHeight - containerMouse.clientY - 1,
                 width: containerMouse.elementX - 18,
+                height: 1,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.elementPosX}px, -${
+                  window.innerHeight - containerMouse.clientY - 1
+                }px)`,
               }}
             />
             {/* rightLine */}
@@ -304,9 +298,13 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 height: 1,
-                left: containerMouse.clientX + 18,
-                bottom: window.innerHeight - containerMouse.clientY - 1,
                 width: containerMouse.elementW - containerMouse.elementX - 18,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.clientX + 18}px, -${
+                  window.innerHeight - containerMouse.clientY - 1
+                }px)`,
               }}
             />
             {/* upLine */}
@@ -315,9 +313,12 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 width: 1,
-                bottom: window.innerHeight - containerMouse.clientY + 18,
-                left: containerMouse.clientX - 1,
                 height: containerMouse.elementY - 18,
+                left: 0,
+                bottom: 0,
+                transformOrigin: 'bottom left',
+                transform: `translate(${containerMouse.clientX - 1}px, 
+                  -${window.innerHeight - containerMouse.clientY + 18}px)`,
               }}
             />
             {/* downLine */}
@@ -326,13 +327,38 @@ export default function useCanvasContainer({
                 position: 'fixed',
                 backgroundColor: '#fff',
                 width: 1,
-                bottom: 0,
-                left: containerMouse.clientX - 1,
                 height: containerMouse.elementH - containerMouse.elementY - 18,
+                left: 0,
+                bottom: 0,
+                transform: `translate(${containerMouse.clientX - 1}px)`,
               }}
             />
           </>
         )}
+        {isCustomCursorActive &&
+          cursorSize > 0 &&
+          isInCanvas(containerMouse) &&
+          isInCanvas(contentMouse) &&
+          !allowMove && (
+            <div
+              style={{
+                position: 'fixed',
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.7)',
+                width: cursorSize * clientSize.scale,
+                height: cursorSize * clientSize.scale,
+                borderRadius: (cursorSize * clientSize.scale) / 2,
+                left: 0,
+                top: 0,
+                transformOrigin: 'top left',
+                transform: `translate(${
+                  containerMouse.clientX - (cursorSize * clientSize.scale) / 2
+                }px, ${
+                  containerMouse.clientY - (cursorSize * clientSize.scale) / 2
+                }px)`,
+              }}
+            />
+          )}
       </div>
     );
   };
@@ -346,9 +372,15 @@ export default function useCanvasContainer({
       width: clientSize.width,
       height: clientSize.height,
     },
-    containerMouse,
+    containerSize,
+    containerMouse: {
+      ...containerMouse,
+      elementW: containerSize?.width || containerMouse.elementW,
+      elementH: containerSize?.height || containerMouse.elementH,
+    },
     contentMouse,
     imagePos,
+    isMousePress,
     onLoadImg,
     onZoomIn,
     onZoomOut,

@@ -86,24 +86,6 @@ jobs:
           echo "APP_VERSION=${{ env.APP_VERSION }}" >> $GITHUB_OUTPUT
           echo "APP_NAME=${{ env.APP_NAME }}" >> $GITHUB_OUTPUT
 
-      - name: Checkout deepdataspace-app-env
-        uses: actions/checkout@v2
-        with:
-          repository: deepdataspace/deepdataspace-app-env
-          ref: 'main'
-          path: deepdataspace-app-env
-          token: ${{ secrets.DDS_ORG_GITHUB_TOKEN }}
-      - name: Copy Frontend Build Env File
-        run: |
-          if [[ "${{ env.K8S_NAMESPACE }}" == 'dds-dev' ]]; then  
-            cp deepdataspace-app-env/.env.dev packages/app/.env.local  
-          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-test' ]]; then  
-            cp deepdataspace-app-env/.env.test packages/app/.env.local  
-          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-prd' ]]; then  
-            cp deepdataspace-app-env/.env.prod packages/app/.env.local  
-          fi  
-          echo "TAG_VERSION=${{ env.GIT_TAG }}" >> packages/app/.env.local
-          rm -rf deepdataspace-app-env
       - name: Checkout Devops Repo
         uses: actions/checkout@v2
         with:
@@ -111,6 +93,16 @@ jobs:
           ref: 'main'
           path: deepdataspace-helm
           token: ${{ secrets.DDS_ORG_GITHUB_TOKEN }}
+      - name: Copy Frontend Build Env File
+        run: |
+          if [[ "${{ env.K8S_NAMESPACE }}" == 'dds-dev' ]]; then  
+            cp deepdataspace-helm/frontend_envs/.env.dev packages/app/.env.local  
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-test' ]]; then  
+            cp deepdataspace-helm/frontend_envs/.env.test packages/app/.env.local  
+          elif [[ "${{ env.K8S_NAMESPACE }}" == 'dds-prd' ]]; then  
+            cp deepdataspace-helm/frontend_envs/.env.prod packages/app/.env.local  
+          fi  
+          echo "TAG_VERSION=${{ env.GIT_TAG }}" >> packages/app/.env.local
       - name: Copy Dockerfiles
         run: |
           cp deepdataspace-helm/dockerfiles/deploy.Dockerfile .

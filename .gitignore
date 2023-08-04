@@ -30,5 +30,4 @@ venv
 /docs
 
 # frontend
-/node_modules
-/packages/deepdataspace-website
+node_modules

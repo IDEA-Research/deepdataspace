@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 
+import { rleToCanvas } from '@/components/Edit/tools/useMask';
 import { DATA } from '@/services/type';
 import { LabelImageFile } from '@/types/annotator';
 import { COCO } from '@/types/coco';
@@ -7,6 +8,7 @@ import {
   calculatePolygonArea,
   convertToVerticesArray,
   getLimitRectFromPoints,
+  getMaskInfoByCanvas,
   translateBoundingBoxToRect,
 } from './compute';
 
@@ -48,9 +50,9 @@ export const convertToCocoDateset = (
       height: image.height,
     });
 
-    image.objects.forEach((annotation, annoIdx) => {
+    image.objects.forEach((annotation) => {
       const newAnnotation: COCO.Annotation = {
-        id: annoIdx,
+        id: cocoDataset.annotations.length,
         image_id: imageId,
         bbox: [],
         area: 0,
@@ -100,6 +102,29 @@ export const convertToCocoDateset = (
         const bbox = [x, y, width, height];
 
         Object.assign(newAnnotation, { segmentation, bbox, area });
+      }
+
+      if (annotation.maskRle && annotation.maskRle.length > 0) {
+        const rle = annotation.maskRle;
+        const canvas = rleToCanvas(
+          rle,
+          { width: image.width, height: image.height },
+          '#fff',
+        );
+        if (canvas) {
+          const { area, bbox } = getMaskInfoByCanvas(canvas);
+          const { x, y, width, height } = translateBoundingBoxToRect(bbox, {
+            width: 1,
+            height: 1,
+          });
+          Object.assign(newAnnotation, {
+            segmentation: rle,
+            area,
+            bbox: [x, y, width, height],
+          });
+        } else {
+          Object.assign(newAnnotation, { segmentation: rle });
+        }
       }
 
       if (annotation.points && annotation.points.length > 0) {
