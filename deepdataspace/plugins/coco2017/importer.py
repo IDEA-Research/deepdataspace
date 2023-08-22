@@ -123,13 +123,28 @@ class COCO2017Importer(FileImporter):
 
             # prepare image uri
 
-            uri = coco_image_data["coco_url"]
-            if self.media_dir:
-                image_path = os.path.join(self.media_dir, coco_image_data["file_name"])
-                if os.path.exists(image_path):
+            uri = None
+
+            # trying to find the image file in local file system
+            if self.media_dir and coco_image_data.get("file_name", None):
+                image_path = coco_image_data.get("file_name", None)
+                if os.path.exists(image_path):  # trying to find by absolute path
                     uri = f"file://{image_path}"
-                    coco_image_data.pop("coco_url")
-                    coco_image_data.pop("file_name")
+                else:  # trying to find by relative path
+                    image_path = os.path.join(self.media_dir, image_path)
+                    if os.path.exists(image_path):
+                        uri = f"file://{image_path}"
+
+            # trying to find the image file in the original coco image urls
+            if uri is None:
+                uri = coco_image_data.get("coco_url", None)
+
+            if uri is None:
+                logger.warning(f"Cannot find image file for image {image_id}, skip it.")
+                continue
+
+            coco_image_data.pop("coco_url", None)
+            coco_image_data.pop("file_name", None)
 
             # prepare other image data
             width = coco_image_data.pop("width", None)
