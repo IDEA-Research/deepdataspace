@@ -210,7 +210,7 @@ class COCO2017Importer(FileImporter):
         if os.path.isdir(path):
             return False
 
-        return path.endswith(".json")
+        return not path.startswith(".") and path.endswith(".json")
 
     def collect_files(self) -> dict:
         files = super(COCO2017Importer, self).collect_files()
