@@ -188,7 +188,7 @@ class COCO2017Importer(FileImporter):
                 is_group = anno_data.pop("is_group", None)
 
                 # prepare confidence
-                conf = anno_data.pop("conf", 1.0)
+                conf = anno_data.pop("score", 1.0)
                 if label_type == LabelType.GroundTruth:
                     conf = 1.0
 
