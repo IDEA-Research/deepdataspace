@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Space, Checkbox, Dropdown, Radio } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-import { globalLocaleText } from '@/locales/helper';
+import { globalLocaleText } from 'dds-utils/locale';
 import styles from './index.less';
 
 export type ValueType = string | string[] | number | number[];

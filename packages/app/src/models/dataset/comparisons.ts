@@ -3,7 +3,6 @@
  */
 import { useState } from 'react';
 import { useModel } from '@umijs/max';
-import { decamelize } from 'humps';
 import {
   LabelDiffMode,
   COMPARISONS_SORTBY,
@@ -11,9 +10,8 @@ import {
   AnnotationType,
 } from '@/constants';
 import { Comparisons } from './type';
-import { floorFloatNum } from '@/utils/digit';
-import { reportEvent } from '@/logs';
-import { DATA } from '@/services/type';
+import { floorFloatNum } from 'dds-utils/digit';
+import { NsDataSet } from '@/types/dataset';
 
 export default () => {
   // common
@@ -29,7 +27,7 @@ export default () => {
   };
 
   /** Enter the comparison analysis. */
-  const compareLabelSet = (label: DATA.Label) => {
+  const compareLabelSet = (label: NsDataSet.Label) => {
     setPageState((s) => {
       s.page = 1;
       s.filterValues.displayAnnotationType = AnnotationType.Detection; // just support detection now
@@ -43,7 +41,6 @@ export default () => {
         score: floorFloatNum(label.comparePrecisions[0].threshold, 2),
       };
     });
-    reportEvent('dataset_enter_comparisons');
   };
 
   const exitComparisons = () => {
@@ -51,7 +48,6 @@ export default () => {
       s.page = 1;
       s.comparisons = undefined;
     });
-    reportEvent('dataset_exit_comparisons');
   };
 
   const onFilterComparisonsPrecision = (
@@ -70,9 +66,6 @@ export default () => {
         );
         if (prec) s.comparisons.score = floorFloatNum(prec.threshold, 2);
       }
-      reportEvent(`dataset_comparisons_filter_${decamelize(type)}`, {
-        [type]: value,
-      });
     });
   };
 

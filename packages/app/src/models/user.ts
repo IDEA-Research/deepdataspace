@@ -3,7 +3,7 @@ import { history, useModel } from '@umijs/max';
 import { useImmer } from 'use-immer';
 import { login, logout, fetchUserInfo } from '@/services/user';
 import { EUserStatus, STORAGE_KEY } from '@/constants';
-import { globalLocaleText } from '@/locales/helper';
+import { globalLocaleText } from 'dds-utils/locale';
 import { useState } from 'react';
 
 export default () => {

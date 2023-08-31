@@ -1,12 +1,12 @@
 import React from 'react';
 import { Select } from 'antd';
-import { DATA } from '@/services/type';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import styles from './index.less';
+import { Category } from '@/types';
 
 export interface IProps {
   categoryId?: string;
-  categories: DATA.Category[];
+  categories: Category[];
   onCategoryChange: (categoryId: string) => void;
 }
 

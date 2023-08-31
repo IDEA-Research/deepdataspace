@@ -1,6 +1,5 @@
 import React from 'react';
 import { Checkbox, Radio, RadioChangeEvent, Slider, Space } from 'antd';
-import { DATA } from '@/services/type';
 import styles from './index.less';
 import DropdownSelector from '../DropdownSelector';
 import classNames from 'classnames';
@@ -10,14 +9,15 @@ import {
   LABEL_SOURCE,
   LabelDiffMode,
 } from '@/constants';
-import { getLabelCustomStyles } from '@/utils/annotation';
-import { useLocale } from '@/locales/helper';
+import { getLabelCustomStyles } from '@/utils/datasets';
+import { useLocale } from 'dds-utils/locale';
+import { NsDataSet } from '@/types/dataset';
 
 export interface IProps {
   showMatting?: boolean;
   showKeyPoints?: boolean;
   isTiledDiff?: boolean;
-  labels: DATA.Label[];
+  labels: NsDataSet.Label[];
   selectedLabelIds: string[];
   diffMode: LabelDiffMode;
   disableChangeDiffMode?: boolean;

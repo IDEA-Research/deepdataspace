@@ -57,13 +57,6 @@ export default defineConfig({
   publicPath: process.env.PUBLIC_PATH || '/static/',
   npmClient: 'pnpm',
   routes,
-  mfsu: {
-    strategy: 'normal',
-  },
-  monorepoRedirect: {
-    srcDir: ['src', 'libs', 'dist'],
-    peerDeps: true,
-  },
   devtool: process.env.SENTRY_DSN ? 'source-map' : 'cheap-module-source-map',
   chainWebpack(config) {
     if (process.env.SENTRY_DSN) {
@@ -100,4 +93,10 @@ export default defineConfig({
     'process.env.GA_KEY': process.env.GA_KEY,
     'process.env.BAIDU_KEY': process.env.BAIDU_KEY,
   },
+  monorepoRedirect: {
+    srcDir: ['src', 'libs', 'dist'],
+    peerDeps: true,
+  },
+  esbuildMinifyIIFE: true,
+  mfsu: false,
 });

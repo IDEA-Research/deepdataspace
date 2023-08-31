@@ -3,11 +3,11 @@ import { useModel } from '@umijs/max';
 import { Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { AnnotationType, LabelDiffMode } from '@/constants';
-import { backPath } from '@/utils/url';
+import { backPath } from 'dds-utils/url';
 import CategoryFilter from '@/components/CategoryFilter';
 import LabelOptions from '@/components/LabelOptions';
 import DisplayOptions from '@/components/DisplayOptions';
-import ColumnSettings from '@/components/ColumnSettings';
+import { ColumnSettings } from 'dds-components';
 import styles from './index.less';
 
 const Header: React.FC = () => {

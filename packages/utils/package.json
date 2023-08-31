@@ -1,0 +1,12 @@
+{
+  "name": "dds-utils",
+  "version": "0.0.1",
+  "description": "",
+  "author": "zhuyuanhao",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {}
+}

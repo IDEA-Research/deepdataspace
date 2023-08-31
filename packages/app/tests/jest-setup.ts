@@ -8,13 +8,13 @@ window.matchMedia = jest.fn().mockReturnValue({
 });
 
 /** Partial third-party dependency mock */
-jest.mock('clientjs', () => ({
-  ClientJS: class ClientJS {
-    getFingerprint() {
-      return 'test';
-    }
-  },
-}));
+// jest.mock('clientjs', () => ({
+//   ClientJS: class ClientJS {
+//     getFingerprint() {
+//       return 'test';
+//     }
+//   },
+// }));
 
 /** Partial global mock */
 jest.mock('@/services/user', () => ({

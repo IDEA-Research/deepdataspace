@@ -1,0 +1,138 @@
+.dds-annotator-smart-container {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  width: 375px;
+  box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 9;
+
+  .ant-card-head {
+    background-color: @colorPrimary;
+    color: #fff;
+    font-size: 15px;
+    padding: 0 15px;
+    min-height: 45px;
+  }
+
+  .ant-card-body {
+    padding: 12px;
+  }
+
+  &-btn {
+    border: 0;
+  }
+
+  &-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    &-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+  }
+
+  &-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+
+    &-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 12px;
+      width: 100%;
+    }
+
+    &-param-controls {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    &-param-item {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+
+      &-title {
+        width: 100px;
+      }
+
+      &-select {
+        flex: 1;
+      }
+
+      &-slider {
+        align-self: flex-end;
+        flex: 1;
+      }
+    }
+
+    &-instruction {
+      font-size: 13px;
+    }
+
+    &-actions {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    &-column-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      width: 100%;
+    }
+
+    &-tip-text {
+      span {
+        font-weight: bold;
+      }
+    }
+  }
+
+  &:hover {
+    box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.dds-annotator-smart-container-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.dds-annotator-operation-tip {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9;
+
+  &-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    background-color: rgba(60, 86, 248, 0.6);
+    border-radius: 5px;
+
+    span {
+      margin-right: 20px;
+      color: #fff;
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import { request } from '@umijs/max';
-import { API, DATA } from './type';
 import { EQaAction, ETaskImageStatus } from '@/pages/Project/constants';
+import { NsApiProject } from '@/types/api';
+import { BaseObject } from '@/types';
+import { NsProject } from '@/types/project';
 
 /** project list */
 export async function fetchProjectList(
@@ -10,7 +12,7 @@ export async function fetchProjectList(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchProjectListRsp>(`/api/v1/label_projects`, {
+  return request<NsApiProject.FetchProjectListRsp>(`/api/v1/label_projects`, {
     method: 'GET',
     params,
     ...(options || {}),
@@ -22,7 +24,7 @@ export async function fetchProjectDetail(
   projectId: string,
   options?: { [key: string]: any },
 ) {
-  return request<DATA.Project>(`/api/v1/label_projects/${projectId}`, {
+  return request<NsProject.Project>(`/api/v1/label_projects/${projectId}`, {
     method: 'GET',
     ...(options || {}),
   });
@@ -40,7 +42,7 @@ export async function newProject(
   },
   options?: { [key: string]: any },
 ) {
-  return request<DATA.Project>(`/api/v1/label_projects`, {
+  return request<NsProject.Project>(`/api/v1/label_projects`, {
     method: 'POST',
     data: {
       ...params,
@@ -129,21 +131,24 @@ export async function fetchDatasetLint(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchDatasetLintRsp>(`/api/v1/dataset_name_lints`, {
-    method: 'GET',
-    params,
-    ...(options || {}),
-  });
+  return request<NsApiProject.FetchDatasetLintRsp>(
+    `/api/v1/dataset_name_lints`,
+    {
+      method: 'GET',
+      params,
+      ...(options || {}),
+    },
+  );
 }
 
 /** user lint */
 export async function fetchUserLint(
   params: {
-    name: string;
+    email: string;
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchUserLintRsp>(`/api/v1/user_name_lints`, {
+  return request<NsApiProject.FetchUserLintRsp>(`/api/v1/user_email_lints`, {
     method: 'GET',
     params,
     ...(options || {}),
@@ -159,7 +164,7 @@ export async function fetchProjectTasks(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.FetchProjectTasksRsp>(`/api/v1/label_tasks`, {
+  return request<NsApiProject.FetchProjectTasksRsp>(`/api/v1/label_tasks`, {
     method: 'GET',
     params,
     ...(options || {}),
@@ -266,7 +271,7 @@ export async function requestLabelTaskRoles(
   taskId: string,
   options?: { [key: string]: any },
 ) {
-  return request<API.RequestLabelTaskRolesRsp>(
+  return request<NsApiProject.RequestLabelTaskRolesRsp>(
     `/api/v1/label_task_roles/${taskId}`,
     {
       method: 'GET',
@@ -280,7 +285,7 @@ export async function requestLabelTaskConfigs(
   taskId: string,
   options?: { [key: string]: any },
 ) {
-  return request<API.RequestLabelTaskConfigsRsp>(
+  return request<NsApiProject.RequestLabelTaskConfigsRsp>(
     `/api/v1/label_task_configs/${taskId}`,
     {
       method: 'GET',
@@ -300,7 +305,7 @@ export async function requestLabelTaskImages(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.RequestLabelTaskImagesRsp>(
+  return request<NsApiProject.RequestLabelTaskImagesRsp>(
     `/api/v1/label_task_images/${taskId}`,
     {
       method: 'GET',
@@ -314,11 +319,11 @@ export async function requestLabelTaskImages(
 export async function saveLabelTaskLabels(
   taskImageId: string,
   params: {
-    annotations: DATA.BaseObject[];
+    annotations: BaseObject[];
   },
   options?: { [key: string]: any },
 ) {
-  return request<DATA.TaskLabel>(
+  return request<NsProject.TaskLabel>(
     `/api/v1/label_task_image_labels/${taskImageId}`,
     {
       method: 'POST',
@@ -341,7 +346,7 @@ export async function saveLabelTaskReviews(
   },
   options?: { [key: string]: any },
 ) {
-  return request<DATA.TaskReview>(
+  return request<NsProject.TaskReview>(
     `/api/v1/label_task_image_reviews/${taskImageId}`,
     {
       method: 'POST',

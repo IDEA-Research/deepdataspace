@@ -1,17 +1,17 @@
 import React from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { List, Pagination } from 'antd';
+import { List } from 'antd';
 import { useModel } from '@umijs/max';
-import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
-import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/constants';
+import { usePageModelLifeCycle } from 'dds-hooks';
 import DatasetItem from '@/components/DatasetItem';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { backPath } from '@/utils/url';
+import { backPath } from 'dds-utils/url';
 import styles from './index.less';
-import { globalLocaleText } from '@/locales/helper';
+import { globalLocaleText } from 'dds-utils/locale';
+import { DynamicPagination } from 'dds-components';
 
 const HomePage: React.FC = () => {
-  const { loading, pagination, datasetsData, onPageChange } =
+  const { loading, pagination, datasetsData, onPageChange, onPageSizeChange } =
     useModel('datasets');
   const { labType, onInitPageState, onClickItem, onClickCopyLink } =
     useModel('Lab.Datasets.model');
@@ -38,23 +38,18 @@ const HomePage: React.FC = () => {
               data={item}
               onClickItem={onClickItem}
               onClickCopyLink={onClickCopyLink}
-              supportExport
             />
           )}
         />
       </div>
       {!loading && (
-        <div className={styles.pagination}>
-          <Pagination
-            current={pagination.page}
-            pageSize={pagination.pageSize}
-            total={datasetsData.total}
-            showSizeChanger
-            showQuickJumper
-            pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
-            onChange={onPageChange}
-          />
-        </div>
+        <DynamicPagination
+          current={pagination.page}
+          size={pagination.pageSize}
+          total={datasetsData.total}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
     </PageContainer>
   );

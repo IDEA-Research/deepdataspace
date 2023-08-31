@@ -8,17 +8,16 @@ import { Link, useModel } from '@umijs/max';
 import ProjectEditModal from './components/ProjectEditModal';
 import { EProjectStatus, EQaAction, PROJECT_STATUS_MAP } from './constants';
 import ProgressBar from './components/ProgressBar';
-import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
-import { DATA } from '@/services/type';
-import { useLocale } from '@/locales/helper';
+import { usePageModelLifeCycle } from 'dds-hooks';
+import { useLocale } from 'dds-utils/locale';
 import TableTags from './components/TableTags';
 import { EProjectAction } from './models/auth';
 import { useSize } from 'ahooks';
 import styles from './index.less';
 import ProjectExportModal from './components/ProjectExportModal';
+import { NsProject } from '@/types/project';
 
 const ProjectList: React.FC = () => {
-  const { user } = useModel('user');
   const { checkPermission } = useModel('Project.auth');
   const containerSize = useSize(
     document.querySelector('.ant-pro-grid-content'),
@@ -36,7 +35,7 @@ const ProjectList: React.FC = () => {
   usePageModelLifeCycle({ onInitPageState, pageState });
   const { localeText } = useLocale();
 
-  const getActions = (record: DATA.Project) => {
+  const getActions = (record: NsProject.Project) => {
     const actions = [];
     if (
       checkPermission(record.userRoles, EProjectAction.ProjectQa) &&
@@ -129,7 +128,7 @@ const ProjectList: React.FC = () => {
     return actions;
   };
 
-  const columns: ProColumns<DATA.Project>[] = [
+  const columns: ProColumns<NsProject.Project>[] = [
     {
       title: localeText('proj.table.name'),
       dataIndex: 'name',
@@ -235,17 +234,15 @@ const ProjectList: React.FC = () => {
       header={{
         title: localeText('proj.title'),
         // All internal employees have the permission to create new projects.
-        extra: user.isStaff
-          ? [
-              <Button key="new" type="primary" onClick={onNewProject}>
-                + {localeText('proj.table.newProject')}
-              </Button>,
-            ]
-          : [],
+        extra: [
+          <Button key="new" type="primary" onClick={onNewProject}>
+            + {localeText('proj.table.newProject')}
+          </Button>,
+        ],
         breadcrumb: {},
       }}
     >
-      <ProTable<DATA.Project>
+      <ProTable<NsProject.Project>
         rowKey={'id'}
         className={styles.table}
         scroll={{

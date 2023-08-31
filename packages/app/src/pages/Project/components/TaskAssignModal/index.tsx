@@ -1,6 +1,6 @@
 import { ModalForm, ProFormSelect } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import { ASSIGN_TYPE } from '../../models/detail';
 
 const TaskAssignModal = () => {

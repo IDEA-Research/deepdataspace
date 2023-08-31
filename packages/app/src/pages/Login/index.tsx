@@ -1,4 +1,4 @@
-import { getUrlQueryVal } from '@/utils/url';
+import { getUrlQueryVal } from 'dds-utils/url';
 import { LoginFormPage } from '@ant-design/pro-components';
 import { useModel } from '@umijs/max';
 import { history } from '@umijs/max';

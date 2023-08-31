@@ -2,7 +2,7 @@ import React from 'react';
 import { PageContainer } from '@ant-design/pro-components';
 import { Card, List } from 'antd';
 import { history } from '@umijs/max';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import styles from './index.less';
 
 const Page: React.FC = () => {
