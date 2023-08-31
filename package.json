@@ -6,6 +6,7 @@
     "dev": "pnpm -r --parallel run start",
     "dev:app": "pnpm run --filter app dev",
     "dev:component": "pnpm run --filter dds-components dev",
+    "dev:build": "pnpm run --filter app dev:build",
     "prepare": "husky install",
     "test": "pnpm run --filter app test"
   },
