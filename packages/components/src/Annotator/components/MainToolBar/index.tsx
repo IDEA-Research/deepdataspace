@@ -236,7 +236,7 @@ export const MainToolBar: React.FC<IProps> = memo(
     const popoverContent = (
       item: TToolItem<EBasicToolItem | EActionToolItem>,
     ) => {
-      const icon = getIconFromShortcut(item.shortcut.shortcut);
+      const icon = getIconFromShortcut(item.shortcut.shortcut, false);
       return (
         <div className="dds-annotator-maintoolbar-popover">
           <div>

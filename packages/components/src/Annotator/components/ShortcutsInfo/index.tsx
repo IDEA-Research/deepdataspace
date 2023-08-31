@@ -11,12 +11,13 @@ import {
 } from '../../constants/shortcuts';
 import { useLocale } from 'dds-utils/locale';
 import './index.less';
+import classNames from 'classnames';
 
 interface IProps {
   viewOnly: boolean;
 }
 
-export const getIconFromShortcut = (keys: string[]) => {
+export const getIconFromShortcut = (keys: string[], withStyle = true) => {
   const userAgent = navigator.userAgent.toLowerCase();
   const isMac = userAgent.indexOf('mac') > -1;
   const icons: any[] = [];
@@ -29,7 +30,9 @@ export const getIconFromShortcut = (keys: string[]) => {
       const combineKeys = key.split('.');
       combineKeys.forEach((key, idx) => {
         const letter = (
-          <span className="dds-annotator-shortcutsinfo-key" key={idx}>
+          <span className={classNames({
+            "dds-annotator-shortcutsinfo-key": withStyle
+          })} key={idx}>
             {convertAliasToSymbol(key)}
           </span>
         );
@@ -37,7 +40,9 @@ export const getIconFromShortcut = (keys: string[]) => {
         if (idx !== combineKeys.length - 1) {
           icons.push(
             <span
-              className="dds-annotator-shortcutsinfo-combine"
+              className={classNames({
+                "dds-annotator-shortcutsinfo-combine": withStyle
+              })}
               key={idx + 'and'}
             >
               {' '}
@@ -48,7 +53,12 @@ export const getIconFromShortcut = (keys: string[]) => {
       });
     } else {
       const letter = (
-        <span className="dds-annotator-shortcutsinfo-key" key={index}>
+        <span
+          className={classNames({
+            "dds-annotator-shortcutsinfo-key": withStyle
+          })}
+          key={index}
+        >
           {convertAliasToSymbol(key)}
         </span>
       );
@@ -57,7 +67,9 @@ export const getIconFromShortcut = (keys: string[]) => {
     if (index !== keys.length - 1) {
       icons.push(
         <span
-          className="dds-annotator-shortcutsinfo-combine"
+          className={classNames({
+            "dds-annotator-shortcutsinfo-combine": withStyle
+          })}
           key={index + 'or'}
         >
           {' '}

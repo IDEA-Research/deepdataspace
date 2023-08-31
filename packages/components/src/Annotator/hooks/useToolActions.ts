@@ -82,6 +82,26 @@ const useToolActions = ({
     drawData.activeObjectIndex,
   ]);
 
+  // TODO
+  const getColorForMaskObj = useCallback(
+    (label: string) => {
+      if (editState.annotsDisplayOptions.colorByCategory) {
+        return getAnnotColor(label);
+      }
+      if (drawData.activeObjectIndex > -1) {
+        return drawData.objectList[drawData.activeObjectIndex].color;
+      }
+      return drawData.creatingObject?.color || getAnnotColor(label);
+    },
+    [
+      editState.annotsDisplayOptions.colorByCategory,
+      getAnnotColor,
+      drawData.activeObjectIndex,
+      drawData.objectList,
+      drawData.creatingObject,
+    ],
+  );
+
   const onFinishCurrCreate = useCallback(
     (label: string) => {
       if (drawData.creatingObject?.type === EObjectType.Mask) {
@@ -92,7 +112,7 @@ const useToolActions = ({
           drawData.creatingObject?.maskCanvasElement,
         );
         if (maskRle && maskRle.length > 0) {
-          const color = getAnnotColor(label);
+          const color = getColorForMaskObj(label);
           const newObject = {
             type: EObjectType.Mask,
             label,
@@ -160,7 +180,9 @@ const useToolActions = ({
         })
         .map((obj) => {
           obj.status = EObjectStatus.Commited;
-          obj.color = getAnnotColor(obj.label);
+          if (obj.type !== EObjectType.Mask) {
+            obj.color = getAnnotColor(obj.label);
+          }
           return obj;
         });
       s.objectList = validObjs;
@@ -390,6 +412,7 @@ const useToolActions = ({
       ) {
         return {
           ...item,
+          color,
           maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
         };
       }

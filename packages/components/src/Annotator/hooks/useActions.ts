@@ -415,7 +415,8 @@ const useActions = ({
         );
       if (result) {
         const { maskId, maskRle, imageId } = result;
-        const color = getAnnotColor(latestLabel);
+        const color =
+          drawData.creatingObject?.color || getAnnotColor(latestLabel);
         const creatingObj = {
           type: EObjectType.Mask,
           hidden: false,

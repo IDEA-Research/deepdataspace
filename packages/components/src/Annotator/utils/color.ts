@@ -135,7 +135,7 @@ export const changeRgbaOpacity = (rgba: string, opacity: number): string => {
 };
 
 /** HSV to RGB */
-const hsvToRgb = (
+export const hsvToRgb = (
   h: number,
   s: number,
   v: number,
@@ -176,8 +176,7 @@ const hsvToRgb = (
 
 export const generateUniformHexColor = (() => {
   const goldenRatio = 0.618033988749895; // Golden ratio for even color distribution
-  let hue = Math.random();
-
+  let hue = 0;
   return (): string => {
     hue = (hue + goldenRatio) % 1;
     const rgbColor = hsvToRgb(hue, 0.8, 0.95);
