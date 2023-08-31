@@ -1,16 +1,12 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "declaration": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "jsx": "react",
     "baseUrl": "./",
     "paths": {
-      "@@/*": [".dumi/tmp/*"],
-      "dds-components": ["src"],
-      "dds-components/*": ["src/*", "*"]
+      "@/*": ["src/*"],
+      "@@/*": ["../../applications/app/src/.umi/*"],
+      "dds-utils/*": ["../../packages/utils/src/*"],
+      "dds-hooks": ["../../packages/hooks/src"]
     }
-  },
-  "include": [".dumi/**/*", ".dumirc.ts", "src/**/*"]
+  }
 }

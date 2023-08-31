@@ -3,7 +3,7 @@ import { Checkbox, Radio, RadioChangeEvent, Space } from 'antd';
 import styles from './index.less';
 import DropdownSelector from '../DropdownSelector';
 import classNames from 'classnames';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import {
   AnnotationType,
   DISPLAY_OPTION_LABELS,

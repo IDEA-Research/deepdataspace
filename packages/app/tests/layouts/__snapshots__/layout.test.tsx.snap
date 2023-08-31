@@ -3,13 +3,13 @@
 exports[`render Menu Layout snapshot 1`] = `
 <div>
   <div
-    class="ant-spin-nested-loading css-dev-only-do-not-override-zjzpde"
+    class="ant-spin-nested-loading css-dev-only-do-not-override-190m0jy"
   >
     <div
       class="ant-spin-container"
     >
-      <section
-        class="ant-layout ant-layout-has-sider css-dev-only-do-not-override-zjzpde"
+      <div
+        class="ant-layout ant-layout-has-sider css-dev-only-do-not-override-190m0jy"
       >
         <div
           class="fixSlider"
@@ -17,6 +17,7 @@ exports[`render Menu Layout snapshot 1`] = `
         />
         <aside
           class="ant-layout-sider ant-layout-sider-light ant-layout-sider-collapsed slider"
+          id="fixSlider"
           style="flex: 0 0 88px; max-width: 88px; min-width: 88px; width: 88px;"
         >
           <div
@@ -36,7 +37,7 @@ exports[`render Menu Layout snapshot 1`] = `
               </a>
             </div>
             <ul
-              class="ant-menu ant-menu-root ant-menu-vertical ant-menu-light menu menuCollapsed ant-menu-inline-collapsed css-dev-only-do-not-override-zjzpde"
+              class="ant-menu ant-menu-root ant-menu-vertical ant-menu-light menu menuCollapsed ant-menu-inline-collapsed css-dev-only-do-not-override-190m0jy"
               data-menu-list="true"
               dir="ltr"
               role="menu"
@@ -153,7 +154,7 @@ exports[`render Menu Layout snapshot 1`] = `
                 class="userBlock"
               >
                 <button
-                  class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text userBtn"
+                  class="ant-btn css-dev-only-do-not-override-190m0jy ant-btn-text userBtn"
                   type="button"
                 >
                   <span>
@@ -167,32 +168,36 @@ exports[`render Menu Layout snapshot 1`] = `
                 target="_blank"
               >
                 <button
-                  class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text ant-btn-icon-only docsBtn"
+                  class="ant-btn css-dev-only-do-not-override-190m0jy ant-btn-text ant-btn-icon-only docsBtn"
                   type="button"
                 >
                   <span
-                    aria-label="file-search"
-                    class="anticon anticon-file-search"
-                    role="img"
+                    class="ant-btn-icon"
                   >
-                    <svg
-                      aria-hidden="true"
-                      data-icon="file-search"
-                      fill="currentColor"
-                      focusable="false"
-                      height="1em"
-                      viewBox="64 64 896 896"
-                      width="1em"
+                    <span
+                      aria-label="file-search"
+                      class="anticon anticon-file-search"
+                      role="img"
                     >
-                      <path
-                        d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
-                      />
-                    </svg>
+                      <svg
+                        aria-hidden="true"
+                        data-icon="file-search"
+                        fill="currentColor"
+                        focusable="false"
+                        height="1em"
+                        viewBox="64 64 896 896"
+                        width="1em"
+                      >
+                        <path
+                          d="M688 312v-48c0-4.4-3.6-8-8-8H296c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h384c4.4 0 8-3.6 8-8zm-392 88c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h184c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8H296zm144 452H208V148h560v344c0 4.4 3.6 8 8 8h56c4.4 0 8-3.6 8-8V108c0-17.7-14.3-32-32-32H168c-17.7 0-32 14.3-32 32v784c0 17.7 14.3 32 32 32h272c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm445.7 51.5l-93.3-93.3C814.7 780.7 828 743.9 828 704c0-97.2-78.8-176-176-176s-176 78.8-176 176 78.8 176 176 176c35.8 0 69-10.7 96.8-29l94.7 94.7c1.6 1.6 3.6 2.3 5.6 2.3s4.1-.8 5.6-2.3l31-31a7.9 7.9 0 000-11.2zM652 816c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"
+                        />
+                      </svg>
+                    </span>
                   </span>
                 </button>
               </a>
               <button
-                class="ant-btn css-dev-only-do-not-override-zjzpde ant-btn-text dds-lang-selector undefined"
+                class="ant-btn css-dev-only-do-not-override-190m0jy ant-btn-text dds-lang-selector undefined"
                 type="button"
               >
                 <div>
@@ -234,10 +239,10 @@ exports[`render Menu Layout snapshot 1`] = `
             </div>
           </div>
         </aside>
-        <section
-          class="ant-layout css-dev-only-do-not-override-zjzpde"
+        <div
+          class="ant-layout css-dev-only-do-not-override-190m0jy"
         />
-      </section>
+      </div>
     </div>
   </div>
 </div>

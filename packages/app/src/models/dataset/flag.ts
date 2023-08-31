@@ -11,10 +11,9 @@ import {
   saveFlagReq,
 } from '@/services/dataset';
 import { IMG_FLAG } from '@/constants';
-import { reportEvent } from '@/logs';
-import { DATA } from '@/services/type';
+import { NsDataSet } from '@/types/dataset';
 
-const getSlectedIndex = (list: Array<DATA.DataSetImg>) => {
+const getSlectedIndex = (list: Array<NsDataSet.DataSetImg>) => {
   const selectIndexs: number[] = [];
   const selectedIds: string[] = [];
   list.forEach((item, index) => {
@@ -61,9 +60,6 @@ export default () => {
         s.flagTools.lastShiftIndex = newSelected ? index : -1;
         s.flagTools.count += newSelected ? 1 : -1;
       }
-      reportEvent('dataset_flagtools_select', {
-        selectedCount: s.flagTools.count,
-      });
     });
   };
 
@@ -77,23 +73,16 @@ export default () => {
       });
       s.flagTools.lastShiftIndex = -1;
       s.flagTools.count = shouldSelectAll ? pageState.pageSize : 0;
-      reportEvent('dataset_flagtools_select_all', {
-        selectedCount: s.flagTools.count,
-      });
     });
   };
 
-  const antiSelect = (isShortcut = false) => {
+  const antiSelect = () => {
     setPageData((s) => {
       s.imgList.forEach((item) => {
         item.selected = !!!item.selected;
       });
       s.flagTools.lastShiftIndex = -1;
       s.flagTools.count = pageState.pageSize - s.flagTools.count;
-      reportEvent('dataset_flagtools_select_invert', {
-        selectedCount: s.flagTools.count,
-        isShortcut: isShortcut,
-      });
     });
   };
 
@@ -130,7 +119,6 @@ export default () => {
         s.page = 1;
         s.flagTools!.flagStatus = value;
       });
-      reportEvent('dataset_flagtools_filter_status', { status: value });
     });
   };
 
@@ -147,7 +135,6 @@ export default () => {
         flagStatus: IMG_FLAG.all,
       };
     });
-    reportEvent('dataset_enter_flagtools');
   };
 
   const exitFlagTools = () => {
@@ -156,11 +143,10 @@ export default () => {
         s.page = 1;
         s.flagTools = undefined;
       });
-      reportEvent('dataset_exit_flagtools');
     });
   };
 
-  const saveFlag = async (flag: IMG_FLAG, isShortcut = false) => {
+  const saveFlag = async (flag: IMG_FLAG) => {
     if (pageData.flagTools.count <= 0) {
       message.warning('No any image to be selected!');
       return;
@@ -169,12 +155,6 @@ export default () => {
     const { selectIndexs, selectedIds } = getSlectedIndex(pageData.imgList);
     const hide = message.loading('Flag saving...');
     try {
-      reportEvent('dataset_flagtools_save_flag', {
-        selectedCount: selectedIds.length,
-        status: flag,
-        pageSize: pageState.pageSize,
-        isShortcut,
-      });
       await saveFlagReq({
         datasetId: pageState.datasetId,
         flagGroups: [
@@ -232,7 +212,6 @@ export default () => {
 
   const updateOrder = async () => {
     try {
-      reportEvent('dataset_flagtools_update_order');
       setPageData((s) => {
         s.screenLoading = 'Updating order...';
       });
@@ -273,13 +252,13 @@ export default () => {
         return;
       }
       if (['v', 'V'].includes(e.key)) {
-        antiSelect(true);
+        antiSelect();
       }
       if (['q', 'Q'].includes(e.key) && e.shiftKey) {
-        saveFlag(IMG_FLAG.picked, true);
+        saveFlag(IMG_FLAG.picked);
       }
       if (['e', 'E'].includes(e.key) && e.shiftKey) {
-        saveFlag(IMG_FLAG.rejected, true);
+        saveFlag(IMG_FLAG.rejected);
       }
     },
   );

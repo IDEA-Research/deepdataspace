@@ -2,7 +2,6 @@
 
 [![dumi](https://img.shields.io/static/v1?label=dumi&message=2.1&color=green)](https://d.umijs.org/)
 
-
 ## Usage
 
 ```sh
@@ -12,7 +11,6 @@
 # Use component in code
 
 ```
-
 
 ## Development
 

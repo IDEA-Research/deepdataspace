@@ -1,0 +1,57 @@
+.container {
+  overflow: hidden;
+
+  .virtual-list {
+    border-radius: 8px;
+    overflow-y: hidden;
+  }
+
+  .row-container {
+    display: flex;
+  }
+
+  .preview-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 5px;
+    padding-bottom: 10px;
+  }
+
+  .remove-button {
+    display: none;
+    position: absolute !important;
+    top: 4px;
+    right: 4px;
+  }
+
+  .preview-container:hover {
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .preview-container:hover .remove-button {
+    display: block;
+  }
+
+  .image-preview {
+    box-sizing: border-box;
+    object-fit: cover;
+    background-color: #fff;
+    border-radius: 5px;
+  }
+
+  .image-name {
+    width: 90%;
+    margin: 5px;
+    word-wrap: break-word;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

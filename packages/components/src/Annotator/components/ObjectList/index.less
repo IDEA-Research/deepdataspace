@@ -1,0 +1,230 @@
+.dds-annotator-objectlist {
+  /* Hide scrollbar */
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome Safari */
+  }
+
+  .ant-tabs {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .ant-tabs-tab + .ant-tabs-tab {
+    margin: 0;
+  }
+
+  .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #fff;
+  }
+
+  .ant-tabs-tab {
+    padding: 12px;
+    margin: 0;
+  }
+
+  .ant-tabs-tab-active {
+    border-bottom: 2px solid @colorPrimary;
+  }
+
+  .ant-tabs-nav {
+    margin: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #000;
+  }
+
+  .ant-collapse-item {
+    scroll-margin: 48px 0 0 0;
+  }
+
+  .ant-list {
+    color: #fff;
+  }
+
+  .ant-list-item {
+    padding: 0;
+    color: #fff;
+  }
+
+  .objects-selector {
+    width: 144px;
+    color: #fff;
+    text-align: left;
+    padding: 0;
+  }
+
+  .ant-select-disabled.ant-select:not(.ant-select-customize-input)
+    .ant-select-selector {
+    color: #fff;
+  }
+
+  .objects-select-popup {
+    background: #050505;
+    color: #fff;
+    border-radius: 1px;
+    padding: 0;
+    margin-top: -10px;
+
+    .ant-select-item {
+      color: white;
+      text-align: left;
+    }
+
+    .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+      background-color: #4c4c4c;
+    }
+
+    .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+      color: #fff;
+      font-weight: 600;
+      background-color: #050505;
+    }
+  }
+
+  .ant-select-multiple .ant-select-selection-item {
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+
+  .ant-select-multiple .ant-select-selection-item-remove {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .tab-header-actions {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+  }
+
+  .tab-collapse {
+    width: 100%;
+
+    .collapse-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0;
+      width: 256px;
+      font-size: 14px;
+      color: #fff;
+      background: #1f1f1f;
+
+      .label-name {
+        margin: 0 15px;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .label-count {
+        display: inline-block;
+        padding-inline: 5px;
+        margin-inline: 10px;
+        height: 25px;
+        min-width: 25px;
+        line-height: 25px;
+        border-radius: 5px;
+        background-color: #236bf7;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .selected-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 4px;
+        height: 100%;
+      }
+
+      .label-icon {
+        margin-left: 14px;
+        margin-right: 14px;
+        width: 15px;
+        height: 15px;
+      }
+
+      .label-actions {
+        position: absolute;
+        right: 5%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      .label-btn {
+        border: 0;
+      }
+
+      .down-arrow {
+        transform: rotate(180deg);
+        width: 10px;
+        height: 10px;
+      }
+    }
+
+    .collapseHeader:hover {
+      background-color: #4b4f52;
+    }
+
+    .collapse-header-selected {
+      .arrow {
+        transform: rotate(0);
+      }
+    }
+
+    .collapse-item {
+      position: relative;
+      display: flex;
+      justify-items: flex-start;
+      align-items: center;
+      height: 35px;
+      padding-left: 10px;
+      margin-left: 6px;
+      color: #fff;
+      background: #1f1f1f;
+      font-size: 14px;
+
+      .color-hint {
+        position: absolute;
+        left: 3%;
+        margin-left: 0;
+        width: 0.5rem;
+        height: 0.5rem;
+        border: 0.1rem solid rgba(255, 255, 255, 0.8);
+        border-radius: 50%;
+      }
+
+      .label-icon {
+        margin-left: 15px;
+        width: 15px;
+        height: 15px;
+      }
+
+      .label {
+        flex: 1;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .label-actions {
+        margin-right: 5%;
+      }
+
+      .label-btn {
+        border: 0;
+      }
+    }
+
+    .collapse-item:hover {
+      background-color: #4b4f52;
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { Modal } from 'antd';
 import LoginLogo from '@/assets/images/favicon.png';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import { useModel } from '@umijs/max';
 
 export const LOGIN_TITLE = 'Deep Data Space';

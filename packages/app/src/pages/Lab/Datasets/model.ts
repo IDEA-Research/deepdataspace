@@ -2,16 +2,16 @@ import { history, useModel } from '@umijs/max';
 import copy from 'copy-to-clipboard';
 import { DEFAULT_PAGE_SIZE } from '@/constants';
 import { message } from 'antd';
-import { DATA } from '@/services/type';
-import { getUrlQueryVal } from '@/utils/url';
-import { globalLocaleText } from '@/locales/helper';
+import { getUrlQueryVal } from 'dds-utils/url';
+import { globalLocaleText } from 'dds-utils/locale';
 import { PaginationState } from '@/models/datasets';
+import { NsDataSet } from '@/types/dataset';
 
 export default () => {
   const { loadDatasets, setPagination } = useModel('datasets');
   const labType = getUrlQueryVal('type') || 'flagtool';
 
-  const onClickItem = (item: DATA.DataSet) => {
+  const onClickItem = (item: NsDataSet.DataSet) => {
     const pageState = JSON.stringify({
       datasetId: item.id,
       datasetName: item.name,
@@ -21,7 +21,7 @@ export default () => {
 
   const onClickCopyLink = (
     e: React.UIEvent<HTMLElement, UIEvent>,
-    item: DATA.DataSet,
+    item: NsDataSet.DataSet,
   ) => {
     const pageState = JSON.stringify({
       datasetId: item.id,

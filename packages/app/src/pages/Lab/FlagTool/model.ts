@@ -1,9 +1,9 @@
 import { useModel } from '@umijs/max';
 import { useKeyPress } from 'ahooks';
 import { DEFAULT_PAGE_DATA, DEFAULT_PAGE_STATE } from '@/models/dataset/type';
-import { reportEvent } from '@/logs';
 
 export default () => {
+  const { showLoginModal } = useModel('user');
   const { pageState, setPageState, pageData, setPageData } =
     useModel('dataset.common');
   const { selectItem, enterFlagTools, limitNoSaveChangePage } =
@@ -17,19 +17,13 @@ export default () => {
     setPageState((s) => {
       s.previewIndex = index;
     });
-    reportEvent('dataset_item_preview');
   };
 
-  const onPageChange = (page: number, isShortcut = false) => {
+  const onPageChange = (page: number) => {
     if (pageState.page === page) return;
     limitNoSaveChangePage().then(() => {
       setPageState((s) => {
         s.page = page;
-      });
-      reportEvent('dataset_list_change_page', {
-        page,
-        pageSize: pageState.pageSize,
-        isShortcut,
       });
     });
   };
@@ -49,17 +43,17 @@ export default () => {
   useKeyPress(
     ['a', 'A', 'd', 'D', 'shift.q', 'shift.Q', 'shift.e', 'shift.E', 'z', 'Z'],
     (e: KeyboardEvent) => {
-      if (pageState.previewIndex >= 0) {
+      if (pageState.previewIndex >= 0 || showLoginModal) {
         return;
       }
       if (['a', 'A'].includes(e.key) && pageState.page > 1) {
-        onPageChange(pageState.page - 1, true);
+        onPageChange(pageState.page - 1);
       }
       if (
         ['d', 'D'].includes(e.key) &&
         pageState.page < Math.ceil(pageData.total / pageState.pageSize)
       ) {
-        onPageChange(pageState.page + 1, true);
+        onPageChange(pageState.page + 1);
       }
     },
   );

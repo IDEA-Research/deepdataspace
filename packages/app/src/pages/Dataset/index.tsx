@@ -1,18 +1,18 @@
 import React, { useMemo } from 'react';
 import { useModel } from '@umijs/max';
-import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
+import { usePageModelLifeCycle } from 'dds-hooks';
 import { PageContainer } from '@ant-design/pro-components';
-import { List, Pagination, Spin } from 'antd';
+import { List, Spin } from 'antd';
 import Masonry from 'react-masonry-component';
 import Header from './components/Header';
 import ComparisonsBar from './components/ComparisonsBar';
 import DiffLabelsTip from './components/DiffLabelsTip';
-import Preview from '@/components/Preview';
+import { AnnotateView, AnnotatePreview } from 'dds-components/Annotator';
+import { DynamicPagination } from 'dds-components';
 import { ReactComponent as FlagIcon } from '@/assets/svg/flag.svg';
-import { IMG_FLAG, IMG_FLAG_COLOR, IMG_PAGE_SIZE_OPTIONS } from '@/constants';
-import { doubleImgList } from '@/utils/annotation';
+import { IMG_FLAG, IMG_FLAG_COLOR } from '@/constants';
+import { doubleImgList } from '@/utils/datasets';
 import styles from './index.less';
-import { useSize } from 'ahooks';
 
 const Page: React.FC = () => {
   const {
@@ -26,7 +26,8 @@ const Page: React.FC = () => {
     onPageContentLoaded,
     onPreviewIndexChange,
     exitPreview,
-    renderAnnotationImage,
+    displayObjectsFilter,
+    getCustomObjectStyles,
   } = useModel('dataset.common');
   const {
     onPageDidMount,
@@ -36,6 +37,7 @@ const Page: React.FC = () => {
     onPageChange,
     onPageSizeChange,
   } = useModel('Dataset.model');
+  const { layoutInnerWidth } = useModel('global');
   const { cloumnCount, isSingleAnnotation, filterValues, flagTools } =
     pageState;
 
@@ -46,8 +48,7 @@ const Page: React.FC = () => {
     pageState,
   });
 
-  const size = useSize(() => document.querySelector('.ant-pro-page-container'));
-  const listContentWidth = size?.width ? size.width - 80 : 0;
+  const listContentWidth = layoutInnerWidth ? layoutInnerWidth - 80 : 0;
 
   const imgList = useMemo(
     () =>
@@ -92,6 +93,7 @@ const Page: React.FC = () => {
                 transitionDuration: 0,
               }}
               onImagesLoaded={() => onPageContentLoaded()}
+              enableResizableChildren
             >
               {imgList.map((item, index) => (
                 <div
@@ -108,12 +110,19 @@ const Page: React.FC = () => {
                       height: flagTools ? (itemWidth * 3) / 4 : 'auto',
                     }}
                   >
-                    {renderAnnotationImage({
-                      wrapWidth: itemWidth,
-                      wrapHeight: flagTools ? (itemWidth * 3) / 4 : undefined,
-                      minHeight: (itemWidth * 3) / 4,
-                      data: item,
-                    })}
+                    <AnnotateView
+                      categories={pageData.filters.categories}
+                      data={item}
+                      wrapWidth={itemWidth}
+                      wrapHeight={flagTools ? (itemWidth * 3) / 4 : undefined}
+                      minHeight={(itemWidth * 3) / 4}
+                      objectsFilter={displayObjectsFilter}
+                      getCustomObjectStyles={getCustomObjectStyles}
+                      displayOptionsResult={displayOptionsResult}
+                      displayAnnotationType={
+                        pageState.filterValues.displayAnnotationType
+                      }
+                    />
                   </div>
                   {item.flag > 0 && (
                     <FlagIcon
@@ -135,27 +144,33 @@ const Page: React.FC = () => {
       </div>
       {/* Pagination */}
       {!loading && (
-        <div className={styles.pagination}>
-          <Pagination
-            current={pageState.page}
-            pageSize={pageState.pageSize}
-            total={pageData.total}
-            showSizeChanger
-            showQuickJumper
-            pageSizeOptions={IMG_PAGE_SIZE_OPTIONS}
-            onChange={(page) => onPageChange(page)}
-            onShowSizeChange={onPageSizeChange}
-          />
-        </div>
+        <DynamicPagination
+          current={pageState.page}
+          size={pageState.pageSize}
+          total={pageData.total}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
       {/* Preview */}
-      <Preview
+      <AnnotatePreview
         visible={pageState.previewIndex >= 0 && !isSingleAnnotation}
-        onClose={exitPreview}
+        categories={pageData.filters.categories}
         list={imgList}
         current={pageState.previewIndex}
-        onCurrentChange={onPreviewIndexChange}
-        renderAnnotationImage={renderAnnotationImage}
+        onCancel={exitPreview}
+        onNext={async () => {
+          if (pageState.previewIndex < imgList.length - 1)
+            onPreviewIndexChange(pageState.previewIndex + 1);
+        }}
+        onPrev={async () => {
+          if (pageState.previewIndex > 0)
+            onPreviewIndexChange(pageState.previewIndex - 1);
+        }}
+        objectsFilter={displayObjectsFilter}
+        getCustomObjectStyles={getCustomObjectStyles}
+        displayOptionsResult={displayOptionsResult}
+        displayAnnotationType={pageState.filterValues.displayAnnotationType}
       />
       {/* Screen loading */}
       {pageData.screenLoading ? (

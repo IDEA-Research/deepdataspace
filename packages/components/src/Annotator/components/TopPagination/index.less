@@ -1,0 +1,44 @@
+.dds-annotator-toppagination {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  z-index: 99;
+  border-radius: 10px;
+  padding: 0.4rem 0.5rem;
+
+  &-btn {
+    width: 32px;
+    height: 32px;
+    margin: 0 0.5rem;
+    border: 0;
+    background-color: transparent;
+    color: #fff;
+    border-radius: 5px;
+  }
+
+  &-btn:hover {
+    background-color: @colorPrimary;
+    transform: scale(1.2);
+  }
+
+  &-btn-disabled {
+    color: rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+
+    svg {
+      fill: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  &-scale-text {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 8px;
+  }
+
+  &-divider {
+    height: 100%;
+    margin: 6px 8px;
+    border-left: 1px solid #bbb;
+  }
+}

@@ -9,7 +9,7 @@ import {
   IMG_FLAG_OPTIONS,
   IMG_FLAG_RESULTS,
 } from '@/constants';
-import { LocaleText } from '@/locales/helper';
+import { LocaleText } from 'dds-utils/locale';
 import styles from './index.less';
 import DropdownSelector from '@/components/DropdownSelector';
 

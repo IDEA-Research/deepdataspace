@@ -1,8 +1,8 @@
-import { DATA } from '@/services/type';
+import { BaseImage, BaseObject } from '.';
 
-export interface LabelImageFile extends DATA.BaseImage {
+export interface LabelImageFile extends BaseImage {
   fileName: string;
-  width: number;
-  height: number;
-  objects: DATA.BaseObject[];
+  objects: BaseObject[];
+  width?: number;
+  height?: number;
 }
