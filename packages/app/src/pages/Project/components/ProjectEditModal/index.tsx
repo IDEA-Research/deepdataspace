@@ -13,7 +13,7 @@ import {
 import { useModel } from '@umijs/max';
 import { Alert, Modal } from 'antd';
 import { useRef } from 'react';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
 import { SET_WORKFLOW_NOW } from '../../models/list';
 import { EProjectStatus } from '../../constants';
 import { EProjectAction } from '../../models/auth';
@@ -125,22 +125,26 @@ const ProjectEditModal = () => {
             debounceTime={300}
             request={async ({ keyWords = '' }) => {
               let datasets = targetProject?.datasets || [];
-              if (keyWords) {
-                return (
-                  await fetchDatasetLint({
-                    name: keyWords,
-                    purpose: 'label_project',
-                  })
-                ).datasetList.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                  disabled: !item.valid,
-                }));
-              }
-              return datasets.map((item) => ({
+              const results = (
+                await fetchDatasetLint({
+                  name: keyWords,
+                  purpose: 'label_project',
+                })
+              ).datasetList.map((item) => ({
                 label: item.name,
                 value: item.id,
+                disabled: !item.valid,
               }));
+              datasets.forEach((item) => {
+                if (!results.find((d) => d.value === item.id)) {
+                  results.push({
+                    label: item.name,
+                    value: item.id,
+                    disabled: false,
+                  });
+                }
+              });
+              return results;
             }}
             rules={[
               {
@@ -186,7 +190,12 @@ const ProjectEditModal = () => {
             request={async ({ keyWords = '' }) => {
               let managers = targetProject?.managers || [];
               if (keyWords) {
-                managers = (await fetchUserLint({ name: keyWords })).userList;
+                managers = (
+                  await fetchUserLint({ email: keyWords })
+                ).userList.map((item) => ({
+                  name: item.email,
+                  id: item.id,
+                }));
               }
               return managers.map((item) => ({
                 label: item.name,

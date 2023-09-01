@@ -26,14 +26,10 @@ describe('useModel user', () => {
       username: 'test user',
       userId: '123',
       token: 'test token',
-      isStaff: true,
     });
     const { result } = umiRenderHook(() => useModel('user'));
     await act(async () => {
-      await result.current.onLogin({
-        username: 'test user',
-        password: '123',
-      });
+      await result.current.onLogin('', 'test user@xxx.com', '123');
       expect(login).toHaveBeenCalledTimes(1);
     });
     expect(result.current.user.isLogin).toEqual(true);
@@ -76,7 +72,6 @@ describe('useModel user', () => {
       id: '123',
       name: 'test user',
       status: EUserStatus.Active,
-      isStaff: true,
     });
     localStorage.setItem(STORAGE_KEY.AUTH_TOKEN, 'test token');
     const { result } = umiRenderHook(() => useModel('user'));

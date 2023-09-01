@@ -9,8 +9,8 @@ import {
   LABEL_DIFF_MODE_OPTIONS,
   LABEL_SOURCE,
 } from '@/constants';
-import { useLocale } from '@/locales/helper';
-import { fixedFloatNum } from '@/utils/digit';
+import { useLocale } from 'dds-utils/locale';
+import { fixedFloatNum } from 'dds-utils/digit';
 
 const ComparisonsBar: React.FC = () => {
   const { localeText } = useLocale();

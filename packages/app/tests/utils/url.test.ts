@@ -1,4 +1,4 @@
-import { getUrlQueryVal, getUrlPathnameLastKey, backPath } from '@/utils/url';
+import { getUrlQueryVal, getUrlPathnameLastKey, backPath } from 'dds-utils/url';
 
 describe('getUrlQueryVal', () => {
   beforeEach(() => {

@@ -1,8 +1,8 @@
+import { NsApiUser } from '@/types/api';
 import { request } from '@umijs/max';
-import { API } from './type';
 
 export async function fetchUserInfo(options?: { [key: string]: any }) {
-  return request<API.FetchUserInfoRsp>(`/api/v1/user_info`, {
+  return request<NsApiUser.FetchUserInfoRsp>(`/api/v1/user_info`, {
     method: 'GET',
     skipErrorHandler: true,
     ...(options || {}),
@@ -16,7 +16,7 @@ export async function login(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.ReqLoginRsp>(`/api/v1/login`, {
+  return request<NsApiUser.ReqLoginRsp>(`/api/v1/login`, {
     method: 'POST',
     data: {
       ...params,

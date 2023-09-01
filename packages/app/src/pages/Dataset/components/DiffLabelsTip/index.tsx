@@ -1,6 +1,6 @@
 import React from 'react';
 import { useModel } from '@umijs/max';
-import { getDiffLabels } from '@/utils/annotation';
+import { getDiffLabels } from '@/utils/datasets';
 import styles from './index.less';
 
 export interface IProps {

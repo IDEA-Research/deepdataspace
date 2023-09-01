@@ -1,4 +1,4 @@
-import { floorFloatNum, fixedFloatNum } from '@/utils/digit';
+import { floorFloatNum, fixedFloatNum } from 'dds-utils/digit';
 
 describe('test digit util', () => {
   test('format 2.355 to 2.35', () => {

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkapp=self.webpackChunkapp||[]).push([[899],{8615:function(o,n,u){u.r(n);var e=u(97375),t=u(35667);n.default=function(){var s=(0,e.useModel)("user"),a=s.user,r=(0,e.useLocation)(),i=r.pathname;return a.isLogin===void 0?null:a.isLogin?(0,t.jsx)(e.Outlet,{}):(0,t.jsx)(e.Navigate,{to:"/login?redirect=".concat(i),replace:!0})}}}]);

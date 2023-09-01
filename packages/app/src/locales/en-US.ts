@@ -1,4 +1,6 @@
-export default {
+import ComponentsLocaleTexts from 'dds-components/locales/en-US';
+
+const localeTexts = {
   /** aside */
   datasets: 'Datasets',
   projects: 'Projects',
@@ -31,11 +33,49 @@ export default {
     'Authentication failed. Please check your username and password and try again.',
   logoutSuccess: 'Logout Successfully',
   logoutFailed: 'Logout Failed',
+  signupSuccess:
+    'SignUp successfully, please check your email and finish activation.',
+  signupAuthenticationFailed:
+    'SignUp failed. Please check your email and password and try again.',
+  activationCheckLoading: 'Account activation is being verified, please wait.',
+  activationCheckSuccessed:
+    'Account activation successful. Redirecting to the login page.',
+  activationCheckFailed:
+    'Account activation verification failed, please use a valid link.',
+  activationCheckFailedTitle: 'Activation link expired',
+  activationCheckFailedTip:
+    'The activation link is expired, please return to login page to re-initiate registration.',
+  backToLoginBtn: 'Back to Login',
+  newUser: "Don't have an account? Sign up",
+  backtoLogin: 'Already have an account? Log in',
+  signup: 'SignUp',
   username: 'Username',
+  email: 'Email',
   password: 'Password',
+  passwordConfirm: 'Password Confirm',
   usernameTip: 'Please input your username',
+  emailTip: 'Please input your email',
   passwordTip: 'Please input your password',
+  passwordConfirmTip: 'Please confirm your password',
   getStart: 'GET START',
+  checkEmailInbox:
+    'Click on the link we sent to {email} to finish your account activation within 24 hours.',
+  resendEmailTip: 'No email in your inbox or span folder? ',
+  resendEmailBtn: "Let's resend it.",
+  resendEmailSuccess: 'Resend email successfully.',
+  resendEmailFailed: 'Resend email failed.',
+  rewriteEmailAddress: 'Wrong address? ',
+  rewriteEmailBtn: 'Go Back ',
+  rewriteEmailTip: 'to sign in with a different email.',
+  validatePwdRequire: 'Password is required',
+  validatePwdLengthMin: 'Password length no less than 8 characters',
+  validatepwdFormat:
+    'Password must contain uppercase and lowercase letters, numbers, and special characters',
+  validatePwdLengthMax: 'Password length no greater than 20 characters',
+  validatePwdConfirmRequire: 'Confirmation password is required',
+  validatePwdConfirmDiff: 'The two passwords you entered do not match',
+  validateEmailRequire: 'Email is required',
+  validateEmailFormat: 'Invalid email format',
 
   /** dataset */
   'dataset.images': 'images',
@@ -59,13 +99,67 @@ export default {
   'dataset.detail.analModal.diff': ' Diff',
   'dataset.detail.analModal.score': 'score',
   'dataset.detail.analModal.exit': 'Exit Analysis',
-  'dataset.detail.columnSetting.title': 'Max column count',
 
   'dataset.toAnalysis.unSupportWarn':
     'You should have a prediction label set with detection annotaion first',
   'dataset.toAnalysis.unSelectWarn': 'Please select a prediction label set',
   'dataset.onClickCopyLink.success': 'Copy link success!',
   'dataset.detail.overlay': 'Overlay',
+
+  'dataset.filter.newDataset': 'New dataset',
+  'dataset.filter.public': 'Public',
+  'dataset.filter.private': 'Private',
+  'dataset.create.modal.step.one': 'Create',
+  'dataset.create.modal.step.prev': '< Previous step',
+  'dataset.create.modal.step.finish': 'Finish',
+  'dataset.create.success': 'Successfully create new dataset.',
+  'dataset.create.error': 'Create datatset failed with error: {error}',
+  'dataset.create.warn': 'Dataset name is required, and can be repeated.',
+  'dataset.update.success': 'Successfully update dataset.',
+  'dataset.update.error': 'Update datatset failed with error: {error}',
+  'dataset.update.warn': 'Could not update dataset with invalid dataset ID.',
+  'dataset.import.success': 'Successfully import images into dataset.',
+  'dataset.import.warn':
+    'Could not import images into dataset with empty image list.',
+  'dataset.import.error': 'Import images failed with error: {error}',
+  'dataset.create.modal.title': 'Create dataset',
+  'dataset.create.modal.finish': 'Successfully import images into new dataset.',
+  'dataset.create.modal.required': 'This field is required.',
+  'dataset.create.modal.name': 'Name',
+  'dataset.create.modal.name.tooltip': 'The max length of dataset name is 64.',
+  'dataset.create.modal.name.placeholder': 'Please input dataset name',
+  'dataset.create.modal.desc': 'Description',
+  'dataset.create.modal.desc.placeholder': 'Please input dataset description',
+  'dataset.create.modal.auth': 'Authority',
+  'dataset.create.modal.auth.public': 'Public',
+  'dataset.create.modal.auth.private': 'Private',
+  'dataset.import.modal.title': 'Import images',
+  'dataset.import.modal.label': 'Image Urls',
+  'dataset.import.modal.addUrl': 'Add Urls',
+  'dataset.import.modal.addUrl.btn': 'Add',
+  'dataset.import.modal.upload': 'Batch Upload',
+  'dataset.import.modal.upload.text':
+    'Click or drag file to this area to upload',
+  'dataset.import.modal.upload.hint': 'Support for a single or bulk upload.',
+  'dataset.import.modal.addedImgCount': 'Had added {count} images',
+  'dataset.import.modal.placeholder':
+    'Please enter the image urls and click "Add" button to add images. \nOr click "Upload" button to upload local files. \nYou can input multiple urls by separating them with a new line. \nE.g.: \n https://xxx.com/xxx01.png \n https://xxx.com/xxx02.png',
+  'dataset.import.modal.emptyImgs': 'No images',
+  'dataset.import.modal.tip.maxImgCount':
+    'Had exceeded the maximum number of images, please check',
+  'dataset.import.modal.tip.successLoad': 'Had loaded {count} images',
+  'dataset.import.modal.tip.partLoad':
+    'Had loaded {count} images, some images failed to load, please check',
+  'dataset.import.modal.tip.policiesFail':
+    'Get upload policies error, please try again',
+  'dataset.import.modal.tip.someUploadFail':
+    'Some images failed to upload, please try again',
+  'dataset.import.edit.modal.title': 'Import images',
+  'dataset.import.modal.submit': 'Import',
+  'dataset.import.modal.reset': 'Reset',
+  'dataset.edit.modal.title': 'Edit dataset',
+  'dataset.edit.modal.submit': 'Update',
+  'dataset.edit.modal.reset': 'Reset',
 
   /** Annotate */
   'annotate.quick': 'Quick Mode',
@@ -83,7 +177,7 @@ export default {
   'annotator.formModal.title': 'Before you start',
   'annotator.formModal.importImages': 'Import Images',
   'annotator.formModal.imageTips':
-    'Tips: Import a maximum of 20 images, with each image not exceeding 5MB.',
+    'Tips: Import a maximum of {count} images, with each image not exceeding {size}MB.',
   'annotator.formModal.categories': 'Categories',
   'annotator.formModal.addCategory': 'Add',
   'annotator.formModal.categoryPlaceholder':
@@ -98,164 +192,10 @@ export default {
     'At least one category is required.',
   'annotator.formModal.deleteCategory.title': 'Info',
   'annotator.formModal.deleteCategory.desc':
-    'This category is used by current annotations. Please manually delete those annotations or revise their category first.',
-
-  /** SmartAnnotation */
-  'smartAnnotation.infoModal.title': 'Experience Intelligent Annotate',
-  'smartAnnotation.infoModal.content':
-    'Sorry, this feature is not available in the local version of DeepDataSpace currently. Please visit the official website for more information. You can contact us (deepdataspace_dm@idea.edu.cn) for a priority experience of intelligent annotate.',
-  'smartAnnotation.infoModal.action': 'Visit Our Website',
-  'smartAnnotation.detection.name': 'Intelligent Object Detection',
-  'smartAnnotation.detection.input': 'Select or enter categories',
-  'smartAnnotation.segmentation.name': 'Intelligent Segmentation (Polygon)',
-  'smartAnnotation.pose.name': 'Intelligent Pose Estimation',
-  'smartAnnotation.mask.name': 'Intelligent Panoramic Segmentation',
-  'smartAnnotation.pose.input': 'Select template',
-  'smartAnnotation.pose.apply': 'Apply Results',
-  'smartAnnotation.annotate': 'Auto-Annotate',
-  'smartAnnotation.retry': 'Retry',
-  'smartAnnotation.modelTyle': 'Model Type',
-  'smartAnnotation.minArea': 'Minimum Area',
-  'smartAnnotation.iouThres': 'IoU Threshold',
-  'smartAnnotation.segmentation.tipsInitial':
-    'Tips: Draw a bounding box around your target or click the center of it to generate initial segmentation.',
-  'smartAnnotation.segmentation.tipsNext':
-    'Tips: Modify results by clicking the left mouse button to add a positive point, or clicking the right mouse button to add a negative point.',
-  'smartAnnotation.msg.loading': 'Loading Intelligent Annotation...',
-  'smartAnnotation.msg.success': 'Request Annotations Successfully',
-  'smartAnnotation.msg.error': 'Request Annotations Failed',
-  'smartAnnotation.msg.labelRequired': 'Please select one category at least',
-  'smartAnnotation.msg.confResults': '{count} matching annotations shown',
-  'smartAnnotation.msg.applyConf':
-    '{count} annotations have been retained, with the others removed.',
-  'smartAnnotation.rateLimit.title': 'Tips',
-  'smartAnnotation.rateLimit.content':
-    'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
-  'smartAnnotation.rateLimit.okText': 'OK',
-  'smartAnnotation.detection.confidence': 'Confidence',
-  'smartAnnotation.back': 'Back',
-  'smartAnnotation.tip': 'Tip',
-  'smartAnnotation.tip.ctrl':
-    'Press on Ctrl to enter the mode of recovering unselected annotations.',
-  'smartAnnotation.tip.recover': 'Recover unselected annotations',
-  'smartAnnotation.tip.overlayobject': 'View overlapping annotation objects',
-  'smartAnnotation.tip.annotationApplied': '{count} annotations applied.',
-
-  /** Editor */
-  'editor.save': 'Save',
-  'editor.cancel': 'Cancel',
-  'editor.delete': 'Delete',
-  'editor.reject': 'Reject',
-  'editor.approve': 'Approve',
-  'editor.prev': 'Previous Image',
-  'editor.next': 'Next Image',
-  'editor.exit': 'Exit',
-  'editor.shortcuts': 'Shortcuts',
-  'editor.confidence': 'Confidence',
-  'editor.annotsList.categories': 'Categories',
-  'editor.annotsList.objects': 'Objects',
-  'editor.annotsList.hideAll': 'Hide All',
-  'editor.annotsList.showAll': 'Show All',
-  'editor.annotsList.hideCate': 'Hide Category',
-  'editor.annotsList.showCate': 'Show Category',
-  'editor.annotsList.hide': 'Hide',
-  'editor.annotsList.show': 'Show',
-  'editor.annotsList.delete': 'Delete',
-  'editor.annotsList.convertToSmartMode': 'Convert To Intelligent Segmentation',
-  'editor.toolbar.undo': 'Undo',
-  'editor.toolbar.redo': 'Redo',
-  'editor.toolbar.deleteAll': 'Mark Null',
-  'editor.toolbar.rectangle': 'Rectangle',
-  'editor.toolbar.polygon': 'Polygon',
-  'editor.toolbar.skeleton': 'Skeleton (Human Body)',
-  'editor.toolbar.aiAnno': 'Intelligent Annotate',
-  'editor.toolbar.drag': 'Drag / Select Tool',
-  'editor.toolbar.mask': 'Mask',
-  'editor.subtoolbar.mask.penAdd': 'Pen Add',
-  'editor.subtoolbar.mask.penErase': 'Pen Erase',
-  'editor.subtoolbar.mask.brushAdd': 'Brush Add',
-  'editor.subtoolbar.mask.brushErase': 'Brush Erase',
-  'editor.subtoolbar.mask.box': 'Interactive Segmentation - Box Tool',
-  'editor.subtoolbar.mask.click': 'Interactive Segmentation - Click Tool',
-  'editor.subtoolbar.mask.stroke': 'Interactive Segmentation - Brush Tool',
-  'editor.subtoolbar.mask.sam': 'Segment Everything',
-  'editor.subtoolbar.mask.sam.desc': 'Perform panoptic segmentation by SAM',
-  'editor.subtoolbar.mask.sam.notAllow': 'Unavailable when any instance exists',
-  'editor.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
-  'editor.zoomTool.reset': 'Reset Zoom',
-  'editor.zoomIn': 'Zoom In',
-  'editor.zoomOut': 'Zoom Out',
-  'editor.imgDisplayTool.title': 'Display Options',
-  'editor.imgDisplayTool.brightness': 'Brightness',
-  'editor.imgDisplayTool.contrast': 'Contrast',
-  'editor.imgDisplayTool.saturate': 'Saturation',
-  'editor.toolbar.undo.desc': 'Undo the previous action.',
-  'editor.toolbar.redo.desc': 'Redo the previous action.',
-  'editor.toolbar.rectangle.desc':
-    'Click and drag to create a rectangular annotation that surrounds an object.',
-  'editor.toolbar.polygon.desc':
-    'Click around the object to create a closed polygon annotation.',
-  'editor.toolbar.skeleton.desc':
-    'Click and drag to create a human skeleton annotation, then modify the position of individual points.',
-  'editor.toolbar.aiAnno.desc':
-    'Activate this mode under any of Rectangle / Polygon / Skeleton / Mask tools for auto-generating corresponding annotations.',
-  'editor.toolbar.mask.desc':
-    'Use Pen or Brush tool to draw a pixel-level segmentation.',
-  'editor.toolbar.drag.desc':
-    'Drag the image or select & edit individual annotations.',
-  'editor.toolbar.deleteAll.desc': 'Remove all objects of present image',
-  'editor.annotsEditor.title': 'Annotation Editor',
-  'editor.annotsEditor.delete': 'Delete',
-  'editor.annotsEditor.finish': 'Finish',
-  'editor.annotsEditor.add': 'Add',
-  'editor.annotsEditor.addCategory': 'Add a category',
-  'editor.confirmLeave.content':
-    'Are you sure to leave without saving your changes ?',
-  'editor.confirmLeave.cancel': 'Wrong Click',
-  'editor.confirmLeave.ok': 'No Need to Save',
-  'editor.shortcuts.tools': 'Basic Tools',
-  'editor.shortcuts.tools.rectangle': 'Rectangle Tool',
-  'editor.shortcuts.tools.polygon': 'Polygon Tool',
-  'editor.shortcuts.tools.skeleton': 'Skeleton Tool',
-  'editor.shortcuts.tools.drag': 'Drag / Select Tool',
-  'editor.shortcuts.tools.mask': 'Mask Tool',
-  'editor.shortcuts.general': 'General Controls',
-  'editor.shortcuts.general.smart':
-    'Activate / Deactivate Intelligent Annotate',
-  'editor.shortcuts.general.undo': 'Undo',
-  'editor.shortcuts.general.redo': 'Redo',
-  'editor.shortcuts.general.deleteAll': 'Remove all objects of cureent image',
-  'editor.shortcuts.general.next': 'Next Image',
-  'editor.shortcuts.general.prev': 'Previous Image',
-  'editor.shortcuts.general.save': 'Save',
-  'editor.shortcuts.general.accept': 'Accept',
-  'editor.shortcuts.general.reject': 'Reject',
-  'editor.shortcuts.viewControl': 'View Controls',
-  'editor.shortcuts.viewControl.zoomIn': 'Zoom In',
-  'editor.shortcuts.viewControl.zoomOut': 'Zoom Out',
-  'editor.shortcuts.viewControl.zoomReset': 'Reset zoom to fit screen',
-  'editor.shortcuts.viewControl.hideCurrObject':
-    'Hide / Show current selected annotation',
-  'editor.shortcuts.viewControl.hideCurrCategory':
-    'Hide / Show all annotations of the selected category',
-  'editor.shortcuts.viewControl.hideAll': 'Hide / Show all annotations',
-  'editor.shortcuts.viewControl.panImage':
-    'Pan the image by dragging mouse while holding the key',
-  'editor.shortcuts.annotsControl': 'Annotation Controls',
-  'editor.shortcuts.annotsControl.delete': 'Delete current selected annotation',
-  'editor.shortcuts.annotsControl.finish':
-    'Complete the annotation creation or modification',
-  'editor.shortcuts.annotsControl.cancel':
-    'Cancel the selection or discard the annotation in progress',
-  'editor.msg.lostCategory':
-    '{count} annotations have lost their categories. Please revise them manually.',
-  'editor.annotsList.uncategorized': 'Uncategorized',
-  'editor.annotsList.point.notInImage': 'Not In Image',
-  'editor.annotsList.point.notVisible': 'Not Visible',
-  'editor.annotsList.point.visible': 'Visible',
-  'editor.anno.mask.emptyWarning':
-    'Please add at least one valid Mask annotation.',
-  'editor.anno.mask.translateToRleError': 'Error converting Mask format.',
+    'This category is used by current annotations. Please manually remove these annotations or revise their category first.',
+  'annotator.formModal.deleteImage.title': 'Info',
+  'annotator.formModal.deleteImage.desc':
+    'This image contains annotations. Please manually remove these annotations first.',
 
   /** projects */
   'proj.title': 'Projects',
@@ -465,6 +405,7 @@ export default {
   'lab.toolsBar.selectInvert': 'Select invert',
   'lab.toolsBar.filter': 'Filter',
   'lab.toolsBar.saveAs': 'Save selected items as',
+  'lab.toolsBar.genEmbed': 'Generate Embedding',
   'lab.toolsBar.updateOrder': 'Update Order',
 
   'lab.displayOption.showAnnotations': 'Display annotation of selected type',
@@ -478,15 +419,6 @@ export default {
   'lab.displayOption.showKeyPointsLine': 'Display keypoint lines',
   'lab.displayOption.showKeyPointsBox': 'Display keypoint boxs',
   'lab.onClickCopyLink.success': 'Copy link success!',
-
-  /** 404 */
-  'notFound.title': 'Sorry, the page you visited does not exist.',
-  'notFound.backHome': 'Back Home',
-
-  /** mobile alert **/
-  'mobileAlert.title': 'Kindly Reminder',
-  'mobileAlert.subTitle':
-    'This site not support mobile display yet, please switch to computer to open.',
 
   /** app */
   'layout.title': 'Deep Data Space',
@@ -510,6 +442,7 @@ export default {
   'errCode.BadRequest': 'Bad request.',
   'errCode.ParameterMissing': 'Parameter missing.',
   'errCode.ParameterIsInvalid': 'Parameter is invalid.',
+  'errCode.CaptchaVerificationFailed': 'Captcha verification failed.',
   'errCode.AnnotationNotListOfObj': 'Annotation must be a list of object.',
   'errCode.AnnotationMissingCatName':
     'Annotation object missing category name.',
@@ -639,4 +572,20 @@ export default {
   'errCode.TokenExceedsRateLimit': 'Token exceeds Rate Limit.',
   'errCode.InternalError': 'Internal error.',
   'errCode.FailedToCloneLabelSet': 'Failed to clone label set.',
+
+  'errCode.UserPasswordInvalid': 'user password invalid',
+  'errCode.UserEmailInvalid': 'user email invalid.',
+  'errCode.UserEmailOccupied': 'user email occupied.',
+  'errCode.UserActivationTokenInvalid': 'user activation token invalid.',
+  'errCode.UserActivationTokenExpired': 'user activation token expired.',
+  'errCode.UserActivationTokenUsed': 'user activation token used.',
+  'errCode.UserAlreadyActivated': 'user already activated.',
+  'errCode.UserEmailWaitForActivation': 'user email wait for activation.',
+  'errCode.UserNotFound': 'User not found.',
+  'errCode.UserEmailNotFound': 'User email not found.',
+};
+
+export default {
+  ...ComponentsLocaleTexts,
+  ...localeTexts,
 };

@@ -1,15 +1,15 @@
 import React from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { List, Pagination } from 'antd';
+import { List } from 'antd';
 import { useModel } from '@umijs/max';
-import usePageModelLifeCycle from '@/hooks/usePageModelLifeCycle';
+import { usePageModelLifeCycle } from 'dds-hooks';
 import styles from './index.less';
-import { DEFAULT_PAGE_SIZE_OPTIONS } from '@/constants';
-import { LocaleText } from '@/locales/helper';
+import { LocaleText } from 'dds-utils/locale';
 import DatasetItem from '@/components/DatasetItem';
+import { DynamicPagination } from 'dds-components';
 
 const HomePage: React.FC = () => {
-  const { loading, pagination, datasetsData, onPageChange } =
+  const { loading, pagination, datasetsData, onPageChange, onPageSizeChange } =
     useModel('datasets');
   const { onInitPageState, onClickItem, onClickCopyLink } =
     useModel('DatasetList.model');
@@ -44,17 +44,13 @@ const HomePage: React.FC = () => {
         />
       </div>
       {!loading && (
-        <div className={styles.pagination}>
-          <Pagination
-            current={pagination.page}
-            pageSize={pagination.pageSize}
-            total={datasetsData.total}
-            showSizeChanger
-            showQuickJumper
-            pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
-            onChange={onPageChange}
-          />
-        </div>
+        <DynamicPagination
+          current={pagination.page}
+          size={pagination.pageSize}
+          total={datasetsData.total}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       )}
     </PageContainer>
   );

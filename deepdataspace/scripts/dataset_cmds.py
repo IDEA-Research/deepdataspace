@@ -43,25 +43,6 @@ def delete_one(dataset_dir):
     print(f"dataset [{dataset_id}] is deleted.")
 
 
-@ddsop.command("delete_all", help="Delete all datasets imported before.")
-@click.option('--confirm', prompt="You are deleting all datasets, are you sure?[y/N]")
-def delete_all(confirm):
-    if confirm.lower() != "y":
-        print("Abort.")
-        return
-
-    from deepdataspace.globals import MongoDB
-
-    collections = MongoDB.list_collection_names()
-    collections = sorted(collections)
-    print(f"found {len(collections)} to delete")
-
-    for collection in collections:
-        print(f"collection [{collection}] found, deleting...")
-        MongoDB.drop_collection(collection)
-    print(f"{len(collections)} collections deleted")
-
-
 @ddsop.command("import_all", help="Trigger a background task of importing all datasets in a data dir.")
 @click.option("--data_dir", "-d",
               default=None,
@@ -78,7 +59,7 @@ def import_all(data_dir, force):
         data_dir = os.path.abspath(data_dir)
 
     import_and_process_data_dir.apply_async(args=(data_dir,), kwargs={"enforce": force})
-    print(f"task of importing dir[{data_dir}] is arranged, you can check the logs by command: ddsop logs -c")
+    print(f"task of importing dir[{data_dir}] is arranged")
 
 
 @ddsop.command("import_one", help="Trigger a background task of importing one dataset.")
@@ -92,4 +73,4 @@ def import_one(dataset_dir, force):
     dataset_dir = os.path.abspath(dataset_dir)
 
     import_and_process_dataset.apply_async(args=(dataset_dir,), kwargs={"enforce": force})
-    print(f"task of importing dataset [{dataset_dir}] is arranged, you can check the logs by command: ddsop logs -c")
+    print(f"task of importing dataset [{dataset_dir}] is arranged")

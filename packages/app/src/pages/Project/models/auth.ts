@@ -1,5 +1,5 @@
 import { useModel } from '@umijs/max';
-import { DATA } from '@/services/type';
+import { NsProject } from '@/types/project';
 
 export enum EProjectRole {
   Owner = 'owner',
@@ -68,7 +68,10 @@ export default () => {
    * @param task
    * @returns
    */
-  const getUserRoles = (project?: DATA.Project, task?: DATA.ProjectTask) => {
+  const getUserRoles = (
+    project?: NsProject.Project,
+    task?: NsProject.ProjectTask,
+  ) => {
     if (!user.userId || !project) return [];
 
     const roles = [];

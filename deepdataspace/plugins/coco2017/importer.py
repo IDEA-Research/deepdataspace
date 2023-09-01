@@ -23,19 +23,19 @@ class COCO2017Importer(FileImporter):
     Importer for coco2017 dataset.
     """
 
-    def __init__(self, dataset_path: str, media_dir: str = None, prediction_dir: str = None, enforce: bool = False):
+    def __init__(self, dataset_path: str, image_root: str = None, predictions: List[str] = None, enforce: bool = False):
         """
         :param dataset_path: path to a json file of coco2017 dataset.
-        :param media_dir: an optional local directory containing image files of this dataset.
+        :param image_root: an optional local directory containing image files of this dataset.
             If no media_dir is provided, the image files will be served from the original coco image urls.
-        :param prediction_dir: an optional local directory containing json files of predictions of this dataset.
+        :param predictions: an optional list containing json files of predictions of this dataset.
         :param enforce: if True, the importer will re-import the dataset even if it is already imported.
         """
 
         dataset_path = os.path.abspath(dataset_path)
         self.dataset_path = dataset_path
-        self.media_dir = media_dir
-        self.prediction_dir = prediction_dir
+        self.image_root = image_root
+        self.predictions = predictions
 
         super(COCO2017Importer, self).__init__(dataset_path, enforce=enforce)
         self.dataset.type = DatasetType.COCO2017
@@ -123,13 +123,24 @@ class COCO2017Importer(FileImporter):
 
             # prepare image uri
 
-            uri = coco_image_data["coco_url"]
-            if self.media_dir:
-                image_path = os.path.join(self.media_dir, coco_image_data["file_name"])
-                if os.path.exists(image_path):
-                    uri = f"file://{image_path}"
-                    coco_image_data.pop("coco_url")
-                    coco_image_data.pop("file_name")
+            uri = None
+
+            # trying to find the image file in local file system
+            if self.image_root and coco_image_data.get("file_name", None):
+                image_path = coco_image_data.get("file_name", None)
+                image_path = os.path.join(self.image_root, image_path)
+                uri = f"file://{image_path}"
+
+            # trying to find the image file in the original coco image urls
+            if uri is None:
+                uri = coco_image_data.get("coco_url", None)
+
+            if uri is None:
+                logger.warning(f"Cannot find image file for image {image_id}, skip it.")
+                continue
+
+            coco_image_data.pop("coco_url", None)
+            coco_image_data.pop("file_name", None)
 
             # prepare other image data
             width = coco_image_data.pop("width", None)
@@ -177,7 +188,7 @@ class COCO2017Importer(FileImporter):
                 is_group = anno_data.pop("is_group", None)
 
                 # prepare confidence
-                conf = anno_data.pop("conf", 1.0)
+                conf = anno_data.pop("score", 1.0)
                 if label_type == LabelType.GroundTruth:
                     conf = 1.0
 
@@ -199,37 +210,15 @@ class COCO2017Importer(FileImporter):
         if os.path.isdir(path):
             return False
 
-        if not path.endswith(".json"):
-            return False
-
-        if os.path.basename(path).startswith("captions_"):
-            return False
-
-        return True
+        return not path.startswith(".") and path.endswith(".json")
 
     def collect_files(self) -> dict:
         files = super(COCO2017Importer, self).collect_files()
-        if not self.prediction_dir or not os.path.exists(self.prediction_dir):
-            return files
 
-        for item in os.listdir(self.prediction_dir):
-            if not item.endswith(".json"):
-                continue
-
-            pred_path = os.path.join(self.prediction_dir, item)
-            with open(pred_path, "r", encoding="utf8") as fp:
-                pred_data = json.load(fp)
-
-            gt_path = pred_data.get("info", {}).get("gt", None)
-            if gt_path is None:
-                continue
-
-            gt_name = os.path.splitext(os.path.basename(gt_path))[0]
-            if gt_name != self.dataset_name:
-                continue
-
-            pred_name = os.path.splitext(item)[0]
-            files[f"PRED/{pred_name}"] = pred_path
+        for pred in self.predictions:
+            pred_name = os.path.basename(pred)
+            pred_name = os.path.splitext(pred_name)[0]
+            files[f"PRED/{pred_name}"] = pred
 
         return files
 
@@ -239,19 +228,17 @@ class COCO2017GroupImporter(FileGroupImporter):
     Importer for COCO2017 dataset group.
     """
 
+    def __init__(self, path: str, group_name: str = None, group_id: str = None, enforce: bool = False):
+        super().__init__(path, group_name, group_id, enforce=enforce)
+        self.coco2017_file = os.path.join(self.group_path, ".coco2017.json")
+        self.anno_files = {}  # {"anno_file_path": {"annotation": "xxx", "image_root": "yyy", "predictions": ["a",]} }
+
     def choose_importer(self, path: str) -> FileImporter:
-        subset_name = os.path.basename(path).split("_")[-1]
-        subset_name = os.path.splitext(subset_name)[0]
+        anno_file_data = self.anno_files[path]
 
-        media_dir = os.path.join(self.group_path, subset_name)
-        prediction_dir = os.path.join(self.group_path, "predictions")
-
-        if not os.path.exists(media_dir):
-            media_dir = None
-        if not os.path.exists(prediction_dir):
-            prediction_dir = None
-
-        importer = COCO2017Importer(path, media_dir, prediction_dir, enforce=self.enforce)
+        image_root = anno_file_data.get("image_root", None)
+        predictions = anno_file_data.get("predictions", [])
+        importer = COCO2017Importer(path, image_root, predictions, enforce=self.enforce)
         return importer
 
     @staticmethod
@@ -259,21 +246,32 @@ class COCO2017GroupImporter(FileGroupImporter):
         if os.path.isfile(path):
             return False
 
-        dir_name = os.path.basename(path)
-        if dir_name.lower() == "coco2017":
-            return True
+        coco2017_file = os.path.join(path, ".coco2017.json")
+        if not os.path.exists(coco2017_file):
+            return False
 
-        for item in os.listdir(path):
-            if item.lower() == ".coco2017":
-                return True
-
-        return False
+        return True
 
     def find_files(self) -> List[str]:
         files = []
-        annotations_dir = os.path.join(self.group_path, "annotations")
-        for file in os.listdir(annotations_dir):
-            file = os.path.join(annotations_dir, file)
-            if COCO2017Importer.can_import(file):
-                files.append(file)
+        with open(self.coco2017_file, "r", encoding="utf8") as fp:
+            coco2017_data = json.load(fp)
+            for item in coco2017_data:
+                anno_path = os.path.join(self.group_path, item["annotation"])
+                anno_path = os.path.abspath(anno_path)
+
+                image_root = item.get("image_root", None)
+                if image_root:
+                    image_root = os.path.join(self.group_path, image_root)
+                    item["image_root"] = image_root
+                    assert os.path.exists(image_root), f"Image root {image_root} does not exist."
+
+                predictions = item.get("predictions", [])
+                for idx, pred in enumerate(predictions):
+                    pred = os.path.join(self.group_path, pred)
+                    predictions[idx] = pred
+                    assert os.path.exists(pred), f"Prediction file {pred} does not exist."
+
+                self.anno_files[anno_path] = item
+                files.append(anno_path)
         return files

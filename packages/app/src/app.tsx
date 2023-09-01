@@ -6,7 +6,7 @@ import { RequestConfig, RunTimeLayoutConfig, history } from '@umijs/max';
 import { ErrorBoundary, ErrorBoundaryProps } from '@sentry/react';
 import { RunningErrorTip } from 'dds-components';
 import { STORAGE_KEY } from './constants';
-import { globalLocaleText } from '@/locales/helper';
+import { globalLocaleText } from 'dds-utils/locale';
 import { matchErrorMsg } from '@/services/errorCode';
 
 // Global initialization data configuration for Layout user information and permission initialization
@@ -100,7 +100,9 @@ export const request: RequestConfig = {
       if (error.response) {
         // The request was successful and the server responded with a status code, but the status code is outside the 2xx range.
         // Match Common error tip
-        message.error(matchErrorMsg(error.data?.code, error.response.status));
+        message.error(
+          matchErrorMsg(error.response.data?.code, error.response.status),
+        );
       } else if (error.request) {
         // The request has been successfully sent, but no response has been received
         message.error(globalLocaleText('requestConfig.noResponse.msg'));
@@ -123,7 +125,7 @@ export const request: RequestConfig = {
           config.url?.includes(process.env.MODEL_API_PATH)
         ) {
           config.headers['Token'] = process.env.MODEL_API_TOKEN || '';
-        } else {
+        } else if (config.url?.indexOf('http') !== 0) {
           const token = localStorage.getItem(STORAGE_KEY.AUTH_TOKEN);
           if (token) {
             config.headers['Token'] = token;

@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useModel } from '@umijs/max';
 import styles from './index.less';
-import Edit from '@/components/Edit';
-import { EditorMode } from '@/components/Edit/type';
+import { AnnotateEditor, EditorMode } from 'dds-components/Annotator';
 import { ImageList } from './components/ImageList';
 import { Button } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
 import { FormModal } from './components/FormModal';
-import { DATA } from '@/services/type';
-import { useLocale } from '@/locales/helper';
+import { useLocale } from 'dds-utils/locale';
+import { useKeyPress } from 'ahooks';
+import { BaseObject } from '@/types';
 
 const Page: React.FC = () => {
   const {
@@ -25,15 +25,15 @@ const Page: React.FC = () => {
   const [openModal, setModalOpen] = useState(true);
 
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue =
-        'The current changes will not be saved. Please export before leaving.';
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    // const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    //   event.preventDefault();
+    //   event.returnValue =
+    //     'The current changes will not be saved. Please export before leaving.';
+    // };
+    // window.addEventListener('beforeunload', handleBeforeUnload);
+    // return () => {
+    //   window.removeEventListener('beforeunload', handleBeforeUnload);
+    // };
   }, []);
 
   // local test
@@ -54,6 +54,22 @@ const Page: React.FC = () => {
     },
     // [images, categories]
     [],
+  );
+
+  useKeyPress(
+    'uparrow',
+    () => {
+      setCurrent(Math.max(0, current - 1));
+    },
+    { exactMatch: true },
+  );
+
+  useKeyPress(
+    'downarrow',
+    () => {
+      setCurrent(Math.min(current + 1, images.length - 1));
+    },
+    { exactMatch: true },
   );
 
   return (
@@ -85,7 +101,7 @@ const Page: React.FC = () => {
         />
       </div>
       <div className={styles.right}>
-        <Edit
+        <AnnotateEditor
           isSeperate={true}
           visible={true}
           mode={EditorMode.Edit}
@@ -98,9 +114,13 @@ const Page: React.FC = () => {
               {localeText('annotator.export')}
             </Button>,
           ]}
-          onAutoSave={(annos: DATA.BaseObject[]) => {
+          onAutoSave={(annos: BaseObject[], naturalSize: ISize) => {
             setImages((images) => {
-              images[current].objects = annos;
+              if (images[current]) {
+                images[current].objects = annos;
+                images[current].width = naturalSize.width;
+                images[current].height = naturalSize.height;
+              }
             });
           }}
         />

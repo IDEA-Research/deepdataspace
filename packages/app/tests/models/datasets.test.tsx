@@ -22,7 +22,7 @@ describe('useModel datasets', () => {
   it('useModel datasets setter', () => {
     const { result } = umiRenderHook(() => useModel('datasets'));
     act(() => {
-      result.current.onPageChange(2, 10);
+      result.current.onPageChange(2);
     });
     expect(result.current.pagination.page).toEqual(2);
   });

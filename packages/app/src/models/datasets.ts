@@ -2,7 +2,7 @@ import { useImmer } from 'use-immer';
 import { useRequest } from 'ahooks';
 import { fetchDatasetList } from '@/services/dataset';
 import { DEFAULT_PAGE_SIZE } from '@/constants';
-import { DATA } from '@/services/type';
+import { NsDataSet } from '@/types/dataset';
 
 export interface PaginationState {
   page: number;
@@ -10,7 +10,7 @@ export interface PaginationState {
 }
 
 export interface DatasetsData {
-  list: DATA.DataSet[];
+  list: NsDataSet.DataSet[];
   total: number;
 }
 
@@ -45,7 +45,14 @@ export default () => {
     },
   );
 
-  const onPageChange = (page: number, size: number) => {
+  const onPageChange = (page: number) => {
+    setPagination((s) => {
+      s.page = page;
+    });
+    loadDatasets(page);
+  };
+
+  const onPageSizeChange = (page: number, size: number) => {
     setPagination((s) => {
       s.page = page;
       s.pageSize = size;
@@ -60,5 +67,6 @@ export default () => {
     loadDatasets,
     setPagination,
     onPageChange,
+    onPageSizeChange,
   };
 };
