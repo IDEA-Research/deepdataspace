@@ -267,7 +267,7 @@ export default () => {
 
   const displayObjectsFilter = useCallback(
     (imageData: NsDataSet.DataSetImg) => {
-      let objects = imageData.objects || [];
+      let objects = [...imageData.objects] || [];
 
       const analysisMode = pageState.comparisons;
       const diffMode = {
@@ -277,13 +277,15 @@ export default () => {
       };
       // Analysis mode -> filter fn/fp to display
       if (analysisMode) {
+        const predObjects = objects.filter(
+          (item) => item.source === LABEL_SOURCE.pred,
+        );
+
         // filter score
         objects = objects.filter(
           (item) => (item.conf || 0) >= analysisMode.score,
         );
-        const predBoxsCount = objects.filter(
-          (item) => item.source !== LABEL_SOURCE.gt,
-        ).length;
+
         // compute gt compare result
         objects = objects.map((box) => {
           const newBox = { ...box };
@@ -291,13 +293,14 @@ export default () => {
             const result =
               isNumber(box.matchedDetIdx) &&
               box.matchedDetIdx >= 0 &&
-              predBoxsCount > box.matchedDetIdx
+              objects.includes(predObjects[box.matchedDetIdx])
                 ? COMPARE_RESULT.ok
                 : COMPARE_RESULT.fn;
             newBox.compareResult = result;
           }
           return newBox;
         });
+
         // filters to display
         objects = objects.filter((item) => {
           if (item.compareResult === COMPARE_RESULT.ok) {
