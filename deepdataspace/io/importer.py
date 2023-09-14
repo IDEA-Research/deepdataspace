@@ -11,7 +11,6 @@ import os
 import time
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Tuple
 from typing import Type
 from typing import Union
@@ -19,16 +18,12 @@ from typing import Union
 from tqdm import tqdm
 
 from deepdataspace import constants
-from deepdataspace.constants import ContentEncoding
-from deepdataspace.constants import FileReadMode
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
-from deepdataspace.globals import Redis
 from deepdataspace.model import Category
 from deepdataspace.model import DataSet
 from deepdataspace.model import Label
 from deepdataspace.model.image import Image
-from deepdataspace.utils.file import create_file_range_url
 from deepdataspace.utils.function import count_block_time
 from deepdataspace.utils.string import get_str_md5
 
@@ -141,14 +136,14 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         pipeline = [
-            {"$project": {"flag"         : 1,
-                          "flag_ts"      : 1,
+            {"$project": {"flag": 1,
+                          "flag_ts": 1,
                           "label_confirm": 1,
-                          "objects"      : {
+                          "objects": {
                               "$filter": {
                                   "input": "$objects",
-                                  "as"   : "object",
-                                  "cond" : {
+                                  "as": "object",
+                                  "cond": {
                                       "$eq": ["$$object.label_type", LabelType.User]
                                   }
                               }
@@ -170,9 +165,9 @@ class Importer(ImportHelper, abc.ABC):
             label_confirm = image.get("label_confirm", {})
 
             self._user_data[image_id] = {
-                "objects"      : user_objects,
-                "flag"         : flag,
-                "flag_ts"      : flag_ts,
+                "objects": user_objects,
+                "flag": flag,
+                "flag_ts": flag_ts,
                 "label_confirm": label_confirm,
             }
 
@@ -200,12 +195,15 @@ class Importer(ImportHelper, abc.ABC):
         desc = f"dataset[{self.dataset.name}@{self.dataset.id}] import progress"
         for (image, anno_list) in tqdm(self, desc=desc, unit=" images"):
             beg = int(time.time() * 1000)
-            image = self.dataset.batch_add_image(**image)
-            # image = self.dataset.add_image(**image)
+            image, saved = self.dataset._batch_add_image(**image)
             self.add_user_data(image)
             for anno in anno_list:
                 image.batch_add_annotation(**anno)
-                # image.add_annotation(**anno)
+            if image and anno_list:
+                # the image is already saved and out of the batch queue,
+                # but the annotations are not empty,
+                # so we have to save the image again
+                image.save()
             logger.debug(f"time cost of import one image: {int(time.time() * 1000) - beg}ms")
             logger.debug(f"imported image, id={image.id}, url={image.url}")
         self.dataset.finish_batch_add_image()
