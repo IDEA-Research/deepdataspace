@@ -82,7 +82,6 @@ export namespace NsApiProject {
     userList: {
       id: string;
       name: string;
-      email: string;
     }[];
   }
 
