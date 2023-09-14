@@ -217,9 +217,9 @@ export default () => {
       });
     });
     if (keyWords) {
-      userList = (await fetchUserLint({ email: keyWords })).userList.map(
+      userList = (await fetchUserLint({ name: keyWords })).userList.map(
         (item) => ({
-          name: item.email,
+          name: item.name,
           id: item.id,
         }),
       );

@@ -144,11 +144,11 @@ export async function fetchDatasetLint(
 /** user lint */
 export async function fetchUserLint(
   params: {
-    email: string;
+    name: string;
   },
   options?: { [key: string]: any },
 ) {
-  return request<NsApiProject.FetchUserLintRsp>(`/api/v1/user_email_lints`, {
+  return request<NsApiProject.FetchUserLintRsp>(`/api/v1/user_name_lints`, {
     method: 'GET',
     params,
     ...(options || {}),
