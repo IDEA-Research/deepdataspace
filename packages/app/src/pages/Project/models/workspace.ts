@@ -352,10 +352,6 @@ export default () => {
   };
 
   const onLabelSave = async (imageId: string, annotations: BaseObject[]) => {
-    if (!annotations.length) {
-      message.warning(globalLocaleText('proj.onLabelSave.warning'));
-      return;
-    }
     setLoading(true);
     const hide = message.loading(
       globalLocaleText('proj.onLabelSave.loading'),
