@@ -292,9 +292,9 @@ class LabelProject(BaseModel):
                         continue
 
                     anno = {
-                        "category_id": obj["category_name"],
+                        "category_id"  : obj["category_name"],
                         "category_name": obj["category_name"],
-                        "bounding_box": obj["bounding_box"]
+                        "bounding_box" : obj["bounding_box"]
                     }
                     annotations.append(anno)
                     category_names.add(obj["category_name"])
@@ -566,7 +566,7 @@ class LabelProject(BaseModel):
 
             status = DatasetStatus.Ready
             try:
-                update_data = {"status": DatasetStatus.Importing,
+                update_data = {"status"                            : DatasetStatus.Importing,
                                "detail_status.export_label_project": DatasetStatus.Importing}
                 DataSet.update_one({"id": dataset_id}, update_data)
                 logger.info(f"[{idx + 1}/{num}]exporting label project to dataset {dataset_id}")
@@ -580,7 +580,7 @@ class LabelProject(BaseModel):
                 status = DatasetStatus.Ready
                 logger.info(f"[{idx + 1}/{num}]export label project to dataset {dataset_id} success")
             finally:
-                update_data = {"status": DatasetStatus.Ready,
+                update_data = {"status"                            : DatasetStatus.Ready,
                                "detail_status.export_label_project": status}
                 DataSet.update_one({"id": dataset_id}, update_data)
 
@@ -708,8 +708,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id": user.id,
-                   "role": {"$in": list(LabelProjectRoles.Leaders_)}}
+                   "user_id"   : user.id,
+                   "role"      : {"$in": list(LabelProjectRoles.Leaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -719,8 +719,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id": user.id,
-                   "role": {"$in": list(LabelProjectRoles.GTELeaders_)}}
+                   "user_id"   : user.id,
+                   "role"      : {"$in": list(LabelProjectRoles.GTELeaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -730,8 +730,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id": user.id,
-                   "role": {"$in": list(LabelProjectRoles.GTLeaders_)}}
+                   "user_id"   : user.id,
+                   "role"      : {"$in": list(LabelProjectRoles.GTLeaders_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -759,8 +759,8 @@ class ProjectRole(BaseModel):
         """
 
         filters = {"project_id": project_id,
-                   "user_id": user.id,
-                   "role": {"$in": list(LabelProjectRoles.Workers_)}}
+                   "user_id"   : user.id,
+                   "role"      : {"$in": list(LabelProjectRoles.Workers_)}}
         return ProjectRole.find_one(filters) is not None
 
     @staticmethod
@@ -1080,7 +1080,7 @@ class TaskRole(BaseModel):
 
         # delete old role from project
         filters = {"project_id": task.project_id, "is_active": True,
-                   "user_id": old_role.user_id, "role": old_role.role,
+                   "user_id"   : old_role.user_id, "role": old_role.role,
                    }
         has_active_role = TaskRole.count_num(filters) > 0
         if not has_active_role:
@@ -1116,13 +1116,13 @@ class TaskRole(BaseModel):
                 f"labels.{new_user_id}": {
                     "$map": {
                         "input": f"$labels.{new_user_id}",
-                        "as": "label",
-                        "in": {
+                        "as"   : "label",
+                        "in"   : {
                             "$mergeObjects": [
                                 "$$label",
                                 {
-                                    "id": {"$concat": ["$$label.id", f"_{ts}", ts]},
-                                    "user_id": new_user_id,
+                                    "id"       : {"$concat": ["$$label.id", f"_{ts}", ts]},
+                                    "user_id"  : new_user_id,
                                     "user_name": new_user_name
                                 }
                             ]
@@ -1137,13 +1137,13 @@ class TaskRole(BaseModel):
                 f"reviews.{new_user_id}": {
                     "$map": {
                         "input": f"$reviews.{new_user_id}",
-                        "as": "review",
-                        "in": {
+                        "as"   : "review",
+                        "in"   : {
                             "$mergeObjects": [
                                 "$$review",
                                 {
-                                    "id": {"$concat": ["$$review.id", f"_{ts}"]},
-                                    "user_id": new_user_id,
+                                    "id"       : {"$concat": ["$$review.id", f"_{ts}"]},
+                                    "user_id"  : new_user_id,
                                     "user_name": new_user_name
                                 }
                             ]

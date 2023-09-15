@@ -11,6 +11,7 @@ import os
 import time
 import uuid
 from typing import Dict
+from typing import Tuple
 
 from pymongo.collection import Collection
 from pymongo.typings import _DocumentType
@@ -241,12 +242,12 @@ class DataSet(BaseModel):
         if image is None:
             image_id = id or self.num_images
             image = Model(
-                    id=image_id, idx=self.num_images,
-                    type=self.type, dataset_id=self.id,
-                    url=thumb_uri, url_full_res=full_uri,
-                    width=width, height=height,
-                    flag=flag, flag_ts=flag_ts,
-                    metadata=metadata,
+                id=image_id, idx=self.num_images,
+                type=self.type, dataset_id=self.id,
+                url=thumb_uri, url_full_res=full_uri,
+                width=width, height=height,
+                flag=flag, flag_ts=flag_ts,
+                metadata=metadata,
             )
         else:
             # please don't change idx in this case
@@ -273,15 +274,15 @@ class DataSet(BaseModel):
 
         return image
 
-    def batch_add_image(self,
-                        uri: str,
-                        thumb_uri: str = None,
-                        width: int = None,
-                        height: int = None,
-                        id_: int = None,
-                        metadata: dict = None,
-                        flag: int = 0,
-                        flag_ts: int = 0, ) -> ImageModel:
+    def _batch_add_image(self,
+                         uri: str,
+                         thumb_uri: str = None,
+                         width: int = None,
+                         height: int = None,
+                         id_: int = None,
+                         metadata: dict = None,
+                         flag: int = 0,
+                         flag_ts: int = 0, ) -> Tuple[ImageModel, bool]:
         """
         This is the batch version of add_image, which optimizes database performance.
         But this method is not thread safe, please make sure only one thread is calling this method.
@@ -295,7 +296,7 @@ class DataSet(BaseModel):
         :param metadata: any information data need to be stored.
         :param flag: the image flag, 0 for not flagged, 1 for positive, 2 for negative.
         :param flag_ts: the image flag timestamp.
-        :return: the image object.
+        :return: the image object, the flag indicating whether the batch is saved to db.
         """
 
         full_uri = uri
@@ -325,6 +326,35 @@ class DataSet(BaseModel):
 
         if len(self._batch_queue) >= self._batch_size:
             self._save_image_batch()
+            return image, True
+        return image, False
+
+    def batch_add_image(self,
+                        uri: str,
+                        thumb_uri: str = None,
+                        width: int = None,
+                        height: int = None,
+                        id_: int = None,
+                        metadata: dict = None,
+                        flag: int = 0,
+                        flag_ts: int = 0, ) -> ImageModel:
+        """
+        This is the batch version of add_image, which optimizes database performance.
+        But this method is not thread safe, please make sure only one thread is calling this method.
+        And after the batch add is finished, please call finish_batch_add_image to save the changes to database.
+
+        :param uri: the image uri, can be a local file path stars with "file://" or a remote url starts with "http://".
+        :param thumb_uri: the image thumbnail uri, also can be a local file path or a remote url.
+        :param width: the image width of full resolution.
+        :param height: the image height of full resolution.
+        :param id_: the image id, if not provided, the image id will be the current number of images in the dataset.
+        :param metadata: any information data need to be stored.
+        :param flag: the image flag, 0 for not flagged, 1 for positive, 2 for negative.
+        :param flag_ts: the image flag timestamp.
+        :return: the image object.
+        """
+
+        image, batch_saved = self._batch_add_image(uri, thumb_uri, width, height, id_, metadata, flag, flag_ts)
         return image
 
     @staticmethod

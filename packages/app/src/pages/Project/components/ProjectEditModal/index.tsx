@@ -191,9 +191,9 @@ const ProjectEditModal = () => {
               let managers = targetProject?.managers || [];
               if (keyWords) {
                 managers = (
-                  await fetchUserLint({ email: keyWords })
+                  await fetchUserLint({ name: keyWords })
                 ).userList.map((item) => ({
-                  name: item.email,
+                  name: item.name,
                   id: item.id,
                 }));
               }
