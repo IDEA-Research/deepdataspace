@@ -17,7 +17,6 @@ from deepdataspace.constants import DatasetType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
 from deepdataspace.constants import TSVFileType
-from deepdataspace.io.importer import FileGroupImporter
 from deepdataspace.io.importer import FileImporter
 from deepdataspace.utils.file import create_file_range_url
 
@@ -46,10 +45,10 @@ class TSVImporter(FileImporter):
         for file_tag, file_path in self.dataset.files.items():
             if file_tag == TSVFileType.GroundTruth or file_tag.startswith(f"{TSVFileType.Prediction}/"):
                 self._files[file_tag] = {
-                    "fp"      : open(file_path, "r", encoding="utf8"),
+                    "fp": open(file_path, "r", encoding="utf8"),
                     "line_idx": 0,
                     "byte_idx": 0,
-                    "path"    : file_path
+                    "path": file_path
                 }
             elif file_tag == TSVFileType.Embedding:
                 self._files[file_tag] = {
@@ -288,30 +287,4 @@ class TSVImporter(FileImporter):
             if item.endswith(".embd"):
                 files[TSVFileType.Embedding] = file_path
 
-        return files
-
-
-class TSVGroupImporter(FileGroupImporter):
-    """
-    Importer for a tsv dataset group.
-    """
-
-    def choose_importer(self, path: str) -> FileImporter:
-        return TSVImporter(path, self.enforce)
-
-    @staticmethod
-    def can_import(path: str) -> bool:
-        if os.path.isfile(path):
-            return False
-        for item in os.listdir(path):
-            if TSVImporter.can_import(item):
-                return True
-        return False
-
-    def find_files(self) -> List[str]:
-        files = []
-        for item in os.listdir(self.group_path):
-            file_path = os.path.join(self.group_path, item)
-            if TSVImporter.can_import(file_path):
-                files.append(file_path)
         return files
