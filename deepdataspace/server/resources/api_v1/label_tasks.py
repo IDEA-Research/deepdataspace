@@ -10,16 +10,15 @@ from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelImageQAActions
 from deepdataspace.constants import LabelProjectQAActions
 from deepdataspace.constants import LabelProjectRoles
-from deepdataspace.constants import LabelProjectStatus
 from deepdataspace.constants import LabelTaskImageStatus
 from deepdataspace.constants import LabelTaskQAActions
 from deepdataspace.constants import UserStatus
 from deepdataspace.model.dataset import DataSet
 from deepdataspace.model.label_task import LabelProject
-from deepdataspace.model.label_task import LabelProjectError
 from deepdataspace.model.label_task import LabelTask
 from deepdataspace.model.label_task import LabelTaskError
 from deepdataspace.model.label_task import LabelTaskImage
+from deepdataspace.model.label_task import LabelTaskImageModel
 from deepdataspace.model.label_task import ProjectRole
 from deepdataspace.model.label_task import TaskRole
 from deepdataspace.model.user import User
@@ -980,7 +979,7 @@ class TaskImageLabelView(AuthenticatedAPIView):
                             f"label_task[id={task_id}] is not found")
 
         LTIModel = LabelTaskImage(task.dataset_id)
-        label_image = LTIModel.find_one({"id": task_image_id})
+        label_image: LabelTaskImageModel = LTIModel.find_one({"id": task_image_id})
         if label_image is None:
             raise_exception(ErrCode.LabelTaskImageNotFound,
                             f"label_image[id={task_image_id}] is not found")
@@ -990,7 +989,7 @@ class TaskImageLabelView(AuthenticatedAPIView):
             raise_exception(ErrCode.UserCantLabelTaskImage,
                             f"user[id={user.id}] is not permitted to label image[id={task_image_id}]")
 
-        assert label_image.can_set_label(task, user)
+        assert label_image.ensure_status_for_labeling(task, user)
 
         annotations = self._parse_annotations(request)
         label_data = label_image.set_label(task, user, annotations)
