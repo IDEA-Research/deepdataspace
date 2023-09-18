@@ -312,106 +312,7 @@ class FileImporter(Importer, abc.ABC):
         return result
 
 
-class FileGroupImporter(abc.ABC):
-    """
-    The importer interface for file-based dataset group.
-    A dataset group is a directory containing multiple datasets.
-
-    Any subclass of FileGroupImporter should implement the following methods:
-        - can_import: static method, check if the directory can be imported by this importer.
-        - find_files: find all dataset files of this group.
-        - choose_importer: choose the proper importer for a given dataset file.
-    """
-
-    def __init__(self, path: str, group_name: str = None, group_id: str = None, enforce: bool = False):
-        """
-        :param path: the path of the dataset group.
-        :param group_name: the name of the dataset group.
-        :param group_id: the dataset group id.
-            If not provided, the importer will generate one with the path and name.
-        :param enforce: if True, the importer will re-import the datasets of the group even if they are already imported.
-        """
-        path = os.path.abspath(path)
-
-        if group_name is None:
-            group_name = os.path.basename(path).rsplit(".", 1)[0]
-
-        if group_id is None:
-            group_id = get_str_md5(f"{path}_{group_name}")
-
-        self.enforce = enforce
-        self.group_path = path
-        self.group_id = group_id
-        self.group_name = group_name
-        self.datasets = []
-
-    @staticmethod
-    @abc.abstractmethod
-    def can_import(path: str) -> bool:
-        """
-        Check if the given dataset group directory can be imported by this importer.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def find_files(self) -> List[str]:
-        """
-        Find all dataset files of this dataset group.
-        Each file represents a dataset.
-        """
-
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def choose_importer(self, path: str) -> FileImporter:
-        """
-        Choose a proper dataset importer for a given dataset file of this group.
-        """
-
-        raise NotImplementedError
-
-    def run_import(self, path: str) -> DataSet:
-        """
-        Import a dataset file of this group.
-        """
-
-        importer = self.choose_importer(path)
-        importer.dataset.group_id = self.group_id
-        importer.dataset.group_name = self.group_name
-        importer.dataset.save()
-        dataset = importer.run()
-        return dataset
-
-    def run(self):
-        """
-        The start point of the importing process.
-        """
-
-        for path in self.find_files():
-            try:
-                dataset = self.run_import(path)
-            except Exception as err:
-                logging.error(f"Import dataset {path} failed: {err}")
-            else:
-                self.datasets.append(dataset)
-
-        return self.datasets
-
-    @classmethod
-    def get_subclasses(cls):
-        """
-        Get all subclasses of this class.
-        This is used together with can_import function to choose a proper importer for a given dataset group path.
-        """
-
-        sub_classes = set(cls.__subclasses__())
-        for sub_class in sub_classes:
-            sub_sub_classes = sub_class.__subclasses__()
-            sub_classes.union(sub_sub_classes)
-        return sub_classes
-
-
-def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], Type[FileGroupImporter], None]:
+def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], None]:
     """
     Choose the proper importer class for target_path.
     The right importer is the importer class which returns true on importer_class.can_import(target_path).
@@ -426,17 +327,10 @@ def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], Type[File
             logger.info(f"choose_importer_cls: {imp_cls.__name__} is chosen for target_path {target_path}")
             return imp_cls
 
-    # try to import as a dataset group
-    group_importers = FileGroupImporter.get_subclasses()
-    for imp_cls in group_importers:
-        if imp_cls.can_import(target_path):
-            logger.info(f"choose_importer_cls: {imp_cls.__name__} is chosen for target_path {target_path}")
-            return imp_cls
-
     return None
 
 
-def import_dataset(target_path: str, enforce: bool = False) -> List[DataSet]:
+def import_dataset(target_path: str, enforce: bool = False) -> DataSet:
     """
     Choose the right auto importer for target path, and run the import task.
 
