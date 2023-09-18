@@ -62,14 +62,27 @@ class ImportHelper:
                           bbox: Tuple[int, int, int, int] = None,
                           segmentation: List[List[int]] = None,
                           alpha_uri: str = None,
-                          coco_keypoints: List[Union[float, int]] = None,
+                          keypoints: List[Union[float, int]] = None,
+                          keypoint_colors: List[int] = None,
+                          keypoint_skeleton: List[int] = None,
+                          keypoint_names: List[str] = None,
                           confirm_type: int = 0, ):
         """
         A helper function to format annotation data.
         """
 
-        return dict(category=category, label=label, label_type=label_type, conf=conf, is_group=is_group,
-                    bbox=bbox, segmentation=segmentation, alpha_uri=alpha_uri, coco_keypoints=coco_keypoints,
+        return dict(category=category,
+                    label=label,
+                    label_type=label_type,
+                    conf=conf,
+                    is_group=is_group,
+                    bbox=bbox,
+                    segmentation=segmentation,
+                    alpha_uri=alpha_uri,
+                    keypoints=keypoints,
+                    keypoint_colors=keypoint_colors,
+                    keypoint_skeleton=keypoint_skeleton,
+                    keypoint_names=keypoint_names,
                     confirm_type=confirm_type, )
 
 

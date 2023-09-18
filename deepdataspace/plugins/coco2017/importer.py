@@ -225,19 +225,33 @@ class COCO2017Importer(FileImporter):
                 segmentation = anno_data.pop("segmentation", None)
 
                 # prepare keypoints
-                coco_keypoints = []
+                keypoint_names = None
+                keypoint_skeleton = None
+                keypoint_colors = None
                 keypoints = anno_data.pop("keypoints", None)
                 if keypoints is not None:
-                    length = len(keypoints) // 3
-                    for idx in range(length):
-                        idx *= 3
-                        if label_type == LabelType.GroundTruth:
+                    keypoint_names = category.get("keypoints", None)
+                    keypoint_skeleton = category.get("skeleton", None)
+                    if keypoint_skeleton is not None:
+                        keypoint_skeleton = [item for sublist in keypoint_skeleton for item in sublist]
+
+                    keypoint_colors = category.get("keypoint_colors", None)
+                    if keypoint_colors is not None:
+                        keypoint_colors = [item for sublist in keypoint_colors for item in sublist]
+
+                    if label_type == LabelType.GroundTruth:
+                        length = len(keypoints) // 3
+                        for idx in range(length):
+                            idx *= 3
                             conf = 1.0
                             x, y, v = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2]
-                        else:  # label_type == LabelType.Prediction
-                            v = 2
-                            x, y, conf = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2]
-                        coco_keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
+                            keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
+                    elif label_type == LabelType.Prediction:
+                        length = len(keypoints) // 4
+                        for idx in range(length):
+                            idx *= 4
+                            x, y, v, conf = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2], keypoints[idx + 3]
+                            keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
 
                 # prepare is_group
                 is_group = anno_data.pop("is_group", None)
@@ -255,7 +269,10 @@ class COCO2017Importer(FileImporter):
                                                    is_group=is_group,
                                                    label_type=label_type,
                                                    segmentation=segmentation,
-                                                   coco_keypoints=coco_keypoints,
+                                                   keypoints=keypoints,
+                                                   keypoint_colors=keypoint_colors,
+                                                   keypoint_skeleton=keypoint_skeleton,
+                                                   keypoint_names=keypoint_names,
                                                    )
                 anno_list.append(anno_data)
             yield image, anno_list
