@@ -9,6 +9,7 @@ This is the main entry point for dds, which controls all other services.
 import atexit
 import getpass
 import os
+import shutil
 import stat
 import time
 import zipfile
@@ -137,20 +138,27 @@ class DDS(metaclass=SingletonMeta):
             self.exit_or_raise(msg)
 
     def init_samples(self):
-        sample_dir = f"{self.runtime_dir}/dataset-samples"
-        sample_file = f"{sample_dir}/dataset-samples.zip"
+        sample_file = f"/{self.runtime_dir}/dataset-samples.zip"
 
-        if os.path.exists(sample_file):
-            return
-
-        os.makedirs(sample_dir, exist_ok=True)
-        sample_url = f"{self.dl_prefix}/datasets/dataset-samples.zip"
-        with progress_log(f"Downloading sample datasets"):
-            download_by_requests(sample_url, sample_file)
+        if not os.path.exists(sample_file):
+            sample_url = f"{self.dl_prefix}/datasets/dataset-samples.zip"
+            with progress_log(f"Downloading sample datasets"):
+                download_by_requests(sample_url, sample_file)
 
         with zipfile.ZipFile(sample_file, "r") as fp:
-            fp.extractall(f"{self.data_dir}/")
+            fp.extractall(f"{self.runtime_dir}/")
 
+        extract_dir = f"{self.runtime_dir}/dataset-samples"
+        for item in os.listdir(extract_dir):
+            item_path = os.path.join(extract_dir, item)
+
+            if os.path.isdir(item_path):
+                continue
+
+            if not os.path.exists(os.path.join(self.data_dir, item)):
+                shutil.move(item_path, self.data_dir)
+
+        shutil.rmtree(extract_dir)
 
     def _init_shared_files_and_dirs(self):
         # init shared files and directories
