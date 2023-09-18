@@ -46,7 +46,7 @@ class COCO2017Importer(FileImporter):
         self._annotations = {}  # {image_id: [annotation...]}
 
     @staticmethod
-    def _parse_meta(meta_path: str, rt):
+    def _parse_meta(meta_path: str):
         meta_path = os.path.abspath(meta_path)
         dir_path = os.path.dirname(meta_path)
 
@@ -82,20 +82,19 @@ class COCO2017Importer(FileImporter):
         info = {
             "dataset_name": dataset_name,
             "ground_truth": ground_truth,
-            "predictions": predictions,
-            "image_root": image_root
+            "predictions" : predictions,
+            "image_root"  : image_root
         }
 
-        rt.value = info
+        return info
 
     @staticmethod
     def parse_meta(meta_path: str):
-        rt = Manager().Value("i", None)
-        procs = Process(target=COCO2017Importer._parse_meta, args=(meta_path, rt))
-        procs.start()
-        procs.join()
-
-        info = rt.value
+        try:
+            info = COCO2017Importer._parse_meta(meta_path)
+        except Exception as err:
+            logger.error(f"Failed to parse meta file {meta_path}: {err}")
+            return None
         return info
 
     def load_ground_truth(self):
@@ -228,29 +227,30 @@ class COCO2017Importer(FileImporter):
                 keypoint_names = None
                 keypoint_skeleton = None
                 keypoint_colors = None
-                keypoints = anno_data.pop("keypoints", None)
-                if keypoints is not None:
+                keypoints = []
+                raw_keypoints = anno_data.pop("keypoints", None)
+                if raw_keypoints is not None:
                     keypoint_names = category.get("keypoints", None)
                     keypoint_skeleton = category.get("skeleton", None)
                     if keypoint_skeleton is not None:
-                        keypoint_skeleton = [item for sublist in keypoint_skeleton for item in sublist]
+                        keypoint_skeleton = [item - 1 for sublist in keypoint_skeleton for item in sublist]
 
                     keypoint_colors = category.get("keypoint_colors", None)
                     if keypoint_colors is not None:
                         keypoint_colors = [item for sublist in keypoint_colors for item in sublist]
 
                     if label_type == LabelType.GroundTruth:
-                        length = len(keypoints) // 3
+                        length = len(raw_keypoints) // 3
                         for idx in range(length):
                             idx *= 3
                             conf = 1.0
-                            x, y, v = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2]
+                            x, y, v = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2]
                             keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
                     elif label_type == LabelType.Prediction:
-                        length = len(keypoints) // 4
+                        length = len(raw_keypoints) // 4
                         for idx in range(length):
                             idx *= 4
-                            x, y, v, conf = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2], keypoints[idx + 3]
+                            x, y, v, conf = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2], raw_keypoints[idx + 3]
                             keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
 
                 # prepare is_group
