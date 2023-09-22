@@ -18,6 +18,7 @@ from typing import Union
 from tqdm import tqdm
 
 from deepdataspace import constants
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
 from deepdataspace.model import Category
@@ -66,6 +67,7 @@ class ImportHelper:
                           keypoint_colors: List[int] = None,
                           keypoint_skeleton: List[int] = None,
                           keypoint_names: List[str] = None,
+                          caption: str = None,
                           confirm_type: int = 0, ):
         """
         A helper function to format annotation data.
@@ -83,6 +85,7 @@ class ImportHelper:
                     keypoint_colors=keypoint_colors,
                     keypoint_skeleton=keypoint_skeleton,
                     keypoint_names=keypoint_names,
+                    caption=caption,
                     confirm_type=confirm_type, )
 
 
@@ -284,7 +287,7 @@ class FileImporter(Importer, abc.ABC):
         Collect the files related to this dataset, {file_tag: file_path}.
         """
 
-        return {LabelName.GroundTruth: self.path}
+        return {DatasetFileType.GroundTruth: self.path}
 
     @staticmethod
     @abc.abstractmethod
