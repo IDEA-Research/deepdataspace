@@ -16,7 +16,7 @@ from deepdataspace.constants import ContentEncoding
 from deepdataspace.constants import DatasetType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
-from deepdataspace.constants import TSVFileType
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.io.importer import FileImporter
 from deepdataspace.utils.file import create_file_range_url
 
@@ -43,14 +43,14 @@ class TSVImporter(FileImporter):
 
     def open_files(self):
         for file_tag, file_path in self.dataset.files.items():
-            if file_tag == TSVFileType.GroundTruth or file_tag.startswith(f"{TSVFileType.Prediction}/"):
+            if file_tag == DatasetFileType.GroundTruth or file_tag.startswith(f"{DatasetFileType.Prediction}/"):
                 self._files[file_tag] = {
                     "fp": open(file_path, "r", encoding="utf8"),
                     "line_idx": 0,
                     "byte_idx": 0,
                     "path": file_path
                 }
-            elif file_tag == TSVFileType.Embedding:
+            elif file_tag == DatasetFileType.Embedding:
                 self._files[file_tag] = {
                     "path": file_path
                 }
@@ -189,7 +189,7 @@ class TSVImporter(FileImporter):
         return image_data_str, image_content_str, line_idx, byte_idx, image_data_off
 
     def load_groundtruth(self) -> Tuple[Union[Dict, None], Union[List[Dict], None]]:
-        file = self._files[TSVFileType.GroundTruth]
+        file = self._files[DatasetFileType.GroundTruth]
         image_data_str, image_content_str, line_idx, byte_idx, image_data_off = self.read_line(file)
         if image_data_str is None:
             return None, None
@@ -247,7 +247,7 @@ class TSVImporter(FileImporter):
     def load_predictions(self, image: Dict) -> List[Dict]:
         objects = []
         for file_key in self._files.keys():
-            if not file_key.startswith(f"{TSVFileType.Prediction}/"):
+            if not file_key.startswith(f"{DatasetFileType.Prediction}/"):
                 continue
             obj_list = self.load_prediction(image, file_key)
             objects.extend(obj_list)
@@ -281,10 +281,10 @@ class TSVImporter(FileImporter):
             if item.endswith(".pred"):
                 pred_name = item.replace(self.dataset.name, "")[1:]
                 pred_name = os.path.splitext(pred_name)[0]
-                pred_name = f"{TSVFileType.Prediction}/{pred_name}"
+                pred_name = f"{DatasetFileType.Prediction}/{pred_name}"
                 files[pred_name] = file_path
 
             if item.endswith(".embd"):
-                files[TSVFileType.Embedding] = file_path
+                files[DatasetFileType.Embedding] = file_path
 
         return files

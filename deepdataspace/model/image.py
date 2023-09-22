@@ -404,6 +404,7 @@ class ImageModel(BaseModel):
                              keypoint_colors: List[int] = None,
                              keypoint_skeleton: List[int] = None,
                              keypoint_names: List[str] = None,
+                             caption: str = None,
                              confirm_type: int = 0, ):
         """
         The batch version of add_annotation.
@@ -448,7 +449,8 @@ class ImageModel(BaseModel):
             alpha_uri = create_file_url(file_path=alpha_path,
                                         read_mode=FileReadMode.Binary)
 
-        anno_obj = Object(label_name=label, label_type=label_type, category_name=category,
+        anno_obj = Object(label_name=label, label_type=label_type,
+                          category_name=category, caption=caption,
                           bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
                           conf=conf, is_group=is_group, confirm_type=confirm_type)

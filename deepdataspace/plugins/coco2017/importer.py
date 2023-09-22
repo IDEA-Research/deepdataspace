@@ -5,12 +5,11 @@ Import the coco2017 dataset and save metadata into mongodb.
 import json
 import logging
 import os
-from multiprocessing import Manager
-from multiprocessing import Process
 from typing import Dict
 from typing import List
 from typing import Tuple
 
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
@@ -80,10 +79,12 @@ class COCO2017Importer(FileImporter):
             assert os.path.isdir(image_root) and os.path.exists(image_root)
 
         info = {
-            "dataset_name": dataset_name,
-            "ground_truth": ground_truth,
-            "predictions" : predictions,
-            "image_root"  : image_root
+            "dataset_name"     : dataset_name,
+            "ground_truth"     : ground_truth,
+            "predictions"      : predictions,
+            "image_root"       : image_root,
+            "dynamic_caption"  : getattr(module, "dynamic_caption", False),
+            "caption_generator": getattr(module, "caption_generator", None),
         }
 
         return info
@@ -102,9 +103,9 @@ class COCO2017Importer(FileImporter):
             coco_data = json.load(fp)
 
         images = coco_data["images"]
-        images = {i["id"]: i for i in images}
+        self._images = {i["id"]: i for i in images}
 
-        categories = coco_data["categories"]
+        categories = coco_data.get("categories", [])
         self._categories = {c["id"]: c for c in categories}
 
         annotations = coco_data["annotations"]
@@ -114,8 +115,6 @@ class COCO2017Importer(FileImporter):
             image_id = annotation["image_id"]
             anno_list = self._annotations.setdefault(image_id, [])
             anno_list.append(annotation)
-
-            self._images[image_id] = images[image_id]
 
     def load_predictions(self):
         for file_tag, file_path in self.dataset.files.items():
@@ -158,25 +157,23 @@ class COCO2017Importer(FileImporter):
             image_id = coco_image_data["id"]
             coco_anno_list = self._annotations.get(image_id, [])
             # list_sample = [
-            #     {'segmentation'  : [
-            #         [240.86, 211.31, 240.16, 197.19, 236.98, 192.26, 237.34, 187.67, 245.8, 188.02, 243.33, 176.02,
-            #          250.39,
-            #          186.96, 251.8, 166.85, 255.33, 142.51, 253.21, 190.49, 261.68, 183.08, 258.86, 191.2, 260.98,
-            #          206.37,
-            #          254.63, 199.66, 252.51, 201.78, 251.8, 212.01]],
-            #         'area'       : 531.8071000000001,
-            #         'iscrowd'    : 0,
-            #         'image_id'   : 139,
-            #         'bbox'       : [236.98, 142.51, 24.7, 69.5],
-            #         'category_id': 64,
-            #         'id'         : 26547,
-            #         # 'label_name' : 'GroundTruth',
-            #         # 'label_type' : 'GT'
-            #     }
+            #     {
+            #       'segmentation'  : [
+            #           [x1, y1, x2, y2 ...],
+            #       ],
+            #       'area'          : 531.8071000000001,
+            #       'iscrowd'       : 0,
+            #       'image_id'      : 139,
+            #       'bbox'          : [x, y, w, h],
+            #       'category_id'   : 64,
+            #       'keypoints'     : [x1, y1, v1, conf1, x2, y2, v2, conf2, ...],
+            #       'caption'       : 'A giraffe eating food from the top of a tree.',
+            #       'id'            : 26547,
+            #     },
+            #     ...
             # ]
 
             # prepare image uri
-
             uri = None
 
             # trying to find the image file in local file system
@@ -211,9 +208,13 @@ class COCO2017Importer(FileImporter):
                 label_type = anno_data.pop("label_type", LabelType.GroundTruth)
 
                 # prepare category
-                category_id = anno_data.pop("category_id")
-                category = self._categories[category_id]
-                category_name = category["name"]
+                category_id = anno_data.pop("category_id", None)
+                if category_id:
+                    category = self._categories[category_id]
+                    category_name = category["name"]
+                else:
+                    category = {}
+                    category_name = ""
 
                 # prepare bbox
                 bbox = anno_data.pop("bbox", None)
@@ -250,7 +251,8 @@ class COCO2017Importer(FileImporter):
                         length = len(raw_keypoints) // 4
                         for idx in range(length):
                             idx *= 4
-                            x, y, v, conf = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2], raw_keypoints[idx + 3]
+                            x, y, v, conf = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2], \
+                                raw_keypoints[idx + 3]
                             keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
 
                 # prepare is_group
@@ -260,6 +262,9 @@ class COCO2017Importer(FileImporter):
                 conf = anno_data.pop("score", 1.0)
                 if label_type == LabelType.GroundTruth:
                     conf = 1.0
+
+                # prepare caption
+                caption = anno_data.pop("caption", None)
 
                 # finally, add the annotation
                 anno_data = self.format_annotation(category_name,
@@ -273,6 +278,7 @@ class COCO2017Importer(FileImporter):
                                                    keypoint_colors=keypoint_colors,
                                                    keypoint_skeleton=keypoint_skeleton,
                                                    keypoint_names=keypoint_names,
+                                                   caption=caption
                                                    )
                 anno_list.append(anno_data)
             yield image, anno_list
@@ -298,6 +304,7 @@ class COCO2017Importer(FileImporter):
         for pred in self.predictions:
             pred_name = pred["name"]
             pred_file = pred["file"]
-            files[f"PRED/{pred_name}"] = pred_file
+            files[f"{DatasetFileType.Prediction}/{pred_name}"] = pred_file
 
+        files[DatasetFileType.Meta] = self.meta_path
         return files

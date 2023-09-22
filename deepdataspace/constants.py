@@ -239,15 +239,16 @@ class ContentEncoding:
     ALL_ = {Plain, Base64}
 
 
-class TSVFileType:
+class DatasetFileType:
     """
     | TSV dataset related file types.
     | TSV dataset format may contain multiple files, each of these types:
     """
 
-    Embedding = "Embedding"  #: .embd file, used by :class:`deepdataspace.plugins.tsv.process.RankByFlags`.
-    Prediction = "Pred"  #: .pred file, used by :class:`deepdataspace.plugins.tsv.importer.TSVImporter`.
-    GroundTruth = LabelName.GroundTruth  #: .tsv file, used by :class:`deepdataspace.plugins.tsv.importer.TSVImporter`.
+    GroundTruth = LabelName.GroundTruth
+    Prediction = "Pred"
+    Embedding = "Embedding"
+    Meta = "Meta"
 
 
 class LabelProjectStatus:
@@ -286,12 +287,12 @@ class LabelProjectRoles:
     ReviewKinds_ = {Reviewer, ReviewLeader}  #: Roles that take part in the reviewing process.
 
     Levels_ = {
-        Owner: 0,
-        Manager: 1,
-        LabelLeader: 2,
+        Owner       : 0,
+        Manager     : 1,
+        LabelLeader : 2,
         ReviewLeader: 3,
-        Labeler: 4,
-        Reviewer: 5
+        Labeler     : 4,
+        Reviewer    : 5
     }  #: The level of every role, smaller number means higher level.
 
 

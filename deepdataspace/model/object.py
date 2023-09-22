@@ -50,6 +50,8 @@ class Object(BaseModel):
         The point colors of the object.
     point_names: list
         The point names of the object.
+    caption: str
+        The caption of the object.
     confirm_type: int
         The image confirm type, 0 for unconfirmed, 1 for confirmed, 2 for rejected.
     compare_result: dict
@@ -81,8 +83,9 @@ class Object(BaseModel):
     alpha: Optional[str] = ""
     points: Optional[List[Union[float, int]]] = []
     lines: Optional[List[int]] = []
-    point_colors: Optional[List[str]] = []
+    point_colors: Optional[List[int]] = []
     point_names: Optional[List[str]] = []
+    caption: Optional[str] = ""
     confirm_type: Optional[int] = 0  # the image confirm type, 0 no confirm required, 1 gt may be fn, 2 pred may be fp
     compare_result: Optional[Dict[str, str]] = {}  # {"90": "FP", ..., "10": "OK"}
     matched_det_idx: Optional[int] = None  # The matched ground truth index, for prediction objects only.

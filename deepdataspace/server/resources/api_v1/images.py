@@ -5,17 +5,23 @@ RESTful API for images.
 """
 
 import json
+import logging
 
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetStatus
 from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelType
 from deepdataspace.model import DataSet
 from deepdataspace.model.image import Image
+from deepdataspace.plugins.coco2017 import COCO2017Importer
 from deepdataspace.utils.http import Argument
 from deepdataspace.utils.http import BaseAPIView
 from deepdataspace.utils.http import format_response
 from deepdataspace.utils.http import parse_arguments
 from deepdataspace.utils.http import raise_exception
+from deepdataspace.constants import DatasetType
+
+logger = logging.getLogger("django")
 
 
 def concat_url(prefix, path):
@@ -24,6 +30,33 @@ def concat_url(prefix, path):
     if path.startswith("/"):
         return f"{prefix}{path}"
     return f"{prefix}/{path}"
+
+
+def get_meta_module(dataset):
+    is_coco_dataset = dataset.type == DatasetType.COCO2017
+    if not is_coco_dataset:
+        return None
+
+    meta_file = dataset.files.get(DatasetFileType.Meta, None)
+    if meta_file is None:
+        return None
+
+    try:
+        meta_module = COCO2017Importer.parse_meta(meta_file)
+    except Exception as err:
+        logger.error(f"parse meta file[{meta_file}] failed: {err}")
+    else:
+        return meta_module
+
+
+def get_caption_func(dataset):
+    meta_module = get_meta_module(dataset)
+    if meta_module is None:
+        return None
+
+    if meta_module["dynamic_caption"]:
+        return meta_module["caption_generator"]
+    return None
 
 
 class ImagesView(BaseAPIView):
@@ -55,6 +88,8 @@ class ImagesView(BaseAPIView):
         if dataset.status in DatasetStatus.DontRead_:
             raise_exception(ErrCode.DatasetNotReadable,
                             f"dataset_id[{dataset_id}] is in status [{dataset.status}] now, try again later")
+
+        caption_generator = get_caption_func(dataset)
 
         filters = {}
         if category_id is not None:
@@ -104,6 +139,8 @@ class ImagesView(BaseAPIView):
                     if obj["segmentation"] is None:
                         obj["segmentation"] = ""
 
+                    obj["caption"] = obj["caption"] or ""
+
                     obj.pop("compare_result", None)
 
                 image_url = image["url"]
@@ -120,6 +157,10 @@ class ImagesView(BaseAPIView):
                     "url"         : image_url,
                     "url_full_res": image_url_full_res
                 })
+
+                image["caption"] = ""
+                if caption_generator:
+                    image["caption"] = caption_generator(image)
 
                 image_list.append(image)
 
