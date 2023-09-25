@@ -456,6 +456,7 @@ class ImageModel(BaseModel):
                           conf=conf, is_group=is_group, confirm_type=confirm_type)
         self.objects.append(anno_obj)
 
+    def finish_batch_add_annotation(self):
         self.dataset.batch_save_image(self)
 
 

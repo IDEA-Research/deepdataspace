@@ -215,6 +215,7 @@ class Importer(ImportHelper, abc.ABC):
             self.add_user_data(image)
             for anno in anno_list:
                 image.batch_add_annotation(**anno)
+            image.finish_batch_add_annotation()
             logger.debug(f"time cost of import one image: {int(time.time() * 1000) - beg}ms")
             logger.debug(f"imported image, id={image.id}, url={image.url}")
         self.dataset.finish_batch_add_image()
