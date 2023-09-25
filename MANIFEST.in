@@ -1,4 +1,5 @@
 recursive-include deepdataspace/server/static *
 recursive-include deepdataspace/server/templates *
+recursive-include deepdataspace/samples *
 global-exclude *.py[cod]
 global-exclude .DS_Store
