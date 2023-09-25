@@ -334,7 +334,7 @@ class DataSet(BaseModel):
         path = "/".join(path[7:])
         whitelist.add(os.path.dirname(path))
 
-    def _save_image_batch(self):
+    def _batch_save_image_batch(self):
         """
         The internal function to flush the batch queue to database.
         """
@@ -406,10 +406,10 @@ class DataSet(BaseModel):
 
         self._batch_queue.clear()
 
-    def save_image_batch(self, enforce: bool = False):
+    def batch_save_image(self, enforce: bool = False):
         batch_is_full = len(self._batch_queue) >= self._batch_size
         if batch_is_full or enforce:
-            self._save_image_batch()
+            self._batch_save_image_batch()
             return True
         return False
 
@@ -418,7 +418,7 @@ class DataSet(BaseModel):
         This method should be called after all batch_add_image calls are finished.
         This saves all images in the buffer queue to database.
         """
-        self._save_image_batch()
+        self._batch_save_image_batch()
         self._add_cover()
 
     def eval_description(self):

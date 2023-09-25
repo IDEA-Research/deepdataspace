@@ -456,6 +456,8 @@ class ImageModel(BaseModel):
                           conf=conf, is_group=is_group, confirm_type=confirm_type)
         self.objects.append(anno_obj)
 
+        self.dataset.batch_save_image(self)
+
 
 _image_models: Dict[str, Type[ImageModel]] = {}  # a cache for ImageModel for each dataset
 
