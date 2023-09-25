@@ -9,7 +9,6 @@ from pathlib import Path
 
 import requests
 
-from deepdataspace.utils.function import retry
 from deepdataspace.utils.os import PLATFORM
 from deepdataspace.utils.os import Platforms
 from deepdataspace.utils.string import gen_random_str
