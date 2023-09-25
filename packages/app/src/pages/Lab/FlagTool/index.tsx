@@ -128,7 +128,10 @@ const Page: React.FC = () => {
                     />
                   )}
                   {displayOptionsResult.showImgDesc && (
-                    <div className={styles.label}> {item.desc} </div>
+                    <div className={styles.label}>
+                      {' '}
+                      {item.caption || item.desc}{' '}
+                    </div>
                   )}
                   {flagTools && item.selected ? (
                     <div className={styles.itemSelectedMask} />
