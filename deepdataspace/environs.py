@@ -29,11 +29,12 @@ which are written to ``~/.deepdataspace/dds.env``.
 
 .. data:: DDS_RUNTIME_DIR
 
-    | The runtime directory of dds.
+    The runtime directory of dds.
 
     :default: ``~/.deepdataspace``
 
 .. data:: DDS_DJANGO_DIR
+
     The runtime directory of django which includes django log files.
 
     :default: ``$DDS_RUNTIME_DIR/django``
