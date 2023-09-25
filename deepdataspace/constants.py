@@ -241,8 +241,7 @@ class ContentEncoding:
 
 class DatasetFileType:
     """
-    | TSV dataset related file types.
-    | TSV dataset format may contain multiple files, each of these types:
+    Dataset related file types.
     """
 
     GroundTruth = LabelName.GroundTruth
