@@ -430,6 +430,15 @@ const Preview: React.FC<PreviewProps> = (props) => {
                   : metadata[key]}
               </div>
             ))}
+            {
+              list[current]?.caption ? (
+                <div className="item">
+                  {'caption'}
+                  <br />
+                  {list[current].caption}
+                </div>
+              ) : null
+            }
           </div>
           <div className="bottom-mask" />
           <div className="hide-info-btn" onClick={changeShowInfo}>
