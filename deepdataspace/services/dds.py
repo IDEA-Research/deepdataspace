@@ -138,7 +138,7 @@ class DDS(metaclass=SingletonMeta):
             self.exit_or_raise(msg)
 
     def init_samples(self):
-        sample_file = f"/{self.runtime_dir}/dataset-samples.zip"
+        sample_file = os.path.join(self.runtime_dir, "dataset-samples.zip")
 
         if not os.path.exists(sample_file):
             sample_url = f"{self.dl_prefix}/datasets/dataset-samples.zip"
@@ -146,7 +146,7 @@ class DDS(metaclass=SingletonMeta):
                 download_by_requests(sample_url, sample_file)
 
         with zipfile.ZipFile(sample_file, "r") as fp:
-            fp.extractall(f"{self.runtime_dir}/")
+            fp.extractall(f"{self.runtime_dir}")
 
         extract_dir = f"{self.runtime_dir}/dataset-samples"
         for item in os.listdir(extract_dir):
