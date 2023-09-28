@@ -18,6 +18,7 @@ from typing import Union
 from tqdm import tqdm
 
 from deepdataspace import constants
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
 from deepdataspace.model import Category
@@ -62,14 +63,29 @@ class ImportHelper:
                           bbox: Tuple[int, int, int, int] = None,
                           segmentation: List[List[int]] = None,
                           alpha_uri: str = None,
-                          coco_keypoints: List[Union[float, int]] = None,
+                          keypoints: List[Union[float, int]] = None,
+                          keypoint_colors: List[int] = None,
+                          keypoint_skeleton: List[int] = None,
+                          keypoint_names: List[str] = None,
+                          caption: str = None,
                           confirm_type: int = 0, ):
         """
         A helper function to format annotation data.
         """
 
-        return dict(category=category, label=label, label_type=label_type, conf=conf, is_group=is_group,
-                    bbox=bbox, segmentation=segmentation, alpha_uri=alpha_uri, coco_keypoints=coco_keypoints,
+        return dict(category=category,
+                    label=label,
+                    label_type=label_type,
+                    conf=conf,
+                    is_group=is_group,
+                    bbox=bbox,
+                    segmentation=segmentation,
+                    alpha_uri=alpha_uri,
+                    keypoints=keypoints,
+                    keypoint_colors=keypoint_colors,
+                    keypoint_skeleton=keypoint_skeleton,
+                    keypoint_names=keypoint_names,
+                    caption=caption,
                     confirm_type=confirm_type, )
 
 
@@ -136,14 +152,14 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         pipeline = [
-            {"$project": {"flag": 1,
-                          "flag_ts": 1,
+            {"$project": {"flag"         : 1,
+                          "flag_ts"      : 1,
                           "label_confirm": 1,
-                          "objects": {
+                          "objects"      : {
                               "$filter": {
                                   "input": "$objects",
-                                  "as": "object",
-                                  "cond": {
+                                  "as"   : "object",
+                                  "cond" : {
                                       "$eq": ["$$object.label_type", LabelType.User]
                                   }
                               }
@@ -165,9 +181,9 @@ class Importer(ImportHelper, abc.ABC):
             label_confirm = image.get("label_confirm", {})
 
             self._user_data[image_id] = {
-                "objects": user_objects,
-                "flag": flag,
-                "flag_ts": flag_ts,
+                "objects"      : user_objects,
+                "flag"         : flag,
+                "flag_ts"      : flag_ts,
                 "label_confirm": label_confirm,
             }
 
@@ -195,15 +211,11 @@ class Importer(ImportHelper, abc.ABC):
         desc = f"dataset[{self.dataset.name}@{self.dataset.id}] import progress"
         for (image, anno_list) in tqdm(self, desc=desc, unit=" images"):
             beg = int(time.time() * 1000)
-            image, saved = self.dataset._batch_add_image(**image)
+            image = self.dataset.batch_add_image(**image)
             self.add_user_data(image)
             for anno in anno_list:
                 image.batch_add_annotation(**anno)
-            if image and anno_list:
-                # the image is already saved and out of the batch queue,
-                # but the annotations are not empty,
-                # so we have to save the image again
-                image.save()
+            image.finish_batch_add_annotation()
             logger.debug(f"time cost of import one image: {int(time.time() * 1000) - beg}ms")
             logger.debug(f"imported image, id={image.id}, url={image.url}")
         self.dataset.finish_batch_add_image()
@@ -275,7 +287,7 @@ class FileImporter(Importer, abc.ABC):
         Collect the files related to this dataset, {file_tag: file_path}.
         """
 
-        return {LabelName.GroundTruth: self.path}
+        return {DatasetFileType.GroundTruth: self.path}
 
     @staticmethod
     @abc.abstractmethod
@@ -312,106 +324,7 @@ class FileImporter(Importer, abc.ABC):
         return result
 
 
-class FileGroupImporter(abc.ABC):
-    """
-    The importer interface for file-based dataset group.
-    A dataset group is a directory containing multiple datasets.
-
-    Any subclass of FileGroupImporter should implement the following methods:
-        - can_import: static method, check if the directory can be imported by this importer.
-        - find_files: find all dataset files of this group.
-        - choose_importer: choose the proper importer for a given dataset file.
-    """
-
-    def __init__(self, path: str, group_name: str = None, group_id: str = None, enforce: bool = False):
-        """
-        :param path: the path of the dataset group.
-        :param group_name: the name of the dataset group.
-        :param group_id: the dataset group id.
-            If not provided, the importer will generate one with the path and name.
-        :param enforce: if True, the importer will re-import the datasets of the group even if they are already imported.
-        """
-        path = os.path.abspath(path)
-
-        if group_name is None:
-            group_name = os.path.basename(path).rsplit(".", 1)[0]
-
-        if group_id is None:
-            group_id = get_str_md5(f"{path}_{group_name}")
-
-        self.enforce = enforce
-        self.group_path = path
-        self.group_id = group_id
-        self.group_name = group_name
-        self.datasets = []
-
-    @staticmethod
-    @abc.abstractmethod
-    def can_import(path: str) -> bool:
-        """
-        Check if the given dataset group directory can be imported by this importer.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def find_files(self) -> List[str]:
-        """
-        Find all dataset files of this dataset group.
-        Each file represents a dataset.
-        """
-
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def choose_importer(self, path: str) -> FileImporter:
-        """
-        Choose a proper dataset importer for a given dataset file of this group.
-        """
-
-        raise NotImplementedError
-
-    def run_import(self, path: str) -> DataSet:
-        """
-        Import a dataset file of this group.
-        """
-
-        importer = self.choose_importer(path)
-        importer.dataset.group_id = self.group_id
-        importer.dataset.group_name = self.group_name
-        importer.dataset.save()
-        dataset = importer.run()
-        return dataset
-
-    def run(self):
-        """
-        The start point of the importing process.
-        """
-
-        for path in self.find_files():
-            try:
-                dataset = self.run_import(path)
-            except Exception as err:
-                logging.error(f"Import dataset {path} failed: {err}")
-            else:
-                self.datasets.append(dataset)
-
-        return self.datasets
-
-    @classmethod
-    def get_subclasses(cls):
-        """
-        Get all subclasses of this class.
-        This is used together with can_import function to choose a proper importer for a given dataset group path.
-        """
-
-        sub_classes = set(cls.__subclasses__())
-        for sub_class in sub_classes:
-            sub_sub_classes = sub_class.__subclasses__()
-            sub_classes.union(sub_sub_classes)
-        return sub_classes
-
-
-def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], Type[FileGroupImporter], None]:
+def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], None]:
     """
     Choose the proper importer class for target_path.
     The right importer is the importer class which returns true on importer_class.can_import(target_path).
@@ -426,17 +339,10 @@ def choose_importer_cls(target_path: str) -> Union[Type[FileImporter], Type[File
             logger.info(f"choose_importer_cls: {imp_cls.__name__} is chosen for target_path {target_path}")
             return imp_cls
 
-    # try to import as a dataset group
-    group_importers = FileGroupImporter.get_subclasses()
-    for imp_cls in group_importers:
-        if imp_cls.can_import(target_path):
-            logger.info(f"choose_importer_cls: {imp_cls.__name__} is chosen for target_path {target_path}")
-            return imp_cls
-
     return None
 
 
-def import_dataset(target_path: str, enforce: bool = False) -> List[DataSet]:
+def import_dataset(target_path: str, enforce: bool = False) -> DataSet:
     """
     Choose the right auto importer for target path, and run the import task.
 

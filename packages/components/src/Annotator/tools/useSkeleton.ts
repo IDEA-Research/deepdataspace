@@ -40,8 +40,8 @@ const renderKeypoints = (
     for (let i = 0; i * 2 < lines.length; i++) {
       const [index1, index2] = [lines[i * 2], lines[i * 2 + 1]];
       if (
-        points[index1].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
-        points[index2].visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible
+        points[index1]?.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible &&
+        points[index2]?.visible === KEYPOINTS_VISIBLE_TYPE.labeledVisible
       ) {
         drawLine(
           canvas,

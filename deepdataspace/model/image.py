@@ -249,12 +249,15 @@ class ImageModel(BaseModel):
         return "/".join([",".join([str(x) for x in seg]) for seg in segmentation])
 
     @staticmethod
-    def _format_coco_keypoints(keypoints: List[Union[float, int]]):
+    def _format_keypoints(keypoints: List[Union[float, int]],
+                          colors: List[int] = None,
+                          skeleton: List[int] = None,
+                          names: List[str] = None):
         """
         Convert the coco_keypoints data to the internal format.
         """
 
-        if keypoints is None:
+        if not keypoints:
             return [], [], [], []
 
         if len(keypoints) % 4 != 0:
@@ -267,7 +270,14 @@ class ImageModel(BaseModel):
             x, y, v, conf = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2], keypoints[idx + 3]
             points.extend([float(x), float(y), 0.0, 1.0, int(v), conf])  # x, y, z, w, v, conf
 
-        return points, constants.KeyPointColor.COCO, constants.KeyPointSkeleton.COCO, constants.KeyPointName.COCO
+        if not colors:
+            colors = constants.KeyPointColor.COCO
+        if not skeleton:
+            skeleton = constants.KeyPointSkeleton.COCO
+        if not names:
+            names = constants.KeyPointName.COCO
+
+        return points, colors, skeleton, names
 
     @staticmethod
     def _add_local_file_url_to_whitelist(url: str):
@@ -312,7 +322,10 @@ class ImageModel(BaseModel):
                         bbox: Tuple[int, int, int, int] = None,
                         segmentation: List[List[int]] = None,
                         alpha_uri: str = None,
-                        coco_keypoints: List[Union[float, int]] = None,
+                        keypoints: List[Union[float, int]] = None,
+                        keypoint_colors: List[int] = None,
+                        keypoint_skeleton: List[int] = None,
+                        keypoint_names: List[str] = None,
                         confirm_type: int = 0,
                         ):
         if bbox:
@@ -323,7 +336,10 @@ class ImageModel(BaseModel):
         category_obj = self._add_category(category)
         bounding_box = self._format_bbox(self.width, self.height, bbox)
         segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_coco_keypoints(coco_keypoints)
+        points, colors, lines, names = self._format_keypoints(keypoints,
+                                                              keypoint_colors,
+                                                              keypoint_skeleton,
+                                                              keypoint_names)
         anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
                           category_name=category, category_id=category_obj.id,
                           bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
@@ -341,7 +357,10 @@ class ImageModel(BaseModel):
                        bbox: Tuple[int, int, int, int] = None,
                        segmentation: List[List[int]] = None,
                        alpha_uri: str = None,
-                       coco_keypoints: List[Union[float, int]] = None,
+                       keypoints: List[Union[float, int]] = None,
+                       keypoint_colors: List[int] = None,
+                       keypoint_skeleton: List[int] = None,
+                       keypoint_names: List[str] = None,
                        confirm_type: int = 0,
                        ):
         """
@@ -355,18 +374,22 @@ class ImageModel(BaseModel):
         :param bbox: the bounding box of the annotation, (x1, y1, w, h).
         :param segmentation: the segmentation of the annotation, [[l1p1, l1p2, ...], [l2p1, l2p2, ...]].
         :param alpha_uri: the alpha uri of the annotation, either a local path or a remote url.
-        :param coco_keypoints: the key points of coco format, [x1, y1, v1, conf1, x2, y2, v2, conf2, ...].
+        :param keypoints: the key points, [x1, y1, v1, conf1, x2, y2, v2, conf2, ...].
                v stands for visibility, 0 = not labeled, 1 = labeled but not visible, 2 = visible;
                conf stands for confidence, and it should always be 1.0 for ground truth.
+        :param keypoint_names: the key point names, ["nose", "left_eye", ...].
+        :param keypoint_colors: the key point colors, [255, 0, 0, ...].
+        :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         """
 
         self._add_annotation(category, label, label_type, conf,
                              is_group, bbox, segmentation, alpha_uri,
-                             coco_keypoints, confirm_type)
+                             keypoints, keypoint_colors, keypoint_skeleton, keypoint_names,
+                             confirm_type)
 
         self.save()
-        self._update_dataset(bbox, segmentation, alpha_uri, coco_keypoints)
+        self._update_dataset(bbox, segmentation, alpha_uri, keypoints)
 
     def batch_add_annotation(self,
                              category: str,
@@ -377,7 +400,11 @@ class ImageModel(BaseModel):
                              bbox: Tuple[int, int, int, int] = None,
                              segmentation: List[List[int]] = None,
                              alpha_uri: str = None,
-                             coco_keypoints: List[Union[float, int]] = None,
+                             keypoints: List[Union[float, int]] = None,
+                             keypoint_colors: List[int] = None,
+                             keypoint_skeleton: List[int] = None,
+                             keypoint_names: List[str] = None,
+                             caption: str = None,
                              confirm_type: int = 0, ):
         """
         The batch version of add_annotation.
@@ -401,26 +428,36 @@ class ImageModel(BaseModel):
         :param bbox: the bounding box of the annotation, (x1, y1, w, h).
         :param segmentation: the segmentation of the annotation, [[l1p1, l1p2, ...], [l2p1, l2p2, ...]].
         :param alpha_uri: the alpha uri of the annotation, either a local path or a remote url.
-        :param coco_keypoints: the key points of coco format, [x1, y1, v1, conf1, x2, y2, v2, conf2, ...].
+        :param keypoints: the key points, [x1, y1, v1, conf1, x2, y2, v2, conf2, ...].
             v stands for visibility, 0 = not labeled, 1 = labeled but not visible, 2 = visible;
             conf stands for confidence, and it should always be 1.0 for ground truth.
+        :param keypoint_names: the key point names, ["nose", "left_eye", ...].
+        :param keypoint_colors: the key point colors, [255, 0, 0, ...].
+        :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         :return: None
         """
 
         bbox = self._format_bbox(self.width, self.height, bbox)
         segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_coco_keypoints(coco_keypoints)
+        points, colors, lines, names = self._format_keypoints(keypoints,
+                                                              keypoint_colors,
+                                                              keypoint_skeleton,
+                                                              keypoint_names)
         if alpha_uri and alpha_uri.startswith("file://"):
             alpha_path = alpha_uri[7:]
             alpha_uri = create_file_url(file_path=alpha_path,
                                         read_mode=FileReadMode.Binary)
 
-        anno_obj = Object(label_name=label, label_type=label_type, category_name=category,
+        anno_obj = Object(label_name=label, label_type=label_type,
+                          category_name=category, caption=caption,
                           bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
                           conf=conf, is_group=is_group, confirm_type=confirm_type)
         self.objects.append(anno_obj)
+
+    def finish_batch_add_annotation(self):
+        self.dataset.batch_save_image(self)
 
 
 _image_models: Dict[str, Type[ImageModel]] = {}  # a cache for ImageModel for each dataset

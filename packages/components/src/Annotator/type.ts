@@ -47,6 +47,7 @@ export interface DrawImageData {
   urlFullRes: string;
   objects: DrawObject[];
   metadata?: Record<string, string>;
+  caption?: string;
 }
 
 export enum EObjectStatus {

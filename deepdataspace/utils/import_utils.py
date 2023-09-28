@@ -5,6 +5,7 @@ This file provides convenient functions about importing python packages.
 """
 
 import importlib
+import importlib.util
 from types import ModuleType
 from typing import Callable
 
@@ -39,3 +40,16 @@ class LazyModule(ModuleType):
         self._module = module
 
         self.__dict__.update(module.__dict__)
+
+
+def import_from_path(path: str):
+    """
+    Import a module given its file path.
+    """
+    module_name = path.split("/")[-1].replace(".py", "")
+
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    return module

@@ -28,6 +28,7 @@ export namespace NsDataSet {
 
   export interface DataSetImg extends BaseImage {
     desc: string;
+    caption?: string;
     metadata: Record<string, string>;
     objects: Array<DatasetObject>;
     /** 0/1/2 */

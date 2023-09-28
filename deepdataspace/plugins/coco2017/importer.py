@@ -9,11 +9,12 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
+from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetType
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
-from deepdataspace.io.importer import FileGroupImporter
 from deepdataspace.io.importer import FileImporter
+from deepdataspace.utils.import_utils import import_from_path
 
 logger = logging.getLogger("plugins.coco.importer")
 
@@ -23,34 +24,88 @@ class COCO2017Importer(FileImporter):
     Importer for coco2017 dataset.
     """
 
-    def __init__(self, dataset_path: str, image_root: str = None, predictions: List[str] = None, enforce: bool = False):
+    def __init__(self, meta_path: str, enforce: bool = False):
         """
-        :param dataset_path: path to a json file of coco2017 dataset.
-        :param image_root: an optional local directory containing image files of this dataset.
-            If no media_dir is provided, the image files will be served from the original coco image urls.
-        :param predictions: an optional list containing json files of predictions of this dataset.
+        :param meta_path: path to meta file of coco2017 dataset, in a format of python script.
         :param enforce: if True, the importer will re-import the dataset even if it is already imported.
         """
 
-        dataset_path = os.path.abspath(dataset_path)
-        self.dataset_path = dataset_path
-        self.image_root = image_root
-        self.predictions = predictions
+        self.meta_path = os.path.abspath(meta_path)
+        info = self.parse_meta(meta_path)
+        dataset_name = info["dataset_name"]
+        self.ground_truth = info["ground_truth"]
+        self.image_root = info["image_root"]
+        self.predictions = info["predictions"]
 
-        super(COCO2017Importer, self).__init__(dataset_path, enforce=enforce)
+        super(COCO2017Importer, self).__init__(meta_path, dataset_name, enforce=enforce)
+
         self.dataset.type = DatasetType.COCO2017
         self._images = {}  # {image_id: image}
         self._categories = {}  # {category_id: category}
         self._annotations = {}  # {image_id: [annotation...]}
 
+    @staticmethod
+    def _parse_meta(meta_path: str):
+        meta_path = os.path.abspath(meta_path)
+        dir_path = os.path.dirname(meta_path)
+
+        module = import_from_path(meta_path)
+        if not getattr(module, "is_coco_meta", False):
+            return None
+
+        dataset_name = getattr(module, "dataset_name")
+        assert isinstance(dataset_name, str)
+
+        ground_truth = getattr(module, "ground_truth")
+        ground_truth = os.path.abspath(os.path.join(dir_path, ground_truth))
+        assert os.path.isfile(ground_truth) and os.path.exists(ground_truth)
+        assert ground_truth.endswith(".json")
+
+        predictions = getattr(module, "predictions", [])
+        assert isinstance(predictions, list)
+        for prediction in predictions:
+            pred_name = prediction["name"]
+            assert isinstance(pred_name, str)
+
+            pred_file = prediction["file"]
+            pred_file = os.path.abspath(os.path.join(dir_path, pred_file))
+            assert os.path.isfile(pred_file) and os.path.exists(pred_file)
+            assert pred_file.endswith(".json")
+            prediction["file"] = pred_file
+
+        image_root = getattr(module, "image_root", None)
+        if image_root is not None:
+            image_root = os.path.abspath(os.path.join(dir_path, image_root))
+            assert os.path.isdir(image_root) and os.path.exists(image_root)
+
+        info = {
+            "dataset_name"     : dataset_name,
+            "ground_truth"     : ground_truth,
+            "predictions"      : predictions,
+            "image_root"       : image_root,
+            "dynamic_caption"  : getattr(module, "dynamic_caption", False),
+            "caption_generator": getattr(module, "caption_generator", None),
+        }
+
+        return info
+
+    @staticmethod
+    def parse_meta(meta_path: str):
+        try:
+            info = COCO2017Importer._parse_meta(meta_path)
+        except Exception as err:
+            logger.error(f"Failed to parse meta file {meta_path}: {err}")
+            return None
+        return info
+
     def load_ground_truth(self):
-        with open(self.dataset_path, "r", encoding="utf8") as fp:
+        with open(self.ground_truth, "r", encoding="utf8") as fp:
             coco_data = json.load(fp)
 
         images = coco_data["images"]
-        images = {i["id"]: i for i in images}
+        self._images = {i["id"]: i for i in images}
 
-        categories = coco_data["categories"]
+        categories = coco_data.get("categories", [])
         self._categories = {c["id"]: c for c in categories}
 
         annotations = coco_data["annotations"]
@@ -60,8 +115,6 @@ class COCO2017Importer(FileImporter):
             image_id = annotation["image_id"]
             anno_list = self._annotations.setdefault(image_id, [])
             anno_list.append(annotation)
-
-            self._images[image_id] = images[image_id]
 
     def load_predictions(self):
         for file_tag, file_path in self.dataset.files.items():
@@ -104,25 +157,23 @@ class COCO2017Importer(FileImporter):
             image_id = coco_image_data["id"]
             coco_anno_list = self._annotations.get(image_id, [])
             # list_sample = [
-            #     {'segmentation'  : [
-            #         [240.86, 211.31, 240.16, 197.19, 236.98, 192.26, 237.34, 187.67, 245.8, 188.02, 243.33, 176.02,
-            #          250.39,
-            #          186.96, 251.8, 166.85, 255.33, 142.51, 253.21, 190.49, 261.68, 183.08, 258.86, 191.2, 260.98,
-            #          206.37,
-            #          254.63, 199.66, 252.51, 201.78, 251.8, 212.01]],
-            #         'area'       : 531.8071000000001,
-            #         'iscrowd'    : 0,
-            #         'image_id'   : 139,
-            #         'bbox'       : [236.98, 142.51, 24.7, 69.5],
-            #         'category_id': 64,
-            #         'id'         : 26547,
-            #         # 'label_name' : 'GroundTruth',
-            #         # 'label_type' : 'GT'
-            #     }
+            #     {
+            #       'segmentation'  : [
+            #           [x1, y1, x2, y2 ...],
+            #       ],
+            #       'area'          : 531.8071000000001,
+            #       'iscrowd'       : 0,
+            #       'image_id'      : 139,
+            #       'bbox'          : [x, y, w, h],
+            #       'category_id'   : 64,
+            #       'keypoints'     : [x1, y1, v1, conf1, x2, y2, v2, conf2, ...],
+            #       'caption'       : 'A giraffe eating food from the top of a tree.',
+            #       'id'            : 26547,
+            #     },
+            #     ...
             # ]
 
             # prepare image uri
-
             uri = None
 
             # trying to find the image file in local file system
@@ -157,9 +208,13 @@ class COCO2017Importer(FileImporter):
                 label_type = anno_data.pop("label_type", LabelType.GroundTruth)
 
                 # prepare category
-                category_id = anno_data.pop("category_id")
-                category = self._categories[category_id]
-                category_name = category["name"]
+                category_id = anno_data.pop("category_id", None)
+                if category_id:
+                    category = self._categories[category_id]
+                    category_name = category["name"]
+                else:
+                    category = {}
+                    category_name = ""
 
                 # prepare bbox
                 bbox = anno_data.pop("bbox", None)
@@ -170,19 +225,35 @@ class COCO2017Importer(FileImporter):
                 segmentation = anno_data.pop("segmentation", None)
 
                 # prepare keypoints
-                coco_keypoints = []
-                keypoints = anno_data.pop("keypoints", None)
-                if keypoints is not None:
-                    length = len(keypoints) // 3
-                    for idx in range(length):
-                        idx *= 3
-                        if label_type == LabelType.GroundTruth:
+                keypoint_names = None
+                keypoint_skeleton = None
+                keypoint_colors = None
+                keypoints = []
+                raw_keypoints = anno_data.pop("keypoints", None)
+                if raw_keypoints is not None:
+                    keypoint_names = category.get("keypoints", None)
+                    keypoint_skeleton = category.get("skeleton", None)
+                    if keypoint_skeleton is not None:
+                        keypoint_skeleton = [item - 1 for sublist in keypoint_skeleton for item in sublist]
+
+                    keypoint_colors = category.get("keypoint_colors", None)
+                    if keypoint_colors is not None:
+                        keypoint_colors = [item for sublist in keypoint_colors for item in sublist]
+
+                    if label_type == LabelType.GroundTruth:
+                        length = len(raw_keypoints) // 3
+                        for idx in range(length):
+                            idx *= 3
                             conf = 1.0
-                            x, y, v = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2]
-                        else:  # label_type == LabelType.Prediction
-                            v = 2
-                            x, y, conf = keypoints[idx], keypoints[idx + 1], keypoints[idx + 2]
-                        coco_keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
+                            x, y, v = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2]
+                            keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
+                    elif label_type == LabelType.Prediction:
+                        length = len(raw_keypoints) // 4
+                        for idx in range(length):
+                            idx *= 4
+                            x, y, v, conf = raw_keypoints[idx], raw_keypoints[idx + 1], raw_keypoints[idx + 2], \
+                                raw_keypoints[idx + 3]
+                            keypoints.extend([float(x), float(y), int(v), conf])  # x, y, v, conf
 
                 # prepare is_group
                 is_group = anno_data.pop("is_group", None)
@@ -192,6 +263,9 @@ class COCO2017Importer(FileImporter):
                 if label_type == LabelType.GroundTruth:
                     conf = 1.0
 
+                # prepare caption
+                caption = anno_data.pop("caption", None)
+
                 # finally, add the annotation
                 anno_data = self.format_annotation(category_name,
                                                    label_name,
@@ -200,7 +274,11 @@ class COCO2017Importer(FileImporter):
                                                    is_group=is_group,
                                                    label_type=label_type,
                                                    segmentation=segmentation,
-                                                   coco_keypoints=coco_keypoints,
+                                                   keypoints=keypoints,
+                                                   keypoint_colors=keypoint_colors,
+                                                   keypoint_skeleton=keypoint_skeleton,
+                                                   keypoint_names=keypoint_names,
+                                                   caption=caption
                                                    )
                 anno_list.append(anno_data)
             yield image, anno_list
@@ -210,68 +288,23 @@ class COCO2017Importer(FileImporter):
         if os.path.isdir(path):
             return False
 
-        return not path.startswith(".") and path.endswith(".json")
+        if not path.endswith(".py"):
+            return False
+
+        try:
+            assert COCO2017Importer.parse_meta(path) is not None
+        except:
+            return False
+        else:
+            return True
 
     def collect_files(self) -> dict:
-        files = super(COCO2017Importer, self).collect_files()
+        files = {LabelName.GroundTruth: self.ground_truth}
 
         for pred in self.predictions:
-            pred_name = os.path.basename(pred)
-            pred_name = os.path.splitext(pred_name)[0]
-            files[f"PRED/{pred_name}"] = pred
+            pred_name = pred["name"]
+            pred_file = pred["file"]
+            files[f"{DatasetFileType.Prediction}/{pred_name}"] = pred_file
 
-        return files
-
-
-class COCO2017GroupImporter(FileGroupImporter):
-    """
-    Importer for COCO2017 dataset group.
-    """
-
-    def __init__(self, path: str, group_name: str = None, group_id: str = None, enforce: bool = False):
-        super().__init__(path, group_name, group_id, enforce=enforce)
-        self.coco2017_file = os.path.join(self.group_path, ".coco2017.json")
-        self.anno_files = {}  # {"anno_file_path": {"annotation": "xxx", "image_root": "yyy", "predictions": ["a",]} }
-
-    def choose_importer(self, path: str) -> FileImporter:
-        anno_file_data = self.anno_files[path]
-
-        image_root = anno_file_data.get("image_root", None)
-        predictions = anno_file_data.get("predictions", [])
-        importer = COCO2017Importer(path, image_root, predictions, enforce=self.enforce)
-        return importer
-
-    @staticmethod
-    def can_import(path: str) -> bool:
-        if os.path.isfile(path):
-            return False
-
-        coco2017_file = os.path.join(path, ".coco2017.json")
-        if not os.path.exists(coco2017_file):
-            return False
-
-        return True
-
-    def find_files(self) -> List[str]:
-        files = []
-        with open(self.coco2017_file, "r", encoding="utf8") as fp:
-            coco2017_data = json.load(fp)
-            for item in coco2017_data:
-                anno_path = os.path.join(self.group_path, item["annotation"])
-                anno_path = os.path.abspath(anno_path)
-
-                image_root = item.get("image_root", None)
-                if image_root:
-                    image_root = os.path.join(self.group_path, image_root)
-                    item["image_root"] = image_root
-                    assert os.path.exists(image_root), f"Image root {image_root} does not exist."
-
-                predictions = item.get("predictions", [])
-                for idx, pred in enumerate(predictions):
-                    pred = os.path.join(self.group_path, pred)
-                    predictions[idx] = pred
-                    assert os.path.exists(pred), f"Prediction file {pred} does not exist."
-
-                self.anno_files[anno_path] = item
-                files.append(anno_path)
+        files[DatasetFileType.Meta] = self.meta_path
         return files

@@ -5,6 +5,9 @@ This file adds dataset related sub-command to ddsop command.
 """
 
 import os
+import shutil
+
+import pkg_resources
 
 import click
 
@@ -63,14 +66,42 @@ def import_all(data_dir, force):
 
 
 @ddsop.command("import_one", help="Trigger a background task of importing one dataset.")
-@click.argument("dataset_dir")
+@click.argument("dataset_path")
 @click.option("--force", "-f",
               default=False, is_flag=True,
               help="Force import the dataset, even though it is imported before.")
-def import_one(dataset_dir, force):
+def import_one(dataset_path, force):
     from deepdataspace.task import import_and_process_dataset
 
-    dataset_dir = os.path.abspath(dataset_dir)
+    dataset_path = os.path.abspath(dataset_path)
 
-    import_and_process_dataset.apply_async(args=(dataset_dir,), kwargs={"enforce": force})
-    print(f"task of importing dataset [{dataset_dir}] is arranged")
+    import_and_process_dataset.apply_async(args=(dataset_path,), kwargs={"enforce": force})
+    print(f"task of importing dataset [{dataset_path}] is arranged")
+
+
+@ddsop.command("import_coco", help="Generate a coco meta file.")
+@click.argument("dataset_name")
+@click.option("--directory", "-d",
+              default=".",
+              help="Where to generate the coco meta file, default to current directory.")
+def import_coco(dataset_name, directory):
+    directory = os.path.abspath(directory)
+    targ_file = os.path.join(directory, f"{dataset_name}.py")
+
+    if os.path.exists(targ_file):
+        print(f"[{targ_file}] already exists, exit...")
+        return
+
+    tmpl_file = pkg_resources.resource_filename("deepdataspace", "samples/coco_dataset_meta.py")
+    with open(tmpl_file, "r") as fp:
+        tmpl = fp.read()
+        tmpl = tmpl.replace('dataset_name = "instances_val2017"',
+                            f'dataset_name = "{dataset_name}\"')
+
+    os.makedirs(directory, exist_ok=True)
+    with open(targ_file, "w") as fp:
+        fp.write(tmpl)
+
+    print(f"A template of coco meta file is generated in `{directory}`.\n"
+          f"Please edit it as you need and import it by command:\n"
+          f"  `ddsop import_one {targ_file}`")

@@ -38,13 +38,37 @@ def calculate_thresholds(all_gt: List[List],
     """
     For given IoU thresh, calculate confidence thresh for precisions from 0.0 to 1.0 .
 
-    :param all_gt: All ground truth objects from a subset
-                  [image_id(str), category_id(int), bbox(List[int])], bbox = [x1, y1, x2, y2]
-    :param all_det: All prediction objects from a subset
-                  [image_id(str), category_id(int), bbox(List[int]), conf(float)], bbox = [x1, y1, x2, y2]
-    :param iou_thresh: IoU threshold
-    :return [
-                {"conf_thresh": xxx, "recall": xxx, "precision": xxx, "precision_thresh": xxx}
+    :param all_gt: All ground truth objects from a subset.
+
+        .. code-block:: python
+
+            [
+                # [image_id, category_id, [x1, y1, x2, y2]]
+                [1, 1, [10, 20, 30, 40]],
+            ]
+
+    :param all_det: All prediction objects from a subset.
+
+        .. code-block:: python
+
+            [
+                # [image_id, category_id, [x1, y1, x2, y2], conf]
+                [1, 1, [10, 20, 33, 43], 0.8],
+            ]
+
+    :param iou_thresh: float.
+
+    :return conf thresholds: list of dict.
+
+        .. code-block:: python
+
+            [
+                {
+                    "conf_thresh": 10,
+                    "recall": 10,
+                    "precision": 10,
+                    "precision_thresh": 10.1
+                }
             ]
     """
 
@@ -159,14 +183,17 @@ def calculate_fnfp(all_gt: List[List],
     """
     For given IoU thresh, check the correctness of all predictions in an image.
 
-    :param all_gt: All ground truth objects from a subset
-                  [category_id(int), bbox(List[int])], bbox = [x1, y1, x2, y2]
-    :param all_det: All prediction objects from a subset
-                  [category_id(int), bbox(List[int]), conf(float)], bbox = [x1, y1, x2, y2]
+    :param all_gt:
+        | All ground truth objects from a subset
+        | [category_id(int), bbox(List[int])], bbox = [x1, y1, x2, y2]
+    :param all_det:
+        | All prediction objects from a subset
+        | [category_id(int), bbox(List[int]), conf(float)], bbox = [x1, y1, x2, y2]
     :param iou_thresh: IoU threshold
-    :return (gt_results, det_results)
-            gt_results, list, -1 means FN, otherwise means matched det id
-            det_results, list, 1 means TP, 0 means FP
+    :return tuple of list of int:
+            | (gt_results, det_results)
+            | gt_results, list, -1 means FN, otherwise means matched det id
+            | det_results, list, 1 means TP, 0 means FP
     """
 
     gt_arr = np.array(all_gt[:], dtype=np.float32)

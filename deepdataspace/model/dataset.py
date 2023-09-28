@@ -11,7 +11,6 @@ import os
 import time
 import uuid
 from typing import Dict
-from typing import Tuple
 
 from pymongo.collection import Collection
 from pymongo.typings import _DocumentType
@@ -274,15 +273,15 @@ class DataSet(BaseModel):
 
         return image
 
-    def _batch_add_image(self,
-                         uri: str,
-                         thumb_uri: str = None,
-                         width: int = None,
-                         height: int = None,
-                         id_: int = None,
-                         metadata: dict = None,
-                         flag: int = 0,
-                         flag_ts: int = 0, ) -> Tuple[ImageModel, bool]:
+    def batch_add_image(self,
+                        uri: str,
+                        thumb_uri: str = None,
+                        width: int = None,
+                        height: int = None,
+                        id_: int = None,
+                        metadata: dict = None,
+                        flag: int = 0,
+                        flag_ts: int = 0, ) -> ImageModel:
         """
         This is the batch version of add_image, which optimizes database performance.
         But this method is not thread safe, please make sure only one thread is calling this method.
@@ -323,38 +322,7 @@ class DataSet(BaseModel):
 
         self._batch_queue[id_] = image
         self.num_images += 1
-
-        if len(self._batch_queue) >= self._batch_size:
-            self._save_image_batch()
-            return image, True
-        return image, False
-
-    def batch_add_image(self,
-                        uri: str,
-                        thumb_uri: str = None,
-                        width: int = None,
-                        height: int = None,
-                        id_: int = None,
-                        metadata: dict = None,
-                        flag: int = 0,
-                        flag_ts: int = 0, ) -> ImageModel:
-        """
-        This is the batch version of add_image, which optimizes database performance.
-        But this method is not thread safe, please make sure only one thread is calling this method.
-        And after the batch add is finished, please call finish_batch_add_image to save the changes to database.
-
-        :param uri: the image uri, can be a local file path stars with "file://" or a remote url starts with "http://".
-        :param thumb_uri: the image thumbnail uri, also can be a local file path or a remote url.
-        :param width: the image width of full resolution.
-        :param height: the image height of full resolution.
-        :param id_: the image id, if not provided, the image id will be the current number of images in the dataset.
-        :param metadata: any information data need to be stored.
-        :param flag: the image flag, 0 for not flagged, 1 for positive, 2 for negative.
-        :param flag_ts: the image flag timestamp.
-        :return: the image object.
-        """
-
-        image, batch_saved = self._batch_add_image(uri, thumb_uri, width, height, id_, metadata, flag, flag_ts)
+        image._dataset = self  # this saves a db query
         return image
 
     @staticmethod
@@ -366,7 +334,7 @@ class DataSet(BaseModel):
         path = "/".join(path[7:])
         whitelist.add(os.path.dirname(path))
 
-    def _save_image_batch(self):
+    def _batch_save_image_batch(self):
         """
         The internal function to flush the batch queue to database.
         """
@@ -438,12 +406,19 @@ class DataSet(BaseModel):
 
         self._batch_queue.clear()
 
+    def batch_save_image(self, enforce: bool = False):
+        batch_is_full = len(self._batch_queue) >= self._batch_size
+        if batch_is_full or enforce:
+            self._batch_save_image_batch()
+            return True
+        return False
+
     def finish_batch_add_image(self):
         """
         This method should be called after all batch_add_image calls are finished.
         This saves all images in the buffer queue to database.
         """
-        self._save_image_batch()
+        self._batch_save_image_batch()
         self._add_cover()
 
     def eval_description(self):
