@@ -315,20 +315,17 @@ class DDS(metaclass=SingletonMeta):
             url = f"{self.dl_prefix}/lib/libcurl.so.4.8.0"
             download_by_requests(url, config.SHARED_CURL_LIB)
 
-        if config.LD_LIBRARY_PATH is None:
-            config.LD_LIBRARY_PATH = config.SHARED_LIB_DIR
-        elif config.SHARED_LIB_DIR is not None and config.LD_LIBRARY_PATH != config.SHARED_LIB_DIR:
-            config.LD_LIBRARY_PATH = f"{config.SHARED_LIB_DIR}:{config.LD_LIBRARY_PATH}"
+        paths = {config.SHARED_LIB_DIR}
+        if config.LD_LIBRARY_PATH:
+            for path in config.LD_LIBRARY_PATH.split(":"):
+                paths.add(path)
 
-        ld_path = os.environ.get("LD_LIBRARY_PATH", None)
-        if ld_path is not None:
-            config.LD_LIBRARY_PATH = f"{ld_path}:{config.LD_LIBRARY_PATH}"
+        lib_paths = find_shared_dirs_on_ubuntu()
+        for path in lib_paths:
+            paths.add(path)
 
-        current_lib_paths = find_shared_dirs_on_ubuntu()
-        current_lib_paths = ":".join(current_lib_paths)
-        if current_lib_paths:
-            config.LD_LIBRARY_PATH = f"{current_lib_paths}:{config.LD_LIBRARY_PATH}"
-
+        ld_library_path = ":".join(paths)
+        config.LD_LIBRARY_PATH = ld_library_path
         os.environ["LD_LIBRARY_PATH"] = config.LD_LIBRARY_PATH
 
     def _init_sentry(self):
