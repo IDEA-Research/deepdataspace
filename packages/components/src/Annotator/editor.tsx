@@ -220,6 +220,7 @@ const Edit: React.FC<EditProps> = (props) => {
     onChangeCategoryHidden,
     onChangeActiveClass,
     onCreateCategory,
+    onChangePointVisible
   } = useLabels({
     visible,
     mode,
@@ -609,10 +610,15 @@ const Edit: React.FC<EditProps> = (props) => {
                   (drawData.selectedTool === EBasicToolItem.Mask &&
                     drawData.creatingObject)
                 }
+                currObjectIndex={drawData.activeObjectIndex}
+                focusObjectIndex={editState.focusObjectIndex}
+                focusEleType={editState.focusEleType}
+                focusEleIndex={editState.focusEleIndex}
                 onCreateCategory={onCreateCategory}
                 onDeleteCurrObject={onDeleteCurrObject}
                 onFinishCurrCreate={onFinishCurrCreate}
                 onCloseAnnotationEditor={onCloseAnnotationEditor}
+                onChangePointVisible={onChangePointVisible}
               />
             )}
             <SmartAnnotationControl
