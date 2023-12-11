@@ -135,12 +135,25 @@ export const convertToCocoDateset = (
           keypoints.push(points[i * 6], points[i * 6 + 1], points[i * 6 + 4]);
           num_keypoints += 1;
         }
+
         Object.assign(newAnnotation, {
           keypoints,
           num_keypoints,
-          area: 0,
-          bbox: [0, 0, 0, 0],
         });
+
+        if (annotation.boundingBox) {
+          const { x, y, width, height } = translateBoundingBoxToRect(
+            annotation.boundingBox,
+            {
+              width: image.width,
+              height: image.height,
+            },
+          );
+          const area = width * height;
+          const bbox = [x, y, width, height];
+          Object.assign(newAnnotation, { area, bbox });
+        }
+
         const targetCategory = cocoDataset.categories.find(
           (item) => item.name === categoryName,
         );

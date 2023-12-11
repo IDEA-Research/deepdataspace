@@ -1,0 +1,32 @@
+.item {
+  display: flex;
+  flex-flow: row nowrap;
+  border-radius: 2px;
+
+  .selected {
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    margin-right: 5px;
+  }
+
+  .info {
+    width: 50%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .action {
+    flex: 1;
+  }
+
+  .btn {
+    border: 0;
+  }
+
+  &:hover {
+    background-color: aliceblue;
+  }
+}

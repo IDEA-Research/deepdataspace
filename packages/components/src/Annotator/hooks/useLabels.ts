@@ -113,16 +113,16 @@ export default function useLabels({
    *
    * @param {KEYPOINTS_VISIBLE_TYPE} visible - The visibility value for the keypoint.
    */
-  const onChangePointVisible = (visible: KEYPOINTS_VISIBLE_TYPE) => {
+  const onChangePointVisible = useCallback((pointIndex: number, visible: KEYPOINTS_VISIBLE_TYPE) => {
     const newObject = cloneDeep(
-      drawData.objectList[editState.focusObjectIndex],
+      drawData.objectList[drawData.activeObjectIndex],
     );
-    const point = newObject.keypoints?.points?.[editState.focusEleIndex];
+    const point = newObject.keypoints?.points?.[pointIndex];
     if (point) {
       point.visible = visible;
     }
-    updateObjectWithoutHistory(newObject, editState.focusObjectIndex);
-  };
+    updateObjectWithoutHistory(newObject, drawData.activeObjectIndex);
+  }, [drawData.activeObjectIndex, drawData.objectList]);
 
   const onChangeActiveClass = useCallback((name: string) => {
     setDrawData((s) => {
