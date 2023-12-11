@@ -2,12 +2,14 @@ import { CloseOutlined } from '@ant-design/icons';
 import { Button, Card, Select } from 'antd';
 import classNames from 'classnames';
 import { FloatWrapper } from '../FloatWrapper';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { useKeyPress } from 'ahooks';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from 'dds-utils/locale';
 import CategoryCreator from '../CategoryCreator';
 import { Category, IAnnotationObject } from '../../type';
+import PointItem from '../PointItem/PointItem';
+import { EElementType, EObjectType, KEYPOINTS_VISIBLE_TYPE } from '../../constants';
 import './index.less';
 
 interface IProps {
@@ -16,10 +18,15 @@ interface IProps {
   latestLabel: string;
   categories: Category[];
   currEditObject: IAnnotationObject | undefined;
+  currObjectIndex: number;
+  focusObjectIndex: number;
+  focusEleType: EElementType;
+  focusEleIndex: number;
   onCreateCategory: (name: string) => void;
   onCloseAnnotationEditor: () => void;
   onFinishCurrCreate: (label: string) => void;
   onDeleteCurrObject: () => void;
+  onChangePointVisible: (index: number, visible: KEYPOINTS_VISIBLE_TYPE) => void;
 }
 
 export const AnnotationEditor: React.FC<IProps> = memo(
@@ -29,10 +36,15 @@ export const AnnotationEditor: React.FC<IProps> = memo(
     latestLabel,
     categories,
     currEditObject,
+    currObjectIndex,
+    focusEleIndex,
+    focusObjectIndex,
+    focusEleType,
     onCreateCategory,
     onFinishCurrCreate,
     onDeleteCurrObject,
     onCloseAnnotationEditor,
+    onChangePointVisible
   }) => {
     const { localeText } = useLocale();
 
@@ -55,6 +67,10 @@ export const AnnotationEditor: React.FC<IProps> = memo(
         exactMatch: true,
       },
     );
+
+    const showKeypointsList = useMemo(() => {
+      return currEditObject?.type === EObjectType.Skeleton;
+    }, [currEditObject]);
 
     return (
       <FloatWrapper>
@@ -118,6 +134,29 @@ export const AnnotationEditor: React.FC<IProps> = memo(
                 ))}
               </Select>
             </div>
+            {
+              showKeypointsList &&
+              <div className="item">
+                <div className="list">
+                  {
+                    currEditObject && currEditObject.keypoints &&
+                    currEditObject.keypoints.points.map((ele, eleIndex) => (
+                      <PointItem
+                        key={eleIndex}
+                        point={ele}
+                        index={eleIndex}
+                        active={
+                          focusObjectIndex === currObjectIndex &&
+                          focusEleType === EElementType.Circle &&
+                          focusEleIndex === eleIndex
+                        }
+                        onVisibleChange={(visible) => { onChangePointVisible(eleIndex, visible); }}
+                      />
+                    ))
+                  }
+                </div>
+              </div>
+            }
             <div className="item">
               <div className="actions">
                 <Button
