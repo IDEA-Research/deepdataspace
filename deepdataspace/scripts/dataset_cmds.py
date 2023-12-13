@@ -5,7 +5,6 @@ This file adds dataset related sub-command to ddsop command.
 """
 
 import os
-import shutil
 
 import pkg_resources
 
@@ -17,10 +16,7 @@ from deepdataspace.scripts import ddsop
 @ddsop.command("delete_one", help="Delete a dataset.")
 @click.argument("dataset_dir")
 def delete_one(dataset_dir):
-    from deepdataspace.model import Image
-    from deepdataspace.model import Label
     from deepdataspace.model import DataSet
-    from deepdataspace.model import Category
     from deepdataspace.utils.string import get_str_md5
 
     dataset_dir = os.path.abspath(dataset_dir)
@@ -30,20 +26,7 @@ def delete_one(dataset_dir):
         print(f"dataset [{dataset_dir}] is not imported before, skip...")
         return
 
-    dataset_id = dataset.id
-    print(f"dataset [{dataset_id}] is found, deleting...")
-
-    print(f"dataset [{dataset_id}] is found, deleting categories...")
-    Category.delete_many({"dataset_id": dataset_id})
-
-    print(f"dataset [{dataset_id}] is found, deleting labels...")
-    Label.delete_many({"dataset_id": dataset_id})
-
-    print(f"dataset [{dataset_id}] is found, deleting images...")
-    Image(dataset_id).get_collection().drop()
-
-    DataSet.delete_many({"id": dataset_id})
-    print(f"dataset [{dataset_id}] is deleted.")
+    DataSet.cascade_delete(dataset)
 
 
 @ddsop.command("import_all", help="Trigger a background task of importing all datasets in a data dir.")
