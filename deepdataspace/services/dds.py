@@ -170,6 +170,7 @@ class DDS(metaclass=SingletonMeta):
         if self.quickstart is True:
             if self.data_dir is None:
                 self.data_dir = os.path.join(config.RUNTIME_DIR, "datasets")
+                os.makedirs(self.data_dir, exist_ok=True)
             self.init_samples()
         config.DATA_DIR = self.data_dir
 
