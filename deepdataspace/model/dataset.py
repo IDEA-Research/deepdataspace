@@ -439,3 +439,26 @@ class DataSet(BaseModel):
             except:
                 logger.warning(f"Failed to eval description_func[{self.description_func}] for dataset[{self.id}]")
                 return self.description or self.path
+
+    @staticmethod
+    def cascade_delete(dataset: "DataSet"):
+        """
+        Cascade delete the dataset, along with all its images, labels, categories and objects.
+        """
+        if dataset is None:
+            return
+
+        dataset_id = dataset.id
+        print(f"dataset [{dataset_id}] is found, deleting...")
+
+        print(f"dataset [{dataset_id}] is found, deleting categories...")
+        Category.delete_many({"dataset_id": dataset_id})
+
+        print(f"dataset [{dataset_id}] is found, deleting labels...")
+        Label.delete_many({"dataset_id": dataset_id})
+
+        print(f"dataset [{dataset_id}] is found, deleting images...")
+        Image(dataset_id).get_collection().drop()
+
+        DataSet.delete_many({"id": dataset_id})
+        print(f"dataset [{dataset_id}] is deleted.")
