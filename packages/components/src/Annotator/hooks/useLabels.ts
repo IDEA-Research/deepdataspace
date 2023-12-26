@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Updater } from 'use-immer';
 import {
   Category,
@@ -7,11 +7,18 @@ import {
   EditorMode,
   IAnnotationObject,
 } from '../type';
-import { EElementType, KEYPOINTS_VISIBLE_TYPE } from '../constants';
+import {
+  EBasicToolItem,
+  EBasicToolTypeMap,
+  EElementType,
+  ELabelType,
+  KEYPOINTS_VISIBLE_TYPE,
+  LABEL_TOOL_MAP,
+} from '../constants';
 import { cloneDeep } from 'lodash';
 
 interface IProps {
-  visible: boolean;
+  isOldMode?: boolean;
   mode: EditorMode;
   categories: Category[];
   setCategories?: Updater<Category[]>;
@@ -26,7 +33,7 @@ interface IProps {
 }
 
 export default function useLabels({
-  visible,
+  isOldMode,
   categories,
   setCategories,
   drawData,
@@ -35,7 +42,45 @@ export default function useLabels({
   updateObjectWithoutHistory,
   updateAllObjectWithoutHistory,
 }: IProps) {
-  const [aiLabels, setAiLabels] = useState<string[]>([]);
+  const [aiLabels, setAiLabels] = useState<string | undefined>(undefined);
+  const curObjects = drawData.objectList;
+
+  const labelOptions: Category[] = useMemo(() => {
+    if (isOldMode) return categories;
+
+    if (
+      drawData.objectList[drawData.activeObjectIndex] ||
+      drawData.selectedTool !== EBasicToolItem.Drag
+    ) {
+      const toolType = drawData.objectList[drawData.activeObjectIndex]
+        ? Object.keys(EBasicToolTypeMap).find(
+            (key) =>
+              drawData.objectList[drawData.activeObjectIndex].type ===
+              EBasicToolTypeMap[key as unknown as EBasicToolItem],
+          )
+        : drawData.selectedTool;
+      const labelType = Object.keys(LABEL_TOOL_MAP).find(
+        // @ts-ignore
+        (key) => toolType === LABEL_TOOL_MAP[key],
+      );
+      return categories.filter((category) => category.labelType === labelType);
+    }
+
+    return [];
+  }, [
+    categories,
+    drawData.objectList,
+    drawData.activeObjectIndex,
+    drawData.selectedTool,
+  ]);
+
+  const classificationOptions: Category[] = useMemo(() => {
+    return (
+      categories?.filter(
+        (category) => category.labelType === ELabelType.Classification,
+      ) || []
+    );
+  }, [categories]);
 
   const onCreateCategory = useCallback(
     (name: string) => {
@@ -52,20 +97,6 @@ export default function useLabels({
     [categories],
   );
 
-  useEffect(() => {
-    const allLabels = categories.map((item) => item.name);
-    const commonLabels = aiLabels.filter((item) => allLabels.includes(item));
-    setAiLabels(commonLabels);
-  }, [categories]);
-
-  useEffect(() => {
-    if (!visible) {
-      setAiLabels([]);
-    }
-  }, [visible]);
-
-  const curObjects = drawData.objectList;
-
   const onChangeObjectHidden = useCallback(
     (index: number, hidden: boolean) => {
       const newObject = { ...drawData.objectList[index] };
@@ -76,10 +107,14 @@ export default function useLabels({
   );
 
   const onChangeCategoryHidden = useCallback(
-    (category: string, hidden: boolean) => {
+    (categoryName: string, hidden: boolean) => {
       const updatedObjects = drawData.objectList.map((item) => {
         const temp = { ...item };
-        if (temp.label === category) temp.hidden = hidden;
+        if (
+          categories.find((c) => c.id === item.labelId)?.name === categoryName
+        ) {
+          temp.hidden = hidden;
+        }
         return temp;
       });
       updateAllObjectWithoutHistory(updatedObjects);
@@ -113,16 +148,19 @@ export default function useLabels({
    *
    * @param {KEYPOINTS_VISIBLE_TYPE} visible - The visibility value for the keypoint.
    */
-  const onChangePointVisible = useCallback((pointIndex: number, visible: KEYPOINTS_VISIBLE_TYPE) => {
-    const newObject = cloneDeep(
-      drawData.objectList[drawData.activeObjectIndex],
-    );
-    const point = newObject.keypoints?.points?.[pointIndex];
-    if (point) {
-      point.visible = visible;
-    }
-    updateObjectWithoutHistory(newObject, drawData.activeObjectIndex);
-  }, [drawData.activeObjectIndex, drawData.objectList]);
+  const onChangePointVisible = useCallback(
+    (pointIndex: number, visible: KEYPOINTS_VISIBLE_TYPE) => {
+      const newObject = cloneDeep(
+        drawData.objectList[drawData.activeObjectIndex],
+      );
+      const point = newObject.keypoints?.points?.[pointIndex];
+      if (point) {
+        point.visible = visible;
+      }
+      updateObjectWithoutHistory(newObject, drawData.activeObjectIndex);
+    },
+    [drawData.activeObjectIndex, drawData.objectList],
+  );
 
   const onChangeActiveClass = useCallback((name: string) => {
     setDrawData((s) => {
@@ -133,14 +171,19 @@ export default function useLabels({
 
   useEffect(() => {
     if (drawData.activeObjectIndex < 0) return;
-    const activeItemLabel =
-      drawData.objectList[drawData.activeObjectIndex].label;
-    if (activeItemLabel !== drawData.activeClassName) {
-      onChangeActiveClass(activeItemLabel);
+    const activeItemLabelName =
+      categories.find(
+        (item) =>
+          item.id === drawData.objectList[drawData.activeObjectIndex].labelId,
+      )?.name || '';
+    if (activeItemLabelName !== drawData.activeClassName) {
+      onChangeActiveClass(activeItemLabelName);
     }
   }, [drawData.activeObjectIndex]);
 
   return {
+    labelOptions,
+    classificationOptions,
     aiLabels,
     setAiLabels,
     curObjects,

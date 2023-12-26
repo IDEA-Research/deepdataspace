@@ -367,7 +367,7 @@ const useSkeleton: ToolInstanceHook = ({
     const updatedObjs = getKeypointsFromRect(pointObjs, newRect);
     const newObject = {
       type: EObjectType.Skeleton,
-      label: object.label,
+      labelId: object.labelId,
       hidden: false,
       color: object.color,
       rect: { visible: true, ...newRect },

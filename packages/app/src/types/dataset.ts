@@ -24,6 +24,8 @@ export namespace NsDataSet {
     compareResult: COMPARE_RESULT;
     /** Pred index matched in GT analysis mode. */
     matchedDetIdx?: number;
+    /** render styles */
+    customStyles?: Record<string, any>;
   }
 
   export interface DataSetImg extends BaseImage {

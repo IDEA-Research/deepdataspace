@@ -1,0 +1,77 @@
+.dds-annotator-model-selector {
+  width: 220px;
+  margin-left: -5px;
+
+  .ant-select {
+    width: 100%;
+
+    .ant-select-selector {
+      background-color: transparent !important;
+      color: #fff;
+    }
+
+    .ant-select-selection-item {
+      display: flex;
+      align-items: center;
+
+      svg {
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+      }
+    }
+
+    .ant-select-arrow {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .ant-select-open .ant-select-selection-item {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &-option {
+    &-color {
+      width: 12px;
+      height: 12px;
+      margin-right: 10px;
+      background-color: #fff;
+    }
+
+    .ant-select-item-option-content {
+      display: flex;
+      align-items: center;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+    }
+  }
+}
+
+.dds-annotator-editor-light {
+  .dds-annotator-model-selector {
+    .ant-select {
+      .ant-select-selector {
+        color: #000;
+        border: 1px solid #acacac;
+      }
+
+      .ant-select-arrow {
+        color: rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    .ant-select-open .ant-select-selection-item {
+      color: rgba(0, 0, 0, 0.5);
+    }
+
+    &-option {
+      &-color {
+        background-color: #000;
+      }
+    }
+  }
+}

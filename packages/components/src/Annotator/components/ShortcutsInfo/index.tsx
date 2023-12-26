@@ -1,5 +1,5 @@
 import { Dropdown, Menu, MenuProps, Tooltip } from 'antd';
-import { ReactComponent as KeyboardIcon } from '../../assets/keyboard.svg';
+import { ReactComponent as KeyboardIcon } from '../../assets/keyboard-down.svg';
 import Icon from '@ant-design/icons';
 import { memo, useMemo } from 'react';
 import {
@@ -12,9 +12,11 @@ import {
 import { useLocale } from 'dds-utils/locale';
 import './index.less';
 import classNames from 'classnames';
+import { EditorMode } from '../../type';
 
 interface IProps {
-  viewOnly: boolean;
+  mode: EditorMode;
+  // viewOnly: boolean;
 }
 
 export const getIconFromShortcut = (keys: string[], withStyle = true) => {
@@ -30,9 +32,12 @@ export const getIconFromShortcut = (keys: string[], withStyle = true) => {
       const combineKeys = key.split('.');
       combineKeys.forEach((key, idx) => {
         const letter = (
-          <span className={classNames({
-            "dds-annotator-shortcutsinfo-key": withStyle
-          })} key={idx}>
+          <span
+            className={classNames({
+              'dds-annotator-shortcutsinfo-key': withStyle,
+            })}
+            key={idx}
+          >
             {convertAliasToSymbol(key)}
           </span>
         );
@@ -41,7 +46,7 @@ export const getIconFromShortcut = (keys: string[], withStyle = true) => {
           icons.push(
             <span
               className={classNames({
-                "dds-annotator-shortcutsinfo-combine": withStyle
+                'dds-annotator-shortcutsinfo-combine': withStyle,
               })}
               key={idx + 'and'}
             >
@@ -55,7 +60,7 @@ export const getIconFromShortcut = (keys: string[], withStyle = true) => {
       const letter = (
         <span
           className={classNames({
-            "dds-annotator-shortcutsinfo-key": withStyle
+            'dds-annotator-shortcutsinfo-key': withStyle,
           })}
           key={index}
         >
@@ -68,7 +73,7 @@ export const getIconFromShortcut = (keys: string[], withStyle = true) => {
       icons.push(
         <span
           className={classNames({
-            "dds-annotator-shortcutsinfo-combine": withStyle
+            'dds-annotator-shortcutsinfo-combine': withStyle,
           })}
           key={index + 'or'}
         >
@@ -81,7 +86,7 @@ export const getIconFromShortcut = (keys: string[], withStyle = true) => {
   return <span>{icons}</span>;
 };
 
-export const ShortcutsInfo: React.FC<IProps> = memo(({ viewOnly }) => {
+export const ShortcutsInfo: React.FC<IProps> = memo(({ mode }) => {
   const { localeText } = useLocale();
 
   const convertShortcutsToMenuProps = (
@@ -91,11 +96,26 @@ export const ShortcutsInfo: React.FC<IProps> = memo(({ viewOnly }) => {
     for (const key in shortcuts) {
       if (shortcuts.hasOwnProperty(key)) {
         // @ts-ignore
-        const { type, descTextKey, shortcut } = shortcuts[key];
+        const { name, type, descTextKey, shortcut } = shortcuts[key];
         const description = localeText(descTextKey);
-        if (viewOnly && type !== EShortcutType.ViewAction) {
+        if (mode === EditorMode.View && type !== EShortcutType.ViewAction) {
           continue;
         }
+        if (mode === EditorMode.Review) {
+          if (
+            [EShortcutType.AnnotationAction, EShortcutType.Tool].includes(type)
+          ) {
+            continue;
+          }
+          if (
+            [EShortcutType.GeneralAction].includes(type) &&
+            name !== 'Accept' &&
+            name !== 'Reject'
+          ) {
+            continue;
+          }
+        }
+
         if (categories[type]) {
           categories[type].children.push({
             key,
@@ -123,7 +143,7 @@ export const ShortcutsInfo: React.FC<IProps> = memo(({ viewOnly }) => {
 
   const items = useMemo(() => {
     return convertShortcutsToMenuProps(EDITOR_SHORTCUTS) || [];
-  }, [viewOnly]);
+  }, [mode]);
 
   return (
     <Dropdown
@@ -139,11 +159,8 @@ export const ShortcutsInfo: React.FC<IProps> = memo(({ viewOnly }) => {
     >
       <Tooltip title={localeText('DDSAnnotator.shortcuts')}>
         <Icon
+          className="dds-annotator-shortcutsinfo-icon"
           component={KeyboardIcon}
-          style={{
-            color: '#fff',
-            width: 24,
-          }}
         />
       </Tooltip>
     </Dropdown>

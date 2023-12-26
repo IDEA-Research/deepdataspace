@@ -2,20 +2,23 @@ import {
   drawCircleWithFill,
   drawLine,
   drawPolygonWithFill,
+  drawQuadraticPath,
+  drawRect,
+  shadeEverythingButRect,
 } from '../utils/draw';
-import { EElementType, EObjectType } from '../constants';
+import { EElementType, EObjectType, ESubToolItem } from '../constants';
 import {
   getClosestPointOnLineSegment,
-  getInnerPolygonIndexFromGroup,
   getLinesFromPolygon,
   getRectFromPoints,
-  getReferencePointsFromRect,
   isInCanvas,
   isPointOnPoint,
   movePoint,
   movePolygon,
   translateAnnotCoord,
   translatePointCoord,
+  translatePolygonCoord,
+  translateRectCoord,
 } from '../utils/compute';
 import {
   ToolInstanceHook,
@@ -26,14 +29,18 @@ import {
 import { hexToRgba } from '../utils/color';
 import {
   ANNO_FILL_ALPHA,
+  ANNO_FILL_COLOR,
   ANNO_STROKE_ALPHA,
+  ANNO_STROKE_COLOR,
   PROMPT_FILL_COLOR,
 } from '../constants/render';
 import { cloneDeep } from 'lodash';
+import { EPromptType, PromptItem } from '../type';
 
 const usePolygon: ToolInstanceHook = ({
   editState,
   clientSize,
+  naturalSize,
   imagePos,
   containerMouse,
   canvasRef,
@@ -42,6 +49,7 @@ const usePolygon: ToolInstanceHook = ({
   setEditState,
   drawData,
   setDrawData,
+  setDrawDataWithHistory,
   updateHistory,
   updateMouseCursor,
   updateObject,
@@ -95,7 +103,6 @@ const usePolygon: ToolInstanceHook = ({
     });
     const { polygon } = annotObject;
     if (polygon && polygon.visible) {
-      const innerPolygonIdx = getInnerPolygonIndexFromGroup(polygon.group);
       // draw creating polygon
       polygon.group.forEach((polygon, polygonIdx) => {
         if (currIndex === polygonIdx) {
@@ -134,27 +141,28 @@ const usePolygon: ToolInstanceHook = ({
             }
           });
         } else {
-          if (!innerPolygonIdx.includes(polygonIdx)) {
-            drawPolygonWithFill(
-              activeCanvasRef.current,
-              polygon,
-              hexToRgba('#1f4dd8', 0.5),
+          // draw polygon
+          drawPolygonWithFill(
+            activeCanvasRef.current,
+            polygon,
+            hexToRgba('#1f4dd8', 0.5),
+            '#1f4dd8',
+            2,
+            [0],
+          );
+
+          // draw points
+          polygon.forEach((point) => {
+            drawCircleWithFill(
+              activeCanvasRef.current!,
+              point,
+              4,
+              styles.strokeColor,
+              3,
               '#1f4dd8',
-              2,
-              [0],
             );
-          }
+          });
         }
-      });
-      innerPolygonIdx.forEach((index) => {
-        drawPolygonWithFill(
-          activeCanvasRef.current,
-          polygon.group[index],
-          'rgba(255, 255, 255, 0.8)',
-          '#1f4dd8',
-          2,
-          [0],
-        );
       });
     }
   };
@@ -167,35 +175,18 @@ const usePolygon: ToolInstanceHook = ({
   }) => {
     const { polygon } = object;
     if (polygon && polygon.visible) {
-      const innerPolygonIdx = getInnerPolygonIndexFromGroup(polygon.group);
       const isFocusOnPolygon =
         isFocus &&
         editState.focusEleType === EElementType.Polygon &&
         editState.focusEleIndex === 0;
 
-      polygon.group.forEach((polygon, index) => {
-        if (!innerPolygonIdx.includes(index)) {
-          const fillColor = isFocusOnPolygon
-            ? hexToRgba(color, 0.2)
-            : 'transparent';
-          drawPolygonWithFill(
-            activeCanvasRef.current,
-            polygon,
-            fillColor,
-            styles.strokeColor,
-            styles.thickness,
-            styles.strokeDash,
-          );
-        }
-      });
-
-      innerPolygonIdx.forEach((index) => {
+      polygon.group.forEach((polygon) => {
         const fillColor = isFocusOnPolygon
-          ? 'rgba(255, 255, 255, 0.8)'
+          ? hexToRgba(color, 0.2)
           : 'transparent';
         drawPolygonWithFill(
           activeCanvasRef.current,
-          polygon.group[index],
+          polygon,
           fillColor,
           styles.strokeColor,
           styles.thickness,
@@ -259,31 +250,168 @@ const usePolygon: ToolInstanceHook = ({
   };
 
   const renderPrompt: ToolHooksFunc.RenderPrompt = ({ prompt }) => {
-    // draw segmentation reference points
-    if (prompt.segmentationClicks) {
-      prompt.segmentationClicks.forEach((click) => {
-        const canvasCoordPoint = translatePointCoord(click.point, {
-          x: -imagePos.current.x,
-          y: -imagePos.current.y,
-        });
-        drawCircleWithFill(
-          activeCanvasRef.current!,
-          canvasCoordPoint,
-          4,
-          click.isPositive
+    // draw creating prompt
+    if (prompt.creatingPrompt) {
+      const strokeColor = ANNO_STROKE_COLOR.CREATING;
+      const fillColor = ANNO_FILL_COLOR.CREATING;
+      switch (prompt.creatingPrompt.type) {
+        case EPromptType.Rect: {
+          const { startPoint } = prompt.creatingPrompt;
+          const rect = getRectFromPoints(
+            startPoint!,
+            {
+              x: contentMouse.elementX,
+              y: contentMouse.elementY,
+            },
+            {
+              width: contentMouse.elementW,
+              height: contentMouse.elementH,
+            },
+          );
+          const canvasCoordRect = translateRectCoord(rect, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawRect(
+            activeCanvasRef.current,
+            canvasCoordRect,
+            strokeColor,
+            2,
+            [0],
+            fillColor,
+          );
+          break;
+        }
+        case EPromptType.Point: {
+          if (!prompt.creatingPrompt.point) break;
+          const canvasCoordPoint = translatePointCoord(
+            prompt.creatingPrompt.point,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            4,
+            prompt.creatingPrompt.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE,
+            2,
+            '#fff',
+          );
+        }
+        case EPromptType.Stroke: {
+          if (!prompt.creatingPrompt.stroke || !prompt.creatingPrompt.radius)
+            break;
+          const canvasCoordStroke = translatePolygonCoord(
+            prompt.creatingPrompt.stroke,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          const radius =
+            (prompt.creatingPrompt.radius * clientSize.width) /
+            naturalSize.width;
+          const color = prompt.creatingPrompt.isPositive
             ? PROMPT_FILL_COLOR.POSITIVE
-            : PROMPT_FILL_COLOR.NEGATIVE,
-          2,
-          '#fff',
+            : PROMPT_FILL_COLOR.NEGATIVE;
+          drawQuadraticPath(
+            activeCanvasRef.current!,
+            canvasCoordStroke,
+            color,
+            radius,
+          );
+          break;
+        }
+        default:
+          break;
+      }
+
+      // draw active area while loading ai annotations
+      if (editState.isRequiring && prompt.activeRectWhileLoading) {
+        const canvasCoordRect = translateRectCoord(
+          prompt.activeRectWhileLoading,
+          {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          },
         );
+        shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+      }
+    }
+
+    // draw existing prompts
+    if (prompt.promptsQueue) {
+      prompt.promptsQueue.forEach((item) => {
+        if (item.type === EPromptType.Point) {
+          const canvasCoordPoint = translatePointCoord(item.point!, {
+            x: -imagePos.current.x,
+            y: -imagePos.current.y,
+          });
+          drawCircleWithFill(
+            activeCanvasRef.current!,
+            canvasCoordPoint,
+            4,
+            item.isPositive
+              ? PROMPT_FILL_COLOR.POSITIVE
+              : PROMPT_FILL_COLOR.NEGATIVE,
+            2,
+            '#fff',
+          );
+        }
       });
     }
+  };
+
+  const updateAiPolygonWhenMouseDown = (event: MouseEvent) => {
+    const point = {
+      x: contentMouse.elementX,
+      y: contentMouse.elementY,
+    };
+    setDrawData((s) => {
+      switch (s.selectedSubTool) {
+        case ESubToolItem.AutoSegmentByBox:
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Rect,
+            startPoint: point,
+            isPositive: true,
+          };
+          break;
+        case ESubToolItem.AutoSegmentByClick:
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Point,
+            startPoint: point,
+            point: point,
+            isPositive: getPromptBoolean(event),
+          };
+          break;
+        case ESubToolItem.AutoSegmentByStroke: {
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Stroke,
+            startPoint: point,
+            stroke: [point],
+            radius: s.brushSize,
+            isPositive: getPromptBoolean(event),
+          };
+          break;
+        }
+        default: {
+        }
+      }
+    });
   };
 
   const startEditingWhenMouseDown: ToolHooksFunc.StartEditingWhenMouseDown = ({
     object,
     event,
   }) => {
+    if (drawData.AIAnnotation) {
+      updateAiPolygonWhenMouseDown(event);
+      return true;
+    }
     if (event?.button === 2) return false;
     if (
       editBaseElementWhenMouseDown({
@@ -299,18 +427,38 @@ const usePolygon: ToolInstanceHook = ({
   };
 
   const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
-    ({ point, basic }) => {
+    ({ event, point, basic }) => {
       setDrawData((s) => {
         if (!s.creatingObject || s.activeObjectIndex > -1) {
           s.activeObjectIndex = -1;
           if (s.AIAnnotation) {
-            // by drawing rectangle under AI mode
-            s.creatingObject = {
-              type: EObjectType.Rectangle,
-              startPoint: point,
-              ...basic,
-              color: '#fff',
-            };
+            switch (s.selectedSubTool) {
+              case ESubToolItem.AutoSegmentByBox:
+                s.prompt.creatingPrompt = {
+                  type: EPromptType.Rect,
+                  startPoint: point,
+                  isPositive: true,
+                };
+                break;
+              case ESubToolItem.AutoSegmentByClick:
+                s.prompt.creatingPrompt = {
+                  type: EPromptType.Point,
+                  startPoint: point,
+                  point: point,
+                  isPositive: getPromptBoolean(event),
+                };
+                break;
+              case ESubToolItem.AutoSegmentByStroke: {
+                s.prompt.creatingPrompt = {
+                  type: EPromptType.Stroke,
+                  startPoint: point,
+                  stroke: [point],
+                  radius: s.brushSize,
+                  isPositive: getPromptBoolean(event),
+                };
+                break;
+              }
+            }
           } else {
             // create a new polygon manually
             s.creatingObject = {
@@ -322,12 +470,7 @@ const usePolygon: ToolInstanceHook = ({
               currIndex: 0,
               ...basic,
             };
-            updateHistory(
-              cloneDeep({
-                drawData: s,
-                clientSize,
-              }),
-            );
+            updateHistory(cloneDeep(drawData));
           }
         } else {
           if (!s.AIAnnotation) {
@@ -340,31 +483,50 @@ const usePolygon: ToolInstanceHook = ({
                 s.creatingObject.currIndex = -1;
               } else if (s.creatingObject.polygon) {
                 polygon.group[currIndex].push(point);
-                updateHistory(
-                  cloneDeep({
-                    drawData: s,
-                    clientSize,
-                  }),
-                );
+                updateHistory(cloneDeep(s));
               }
             } else {
               polygon.group.push([point]);
               s.creatingObject.currIndex = polygon.group.length - 1;
-              updateHistory(
-                cloneDeep({
-                  drawData: s,
-                  clientSize,
-                }),
-              );
+              updateHistory(cloneDeep(s));
             }
+          } else {
+            updateAiPolygonWhenMouseDown(event);
           }
         }
       });
       return true;
     };
 
+  const updatePolygonWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
+    ({ event }) => {
+      const allowRecordMousePath =
+        drawData.selectedSubTool === ESubToolItem.AutoSegmentByStroke;
+      // Left/Right button is pressed while mousemove
+      const isMousePress = event.buttons === 1 || event.buttons === 2;
+      if (
+        drawData.prompt.creatingPrompt &&
+        allowRecordMousePath &&
+        isMousePress
+      ) {
+        const mouse = {
+          x: contentMouse.elementX,
+          y: contentMouse.elementY,
+        };
+        setDrawData((s) => {
+          s.prompt.creatingPrompt?.stroke?.push(mouse);
+        });
+        return true;
+      }
+      return false;
+    };
+
   const updateEditingWhenMouseMove: ToolHooksFunc.UpdateEditingWhenMouseMove =
-    () => {
+    ({ event }) => {
+      if (drawData.AIAnnotation) {
+        updateMouseCursor('crosshair');
+        return updatePolygonWhenMouseMove({ event });
+      }
       const {
         focusEleType,
         focusEleIndex,
@@ -442,134 +604,174 @@ const usePolygon: ToolInstanceHook = ({
     };
 
   const updateCreatingWhenMouseMove: ToolHooksFunc.UpdateCreatingWhenMouseMove =
-    ({ object }) => {
-      return !!object;
+    ({ event }) => {
+      return updatePolygonWhenMouseMove({ event });
     };
 
-  const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({
-    object,
-  }) => {
-    const isResizingOrMoving =
-      editState.startRectResizeAnchor || editState.startElementMovePoint;
+  const getExistPolygonPrompts = (): PromptItem[] => {
+    if (
+      drawData.prompt.promptsQueue &&
+      drawData.prompt.promptsQueue.length > 0
+    ) {
+      return drawData.prompt.promptsQueue;
+    } else {
+      // add exsit polygon as prompt item while editing instance by ai
+      const addExistPolygon =
+        !drawData.prompt.sessionId && drawData.creatingObject;
 
-    const isMouseStand =
-      editState.startElementMovePoint &&
-      editState.startElementMovePoint.initPoint?.x === contentMouse.elementX &&
-      editState.startElementMovePoint.initPoint?.y === contentMouse.elementY;
+      if (addExistPolygon) {
+        const existPolygons =
+          drawData.creatingObject?.polygon?.group.map((polygon) => {
+            return polygon.reduce((acc: number[], point) => {
+              return acc.concat([point.x, point.y]);
+            }, []);
+          }) || [];
 
-    const isRemovePolygonPoints =
-      isMouseStand &&
-      editState.focusPolygonInfo.index > -1 &&
-      editState.focusPolygonInfo.pointIndex > -1;
+        const modifyPromptItem: PromptItem = {
+          type: EPromptType.Modify,
+          isPositive: true,
+          polygons: existPolygons,
+        };
 
-    if (isRemovePolygonPoints) {
-      const copyObject = cloneDeep(object);
-      const { index, pointIndex } = editState.focusPolygonInfo;
-      const polygon = copyObject.polygon?.group[index];
-      if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
-        polygon.splice(pointIndex, 1);
+        return [modifyPromptItem];
+      } else {
+        return [];
       }
-      updateObject(copyObject, drawData.activeObjectIndex);
-    } else if (isResizingOrMoving) {
-      updateObject(object, drawData.activeObjectIndex);
     }
-
-    setEditState((s) => {
-      s.startRectResizeAnchor = undefined;
-      s.startElementMovePoint = undefined;
-    });
-    return true;
   };
 
-  const finishCreatingWhenMouseUp: ToolHooksFunc.FinishCreatingWhenMouseUp = ({
-    event,
-    object,
-  }) => {
-    if (!object) return false;
-
+  const finishAiPolygonWhenMouseUp = () => {
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
     };
-    if (drawData.AIAnnotation) {
-      if (object.type === EObjectType.Polygon) {
-        if (!isInCanvas(contentMouse) || !isInCanvas(containerMouse))
-          return false;
-        // add reference points
-        const click = {
-          isPositive: getPromptBoolean(event),
-          point: mouse,
+    const existPrompts = getExistPolygonPrompts();
+    switch (drawData.selectedSubTool) {
+      case ESubToolItem.AutoSegmentByBox: {
+        if (!drawData.prompt.creatingPrompt?.startPoint) break;
+        if (
+          mouse.x === drawData.prompt.creatingPrompt.startPoint?.x ||
+          mouse.y === drawData.prompt.creatingPrompt.startPoint?.y
+        ) {
+          setDrawData((s) => (s.prompt.creatingPrompt = undefined));
+          break;
+        }
+        const rect = getRectFromPoints(
+          drawData.prompt.creatingPrompt.startPoint as IPoint,
+          mouse,
+          {
+            width: contentMouse.elementW,
+            height: contentMouse.elementH,
+          },
+        );
+        const promptItem: PromptItem = {
+          type: EPromptType.Rect,
+          isPositive: true,
+          rect,
         };
-        const existClicks = drawData.prompt.segmentationClicks || [];
-        setDrawData((s) => {
-          s.prompt.segmentationClicks = [...existClicks, click];
+        setDrawDataWithHistory((s) => {
+          s.prompt.activeRectWhileLoading = rect;
         });
+        const promptsQueue = [...existPrompts, promptItem];
         onAiAnnotation?.({
           type: EObjectType.Polygon,
           drawData,
-          segmentationClicks: [...existClicks, click],
-          aiLabels: [object.label],
+          promptsQueue,
         });
-      } else {
-        // first click
-        if (
-          contentMouse.elementX === object.startPoint?.x &&
-          contentMouse.elementY === object.startPoint?.y
-        ) {
-          if (!isInCanvas(contentMouse)) return false;
-          // draw point
-          const firstClick = {
-            isPositive: true,
-            point: mouse,
-          };
-          setDrawData((s) => {
-            s.prompt.segmentationClicks = [firstClick];
-          });
-          onAiAnnotation?.({
-            type: EObjectType.Polygon,
-            drawData,
-            segmentationClicks: [firstClick],
-          });
-        } else {
-          // draw bbox
-          const rect = getRectFromPoints(object.startPoint as IPoint, mouse, {
-            width: contentMouse.elementW,
-            height: contentMouse.elementH,
-          });
-          const points = getReferencePointsFromRect(rect);
-          const bbox = {
-            xmin: rect.x,
-            ymin: rect.y,
-            xmax: rect.x + rect.width,
-            ymax: rect.y + rect.height,
-          };
-          const clicks = points.map((point, index) => {
-            return {
-              // Only the center point is positive
-              isPositive: index === points.length - 1 ? true : false,
-              point,
-            };
-          });
-          setDrawData((s) => {
-            s.prompt.segmentationClicks = [...clicks];
-          });
-          onAiAnnotation?.({
-            type: EObjectType.Polygon,
-            drawData,
-            segmentationClicks: clicks,
-            bbox,
-          });
-        }
-        setDrawData((s) => (s.creatingObject = undefined));
+        break;
       }
+      case ESubToolItem.AutoSegmentByClick: {
+        if (
+          !isInCanvas(contentMouse) ||
+          !isInCanvas(containerMouse) ||
+          !drawData.prompt.creatingPrompt?.point
+        )
+          break;
+        const promptItem: PromptItem = {
+          type: EPromptType.Point,
+          isPositive: drawData.prompt.creatingPrompt.isPositive,
+          point: drawData.prompt.creatingPrompt.point,
+        };
+        const promptsQueue = [...existPrompts, promptItem];
+        onAiAnnotation?.({
+          type: EObjectType.Polygon,
+          drawData,
+          promptsQueue,
+        });
+        break;
+      }
+      case ESubToolItem.AutoSegmentByStroke: {
+        if (!drawData.prompt.creatingPrompt?.stroke) break;
+        const promptItem: PromptItem = {
+          type: EPromptType.Stroke,
+          isPositive: drawData.prompt.creatingPrompt.isPositive,
+          stroke: drawData.prompt.creatingPrompt.stroke,
+          radius: drawData.brushSize,
+        };
+        const promptsQueue = [...existPrompts, promptItem];
+        onAiAnnotation?.({
+          type: EObjectType.Polygon,
+          drawData,
+          promptsQueue,
+        });
+        break;
+      }
+    }
+  };
+
+  const finishEditingWhenMouseUp: ToolHooksFunc.FinishEditingWhenMouseUp = ({
+    object,
+  }) => {
+    if (drawData.AIAnnotation) {
+      finishAiPolygonWhenMouseUp();
     } else {
-      if (object.currIndex === -1) {
-        const { polygon, type, hidden, label, status, color } = object;
+      const isResizingOrMoving =
+        editState.startRectResizeAnchor || editState.startElementMovePoint;
+
+      const isMouseStand =
+        editState.startElementMovePoint &&
+        editState.startElementMovePoint.initPoint?.x ===
+          contentMouse.elementX &&
+        editState.startElementMovePoint.initPoint?.y === contentMouse.elementY;
+
+      const isRemovePolygonPoints =
+        isMouseStand &&
+        editState.focusPolygonInfo.index > -1 &&
+        editState.focusPolygonInfo.pointIndex > -1;
+
+      if (isRemovePolygonPoints) {
+        const copyObject = cloneDeep(object);
+        const { index, pointIndex } = editState.focusPolygonInfo;
+        const polygon = copyObject.polygon?.group[index];
+        if (polygon && index > -1 && pointIndex > -1 && polygon.length >= 3) {
+          polygon.splice(pointIndex, 1);
+        }
+        updateObject(copyObject, drawData.activeObjectIndex);
+      } else if (isResizingOrMoving) {
+        updateObject(object, drawData.activeObjectIndex);
+      }
+
+      setEditState((s) => {
+        s.startRectResizeAnchor = undefined;
+        s.startElementMovePoint = undefined;
+      });
+    }
+    return true;
+  };
+
+  const finishCreatingWhenMouseUp: ToolHooksFunc.FinishCreatingWhenMouseUp = ({
+    object,
+  }) => {
+    if (drawData.AIAnnotation) {
+      finishAiPolygonWhenMouseUp();
+    } else {
+      if (object && object.currIndex === -1) {
+        const { polygon, type, hidden, labelId, status, color } = object;
         const newObject = {
           polygon,
           type,
           hidden,
-          label,
+          labelId,
           status,
           color,
         };

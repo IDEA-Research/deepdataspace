@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AnnotationType, DisplayOption } from './constants';
+import { DisplayOption } from './constants';
 import { useImmer } from 'use-immer';
 import { cloneDeep } from 'lodash';
 import useHistory from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
-import usePreviousState from './hooks/usePreviousState';
 import {
   BaseObject,
   Category,
@@ -13,38 +12,35 @@ import {
   DrawData,
   EditState,
   EditorMode,
-  IAnnotationObject,
-  DrawImageData,
+  AnnoItem,
   DrawObject,
 } from './type';
 import useColor from './hooks/useColor';
 import useMouseCursor from './hooks/useMouseCursor';
 import useCanvasRender from './hooks/useCanvasRender';
 import useDataEffect from './hooks/useDataEffect';
-import { RenderStyles, useToolInstances } from './tools/base';
+import { useToolInstances } from './tools/base';
 import { zoomImgSize } from './utils/compute';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { ImageView } from './components/ImageView';
 import './index.less';
+import useTranslate from './hooks/useTranslate';
 
 export interface ViewProps {
+  isOldMode?: boolean; // is old dataset design mode
   categories: Category[];
-  data: DrawImageData;
+  data: AnnoItem;
   objectsFilter?: (imageData: any) => BaseObject[];
-  getCustomObjectStyles?: (
-    object: IAnnotationObject,
-    color: string,
-  ) => Partial<RenderStyles>;
   currentSize?: ISize;
   wrapWidth?: number;
   wrapHeight?: number;
   minHeight?: number;
-  displayAnnotationType?: AnnotationType;
   displayOptionsResult?: { [key in DisplayOption]?: boolean };
 }
 
 const View: React.FC<ViewProps> = (props) => {
   const {
+    isOldMode,
     categories,
     data,
     currentSize,
@@ -52,8 +48,6 @@ const View: React.FC<ViewProps> = (props) => {
     wrapHeight,
     minHeight,
     objectsFilter,
-    getCustomObjectStyles,
-    displayAnnotationType,
     displayOptionsResult,
   } = props;
 
@@ -116,12 +110,17 @@ const View: React.FC<ViewProps> = (props) => {
     return [mouse, mouse];
   }, [clientSize]);
 
-  const [preClientSize, clearPreClientSize] =
-    usePreviousState<ISize>(clientSize);
-
-  const { labelColors, getAnnotColor } = useColor({
+  const { getAnnotColor } = useColor({
     categories,
     editState,
+  });
+
+  const { translateToObject } = useTranslate({
+    isOldMode,
+    clientSize,
+    naturalSize,
+    categories,
+    getAnnotColor,
   });
 
   const { clearHistory, updateHistory, setDrawDataWithHistory } = useHistory({
@@ -133,15 +132,13 @@ const View: React.FC<ViewProps> = (props) => {
   const { addObject, initObjectList, updateObject } = useObjects({
     annotations,
     setAnnotations,
-    clientSize,
-    naturalSize,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
-    editState,
     setEditState,
     mode: EditorMode.View,
-    displayAnnotationType,
+    translateToObject,
+    updateHistory,
   });
 
   const { updateMouseCursor } = useMouseCursor({
@@ -170,6 +167,7 @@ const View: React.FC<ViewProps> = (props) => {
     updateMouseCursor,
     displayOptionsResult,
     getAnnotColor,
+    categories,
   });
 
   const { updateRender } = useCanvasRender({
@@ -183,22 +181,18 @@ const View: React.FC<ViewProps> = (props) => {
     activeCanvasRef,
     imgRef,
     objectHooksMap,
-    getCustomObjectStyles,
   });
 
   // =================================================================================================================
   // Effects
   // =================================================================================================================
 
-  const { resetDataWithImageData, rebuildDrawData } = useDataEffect({
+  const { resetDataWithImageData } = useDataEffect({
     imagePos,
     clientSize,
-    preClientSize,
-    clearPreClientSize,
     naturalSize,
     annotations,
     setAnnotations,
-    labelColors,
     drawData,
     setDrawData,
     editState,
@@ -207,6 +201,7 @@ const View: React.FC<ViewProps> = (props) => {
     updateRender,
     clearHistory,
     objectsFilter,
+    labelOptions: categories,
   });
 
   /** Reset data when hiding the editor or switching images */
@@ -216,8 +211,8 @@ const View: React.FC<ViewProps> = (props) => {
 
   /** Custom options changed */
   useEffect(() => {
-    rebuildDrawData(true);
-  }, [displayAnnotationType, displayOptionsResult, getCustomObjectStyles]);
+    updateRender();
+  }, [displayOptionsResult]);
 
   const onLoadImg = (e: React.UIEvent<HTMLImageElement, UIEvent>) => {
     // Set natural size.

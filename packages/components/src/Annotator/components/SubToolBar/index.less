@@ -1,7 +1,4 @@
 .dds-annotator-subtoolbar {
-  position: absolute;
-  left: 1rem;
-  top: 1rem;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -10,6 +7,7 @@
   background-color: #212121;
   border-radius: 10px;
   padding: 0.5rem;
+  padding-left: 0;
   height: 50px;
   pointer-events: auto;
   font-weight: 600;
@@ -42,9 +40,14 @@
   }
 
   &-divider {
-    height: 100%;
+    height: 65%;
     margin: 10px 8px;
     border-left: 1px solid #fff;
+  }
+
+  &-title {
+    margin: 0 0.25rem;
+    color: #fff;
   }
 
   &-slider {

@@ -1,14 +1,29 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Button, Collapse, List, Tabs, Tooltip } from 'antd';
 import { OBJECT_ICON } from '../../constants';
 import { ReactComponent as DownArrorIcon } from '../../assets/downArror.svg';
+import { ReactComponent as Palette } from '../../assets/palette.svg';
+import { ReactComponent as Attribute } from '../../assets/attribute.svg';
+import { ReactComponent as Layer } from '../../assets/layer.svg';
 import classNames from 'classnames';
 import Icon, {
   DeleteOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { IAnnotationObject } from '../../type';
+import {
+  Category,
+  DrawData,
+  IAnnotationObject,
+  IAnnotsDisplayOptions,
+} from '../../type';
 import { useKeyPress } from 'ahooks';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from 'dds-utils/locale';
@@ -16,10 +31,11 @@ import VirtualList, { ListRef } from 'rc-virtual-list';
 import { useWindowResize } from 'dds-hooks';
 import { isEqual } from 'lodash';
 import './index.less';
+import { Updater } from 'use-immer';
 
 export interface IProps {
   objects: IAnnotationObject[];
-  labelColors: Record<string, string>;
+  framesObjects?: IAnnotationObject[][];
   activeObjectIndex: number;
   className?: string;
   supportEdit?: boolean;
@@ -30,6 +46,10 @@ export interface IProps {
   onChangeCategoryHidden: (category: string, hidden: boolean) => void;
   onDeleteObject: (index: number) => void;
   onChangeActiveClassName: (className: string) => void;
+  categories: Category[];
+  setDrawDataWithHistory: Updater<DrawData>;
+  colorByCategory: boolean;
+  onChangeAnnotsDisplayOpts: (options: IAnnotsDisplayOptions) => void;
 }
 
 enum ETab {
@@ -46,23 +66,27 @@ type TObjectItem = IAnnotationObject & {
 const propsAreEqual = (prev: IProps, next: IProps): boolean => {
   return (
     isEqual(prev.objects, next.objects) &&
+    isEqual(prev.framesObjects, next.framesObjects) &&
     prev.activeObjectIndex === next.activeObjectIndex &&
     prev.supportEdit === next.supportEdit &&
     prev.activeClassName === next.activeClassName &&
     prev.className === next.className &&
-    isEqual(prev.labelColors, next.labelColors) &&
     prev.onChangeActiveClassName === next.onChangeActiveClassName &&
     prev.onFocusObject === next.onFocusObject &&
     prev.onDeleteObject === next.onDeleteObject &&
     prev.onChangeObjectHidden === next.onChangeObjectHidden &&
-    prev.onChangeCategoryHidden === next.onChangeCategoryHidden
+    prev.onChangeCategoryHidden === next.onChangeCategoryHidden &&
+    prev.setDrawDataWithHistory === next.setDrawDataWithHistory &&
+    isEqual(prev.categories, next.categories) &&
+    prev.colorByCategory === next.colorByCategory &&
+    prev.onChangeAnnotsDisplayOpts === next.onChangeAnnotsDisplayOpts
   );
 };
 
 export const ObjectList: React.FC<IProps> = memo((props) => {
   const {
     objects,
-    labelColors,
+    framesObjects,
     activeObjectIndex,
     className,
     supportEdit,
@@ -73,8 +97,11 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
     onDeleteObject,
     onChangeCategoryHidden,
     onChangeActiveClassName,
+    categories,
+    setDrawDataWithHistory,
+    colorByCategory,
+    onChangeAnnotsDisplayOpts,
   } = props;
-
   const { localeText } = useLocale();
 
   const DEFAULT_CLASS_NAME = localeText(
@@ -103,6 +130,27 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
     });
   };
 
+  const switchColorMode = () => {
+    onChangeAnnotsDisplayOpts({
+      colorByCategory: !colorByCategory,
+    });
+  };
+
+  const showEditingAttributes = useCallback(
+    (object: IAnnotationObject, label: Category, index: number) => {
+      onActiveObject(index);
+      setDrawDataWithHistory((s) => {
+        s.editingAttribute = {
+          index,
+          labelId: object.labelId,
+          attributes: label.attributes || [],
+          values: object.attributes || [],
+        };
+      });
+    },
+    [onActiveObject],
+  );
+
   /** Hide All Objects */
   useKeyPress(
     EDITOR_SHORTCUTS[EShortcuts.HideAll].shortcut,
@@ -123,11 +171,13 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
         obj: IAnnotationObject,
         index: number,
       ) => {
-        const label = obj.label || DEFAULT_CLASS_NAME;
-        if (!acc[label]) {
-          acc[label] = [];
+        const labelName =
+          categories.find((c) => c.id === obj.labelId)?.name ||
+          DEFAULT_CLASS_NAME;
+        if (!acc[labelName]) {
+          acc[labelName] = [];
         }
-        acc[label].push({ ...obj, originIndex: index });
+        acc[labelName].push({ ...obj, originIndex: index });
         return acc;
       },
       {},
@@ -167,35 +217,36 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
       {objects.length > 0 &&
         Object.keys(objectMapByClass)
           .sort()
-          .map((label) => {
-            const subObjects = objectMapByClass[label];
+          .map((labelName) => {
+            const subObjects = objectMapByClass[labelName];
             const isHidden = subObjects.every((item) => item.hidden);
+            const firstColor = subObjects[0]?.color;
             return (
               <Collapse.Panel
-                key={label || DEFAULT_CLASS_NAME}
+                key={labelName || DEFAULT_CLASS_NAME}
                 showArrow={false}
                 header={
                   <div
                     className={classNames('collapse-header', {
-                      'collapse-header-selected': activeClassName === label,
+                      'collapse-header-selected': activeClassName === labelName,
                     })}
                     style={{ height: collapseHeaderHeight }}
-                    key={label}
+                    key={labelName}
                     onClick={() => {
                       onChangeActiveClassName(
-                        label === activeClassName ? '' : label,
+                        labelName === activeClassName ? '' : labelName,
                       );
                     }}
                   >
-                    {activeClassName === label && (
+                    {activeClassName === labelName && (
                       <div
                         className="selected-line"
                         style={{
-                          backgroundColor: labelColors[label] || '#fff',
+                          backgroundColor: firstColor || '#fff',
                         }}
                       />
                     )}
-                    <div className="label-name">{label}</div>
+                    <div className="label-name">{labelName}</div>
                     <div className="label-actions">
                       <span className="label-count">{subObjects.length}</span>
                       {supportEdit && (
@@ -219,7 +270,7 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
                             shape={'circle'}
                             onClick={(event) => {
                               event.stopPropagation();
-                              onChangeCategoryHidden(label, !isHidden);
+                              onChangeCategoryHidden(labelName, !isHidden);
                             }}
                           />
                         </Tooltip>
@@ -234,7 +285,7 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
                   </div>
                 }
               >
-                {activeClassName === label && (
+                {activeClassName === labelName && (
                   <List>
                     <VirtualList
                       data={subObjects}
@@ -244,83 +295,131 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
                       itemKey={'originIndex'}
                       ref={virtualListRef}
                     >
-                      {(object: TObjectItem, objIndex: number) => (
-                        <List.Item
-                          key={object.label + objIndex}
-                          className="collapse-item"
-                          style={{ height: itemHeight }}
-                          onMouseOver={() => {
-                            onFocusObject(object.originIndex);
-                          }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onActiveObject(object.originIndex);
-                          }}
-                        >
-                          {activeObjectIndex === object.originIndex && (
-                            <div
-                              className="color-hint"
-                              style={{
-                                backgroundColor: object.color,
-                              }}
-                            ></div>
-                          )}
-                          <Icon
-                            className="label-icon"
-                            component={OBJECT_ICON[object.type]}
-                          />
-                          <div className="label">{object.label}</div>
-                          <div className="label-actions">
-                            <Tooltip
-                              title={
-                                object.hidden
-                                  ? localeText('DDSAnnotator.annotsList.show')
-                                  : localeText('DDSAnnotator.annotsList.hide')
-                              }
-                            >
-                              <Button
-                                ghost
-                                className="label-btn"
-                                icon={
-                                  object.hidden ? (
-                                    <EyeInvisibleOutlined />
-                                  ) : (
-                                    <EyeOutlined />
-                                  )
-                                }
-                                shape={'circle'}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onChangeObjectHidden(
-                                    object.originIndex,
-                                    !object.hidden,
-                                  );
+                      {(object: TObjectItem, objIndex: number) => {
+                        const label = categories.find(
+                          (c) => c.id === object.labelId,
+                        );
+                        const hasAttributes = !!label?.attributes?.length;
+                        const requireAttribute = label?.attributes?.find(
+                          (attribute, index) =>
+                            attribute.required &&
+                            [undefined, null, ''].includes(
+                              object.attributes?.[index] as any,
+                            ),
+                        );
+                        const frameCount =
+                          framesObjects?.[object.originIndex]?.filter(
+                            (obj) => obj && !obj.frameEmpty,
+                          )?.length || 1;
+                        return (
+                          <List.Item
+                            key={object.labelId + objIndex}
+                            className="collapse-item"
+                            style={{ height: itemHeight }}
+                            onMouseOver={() => {
+                              onFocusObject(object.originIndex);
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onActiveObject(object.originIndex);
+                            }}
+                          >
+                            {activeObjectIndex === object.originIndex && (
+                              <div
+                                className="color-hint"
+                                style={{
+                                  backgroundColor: object.color,
                                 }}
-                              />
-                            </Tooltip>
-                            {supportEdit && (
-                              <>
+                              ></div>
+                            )}
+                            <Icon
+                              className="label-icon"
+                              component={OBJECT_ICON[object.type]}
+                            />
+                            <div className="label">
+                              # {object.originIndex + 1}
+                            </div>
+                            <div className="label-actions">
+                              {framesObjects && (
+                                <span className="frame-count">
+                                  <Layer /> {frameCount}
+                                </span>
+                              )}
+                              {hasAttributes && (
                                 <Tooltip
                                   title={localeText(
-                                    'DDSAnnotator.annotsList.delete',
+                                    'DDSAnnotator.attribute.edit',
                                   )}
                                 >
                                   <Button
                                     ghost
-                                    className="label-btn"
-                                    icon={<DeleteOutlined />}
+                                    className={classNames('attr-btn', {
+                                      'attr-btn-warn': requireAttribute,
+                                    })}
+                                    icon={<Attribute />}
                                     shape={'circle'}
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      onDeleteObject(object.originIndex);
+                                      showEditingAttributes(
+                                        object,
+                                        label,
+                                        object.originIndex,
+                                      );
                                     }}
                                   />
                                 </Tooltip>
-                              </>
-                            )}
-                          </div>
-                        </List.Item>
-                      )}
+                              )}
+                              <Tooltip
+                                title={
+                                  object.hidden
+                                    ? localeText('DDSAnnotator.annotsList.show')
+                                    : localeText('DDSAnnotator.annotsList.hide')
+                                }
+                              >
+                                <Button
+                                  ghost
+                                  className="label-btn"
+                                  icon={
+                                    object.hidden ? (
+                                      <EyeInvisibleOutlined />
+                                    ) : (
+                                      <EyeOutlined />
+                                    )
+                                  }
+                                  shape={'circle'}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onChangeObjectHidden(
+                                      object.originIndex,
+                                      !object.hidden,
+                                    );
+                                  }}
+                                />
+                              </Tooltip>
+                              {supportEdit && (
+                                <>
+                                  <Tooltip
+                                    title={localeText(
+                                      'DDSAnnotator.annotsList.delete',
+                                    )}
+                                  >
+                                    <Button
+                                      ghost
+                                      className="label-btn"
+                                      icon={<DeleteOutlined />}
+                                      shape={'circle'}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        onDeleteObject(object.originIndex);
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </>
+                              )}
+                            </div>
+                          </List.Item>
+                        );
+                      }}
                     </VirtualList>
                   </List>
                 )}
@@ -344,33 +443,41 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
         items={[
           {
             key: ETab.Class,
-            label: localeText('DDSAnnotator.annotsList.categories'),
+            label: localeText('DDSAnnotator.annotsList.labels'),
             children: classTab,
           },
-          // {
-          //   key: ETab.Object,
-          //   label: localeText('DDSAnnotator.annotsList.objects'),
-          //   children: objectTab,
-          // },
         ]}
         tabBarExtraContent={
-          objects.length > 0 && (
-            <Tooltip
-              title={
-                hideAllObjs
-                  ? localeText('DDSAnnotator.annotsList.showAll')
-                  : localeText('DDSAnnotator.annotsList.hideAll')
-              }
-            >
+          <div className="tab-header-actions">
+            <Tooltip title={localeText('DDSAnnotator.colorMode')}>
               <Button
-                ghost
-                className="tab-header-actions"
-                icon={hideAllObjs ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                shape={'circle'}
-                onClick={onAllObjectHidden}
-              />
+                type="primary"
+                className={classNames('tab-header-actions-color-btn', {
+                  'tab-header-actions-color-btn-active': !colorByCategory,
+                })}
+                icon={<Icon component={Palette} />}
+                onClick={switchColorMode}
+              ></Button>
             </Tooltip>
-          )
+            {objects.length > 0 && (
+              <Tooltip
+                title={
+                  hideAllObjs
+                    ? localeText('DDSAnnotator.annotsList.showAll')
+                    : localeText('DDSAnnotator.annotsList.hideAll')
+                }
+              >
+                <Button
+                  ghost
+                  icon={
+                    hideAllObjs ? <EyeInvisibleOutlined /> : <EyeOutlined />
+                  }
+                  shape={'circle'}
+                  onClick={onAllObjectHidden}
+                />
+              </Tooltip>
+            )}
+          </div>
         }
       />
     </div>

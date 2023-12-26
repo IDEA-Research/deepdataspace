@@ -16,16 +16,21 @@ export default {
 
   /** DDSAnnotator */
   'DDSAnnotator.save': 'Save',
+  'DDSAnnotator.commit': 'Commit',
   'DDSAnnotator.cancel': 'Cancel',
   'DDSAnnotator.delete': 'Delete',
+  'DDSAnnotator.modify': 'Modify',
   'DDSAnnotator.reject': 'Reject',
   'DDSAnnotator.approve': 'Approve',
   'DDSAnnotator.prev': 'Previous Image',
   'DDSAnnotator.next': 'Next Image',
   'DDSAnnotator.exit': 'Exit',
+  'DDSAnnotator.docs': 'Docs',
   'DDSAnnotator.shortcuts': 'Shortcuts',
   'DDSAnnotator.confidence': 'Confidence',
   'DDSAnnotator.annotsList.categories': 'Categories',
+  'DDSAnnotator.annotsList.labels': 'Labels',
+  'DDSAnnotator.annotsList.classification': 'Classification',
   'DDSAnnotator.annotsList.objects': 'Objects',
   'DDSAnnotator.annotsList.hideAll': 'Hide All',
   'DDSAnnotator.annotsList.showAll': 'Show All',
@@ -60,6 +65,9 @@ export default {
   'DDSAnnotator.subtoolbar.mask.sam.notAllow':
     'Unavailable when any instance exists',
   'DDSAnnotator.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
+  'DDSAnnotator.subtoolbar.visualprompt.positive': 'Positive Visual Prompt',
+  'DDSAnnotator.subtoolbar.visualprompt.negative': 'Negative Visual Prompt',
+  'DDSAnnotator.subtoolbar.polygon.pointResolution': 'Point Resolution',
   'DDSAnnotator.zoomTool.reset': 'Reset Zoom',
   'DDSAnnotator.zoomIn': 'Zoom In',
   'DDSAnnotator.zoomOut': 'Zoom Out',
@@ -148,11 +156,14 @@ export default {
   'DDSAnnotator.smart.infoModal.action': 'Visit Our Website',
   'DDSAnnotator.smart.detection.name': 'Intelligent Object Detection',
   'DDSAnnotator.smart.detection.input': 'Select or enter categories',
+  'DDSAnnotator.smart.ivp.name': 'Interactive Visual Prompt (iVP)',
   'DDSAnnotator.smart.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'DDSAnnotator.smart.pose.name': 'Intelligent Pose Estimation',
   'DDSAnnotator.smart.mask.name': 'Intelligent Panoramic Segmentation',
   'DDSAnnotator.smart.pose.input': 'Select template',
   'DDSAnnotator.smart.pose.apply': 'Apply Results',
+  'DDSAnnotator.smart.ivp.desc': 'Detect the objects with visual prompt',
+  'DDSAnnotator.smart.gdino.desc': 'Detect the objects with text prompt',
   'DDSAnnotator.smart.annotate': 'Auto-Annotate',
   'DDSAnnotator.smart.retry': 'Retry',
   'DDSAnnotator.smart.modelTyle': 'Model Type',
@@ -169,6 +180,8 @@ export default {
   'DDSAnnotator.smart.msg.confResults': '{count} matching annotations shown',
   'DDSAnnotator.smart.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'DDSAnnotator.smart.msg.positivePrompt':
+    'At least one positive visual prompt is required.',
   'DDSAnnotator.smart.rateLimit.title': 'Tips',
   'DDSAnnotator.smart.rateLimit.content':
     'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
@@ -181,4 +194,35 @@ export default {
   'DDSAnnotator.smart.tip.recover': 'Recover unselected annotations',
   'DDSAnnotator.smart.tip.overlayobject': 'View overlapping annotation objects',
   'DDSAnnotator.smart.tip.annotationApplied': '{count} annotations applied.',
+  'DDSAnnotator.smart.tip.visualPrompt':
+    'Add more visual prompts or accept current objects',
+  'DDSAnnotator.seg.tool': 'Segmentation tool',
+  'DDSAnnotator.seg.tool.content': 'Accept the segmentation result.',
+  'DDSAnnotator.confirm': 'Confirm',
+  'DDSAnnotator.points.editor': 'Points Attributes',
+  'DDSAnnotator.attribute.add': 'Add label attributes',
+  'DDSAnnotator.attribute.edit': 'Edit label attributes',
+  'DDSAnnotator.attribute.input': 'Please input',
+  'DDSAnnotator.attribute.required': 'Please fill in all required fields.',
+  'DDSAnnotator.attribute.newOperation.limit':
+    'Please make sure to add the required label attribute before proceeding with other operations.',
+  'DDSAnnotator.classification.required':
+    'You have not filled in all classification questions.',
+  'DDSAnnotator.label.attributes.required':
+    'You have not filled in all required label attributes.',
+  'DDSAnnotator.label.select': 'Select a label',
+  'DDSAnnotator.model.select': 'Select a model',
+  'DDSAnnotator.status.labeling': 'Labeling',
+  'DDSAnnotator.status.reviewing': 'Reviewing',
+  'DDSAnnotator.save.check.error': 'Pre Check Error',
+  'DDSAnnotator.save.check.classification':
+    'Classification #{idx} is required to have answer.',
+  'DDSAnnotator.save.check.label':
+    'Label ({labelName}) #{idx} is required to have manual attributes.',
+  'DDSAnnotator.save.check.tip': 'Please modify first.',
+
+  'DDSAnnotator.video.track': 'Tracking',
+  'DDSAnnotator.video.track.setting': 'Tracking settings',
+  'DDSAnnotator.video.frame': 'Frames',
+  'DDSAnnotator.video.track.backward': 'Backward inference frames',
 };

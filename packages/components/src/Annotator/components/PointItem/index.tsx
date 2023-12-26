@@ -40,9 +40,7 @@ const PointItem: React.FC<IProps> = ({
           }}
         />
       )}
-      <div
-        className={styles.info}
-      >
+      <div className={styles.info}>
         {point.name ? `#${index + 1} ${point.name}` : `${index + 1} `}
       </div>
       <div className={styles.action}>

@@ -1,18 +1,43 @@
 import {
   EBasicToolItem,
   EElementType,
+  ELabelType,
+  EnumModelType,
   EObjectType,
   ESubToolItem,
   EToolType,
 } from './constants';
 import { RectAnchor } from './utils/compute';
 
+export enum EActionType {
+  Radio = 'radio',
+  Checkbox = 'checkbox',
+  Text = 'text',
+}
+
+export interface IAttribute {
+  field: string;
+  type: EActionType;
+  required: boolean;
+  options?: { label: string }[];
+}
+
+export type IAttributeValue = string | number | number[] | null;
+
 export interface Category {
   id: string;
   name: string;
+  labelName?: string;
+  labelType?: ELabelType;
+  renderColor?: string;
+  description?: string;
+  attributes?: IAttribute[];
+  valueType?: EActionType;
+  valueOptions?: { label: string }[];
 }
 
 export interface BaseObject {
+  id?: string;
   /** catagory */
   categoryId?: string;
   categoryName?: string;
@@ -22,7 +47,8 @@ export interface BaseObject {
   /** matting url */
   alpha?: string;
   /**
-   * keypoints：[x, y, z, w, visible, conf, ...]. (Needs to be split manually.)
+   * keypoints: [x, y, visible, conf, ...]
+   * (old mode)keypoints：[x, y, z, w, visible, conf, ...]. (Needs to be split manually.)
    * visible 0: not labeled, v=1: labeled but not visible, and v=2: labeled and visible.
    */
   points?: number[];
@@ -33,21 +59,19 @@ export interface BaseObject {
   lines?: number[];
   /** mask */
   mask?: number[];
+  /** point */
+  point?: number[];
 }
 
 export interface DrawObject extends BaseObject {
   conf?: number;
-  labelId?: string;
-  compareResult?: string;
+  // custom styles
+  customStyles?: Record<string, any>;
 }
 
-export interface DrawImageData {
+export interface AnnoItem extends Record<string, any> {
   id: string;
   url: string;
-  urlFullRes: string;
-  objects: DrawObject[];
-  metadata?: Record<string, string>;
-  caption?: string;
 }
 
 export enum EObjectStatus {
@@ -56,25 +80,38 @@ export enum EObjectStatus {
   Commited,
 }
 
+export interface VideoFramesData {
+  id: string;
+  list: AnnoItem[];
+  objects: IAnnotationObject[][]; // objects[objectIndex][frameIndex]
+  activeIndex: number;
+}
+
 export interface IAnnotationObject {
   type: EObjectType;
-  label: string;
+  labelId: string;
   hidden: boolean;
-  color: string; // hex
+  color: string;
+  customStyles?: Record<string, any>;
+  attributes?: IAttributeValue[];
+  status: EObjectStatus;
+
+  // value
   rect?: IElement<IRect>;
   polygon?: IElement<IPolygonGroup>;
   keypoints?: {
     points: IElement<IPoint>[];
     lines: number[];
   };
+  point?: IElement<IPoint>;
   maskRle?: number[];
   maskCanvasElement?: any;
   alpha?: string;
   alphaImageElement?: any;
   conf?: number;
-  labelId?: string;
-  compareResult?: string;
-  status: EObjectStatus;
+
+  // for video frame attribute
+  frameEmpty?: boolean;
 }
 
 export interface ICreatingMaskStep {
@@ -97,32 +134,41 @@ export interface ICreatingObject extends IAnnotationObject {
   tempMaskSteps?: ICreatingMaskStep[];
 }
 
-export enum EMaskPromptType {
+export enum EPromptType {
   Rect = 'rect',
   Point = 'point',
   Stroke = 'stroke',
   EdgeStitch = 'edgeStitch',
+  Modify = 'modify',
 }
 
-export type MaskPromptItem = {
-  type: EMaskPromptType;
+export type PromptItem = {
+  type: EPromptType;
   isPositive: boolean;
+  /** Rect */
   startPoint?: IPoint;
   rect?: IRect;
+  /** Point */
   point?: IPoint;
+  /** Stroke / EdgeStitching */
   stroke?: IPoint[];
   radius?: number;
+  /** Modify */
+  polygons?: number[][];
 };
 
 export interface IPrompt {
-  creatingMask?: MaskPromptItem;
-  maskPrompts?: MaskPromptItem[];
-  segmentationClicks?: {
-    point: IPoint;
-    isPositive: boolean;
-  }[];
-  segmentationMask?: string;
+  creatingPrompt?: PromptItem;
+  promptsQueue?: PromptItem[];
+  sessionId?: string;
   activeRectWhileLoading?: IRect;
+}
+
+export interface IEditingAttribute {
+  index: number; // Object Index || -1
+  labelId: string;
+  attributes: IAttribute[];
+  values?: IAttributeValue[];
 }
 
 /**
@@ -135,16 +181,24 @@ export interface DrawData {
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
   AIAnnotation: boolean;
+  selectedModel?: EnumModelType;
   brushSize: number;
+  pointResolution: number;
 
   /** drawed */
   objectList: IAnnotationObject[];
+  classifications: {
+    labelId: string;
+    labelValue: IAttributeValue;
+    attributes?: IAttributeValue[];
+  }[];
 
   /** drawing */
   activeClassName: string;
   activeObjectIndex: number;
   creatingObject?: ICreatingObject; // - editing / creating
   isBatchEditing: boolean; // active while handle batch predictions by model
+  editingAttribute?: IEditingAttribute;
   limitConf: number;
 
   /** prompt actions */
@@ -166,7 +220,7 @@ export interface EditState {
   isLoadingError: boolean;
   isRequiring: boolean;
   allowMove: boolean;
-  latestLabel: string;
+  latestLabelId: string;
   startRectResizeAnchor?: RectAnchor;
   startElementMovePoint?: {
     topLeftPoint: IPoint;
@@ -183,6 +237,8 @@ export interface EditState {
     lineIndex: number;
   };
   imageCacheId?: string;
+  // TODO
+  imageCacheIdForPolygon?: string;
   isCtrlPressed: boolean;
   hideCreatingObject: boolean;
   imageDisplayOptions: IImageDisplayOptions;
@@ -195,26 +251,24 @@ export const enum EditorMode {
   Review,
 }
 
-export enum EQaAction {
-  Accept = 'accept',
-  Reject = 'reject',
-  ForceAccept = 'force_accept',
-}
-
 export const DEFAULT_DRAW_DATA: DrawData = {
   initialized: false,
 
   /** Selected tool */
   selectedTool: EBasicToolItem.Drag,
   selectedSubTool: ESubToolItem.PenAdd,
+  selectedModel: undefined,
   AIAnnotation: false,
 
   /** drawed */
   objectList: [],
+  classifications: [],
   activeObjectIndex: -1,
   activeClassName: '',
   creatingObject: undefined,
+  editingAttribute: undefined,
   brushSize: 20,
+  pointResolution: 0.5,
   prompt: {},
   isBatchEditing: false,
   limitConf: 0,
@@ -235,7 +289,7 @@ export const DEFAULT_EDIT_STATE: EditState = {
   isLoadingError: false,
   isRequiring: false,
   allowMove: false,
-  latestLabel: '',
+  latestLabelId: '',
   startRectResizeAnchor: undefined,
   startElementMovePoint: undefined,
   focusObjectIndex: -1,

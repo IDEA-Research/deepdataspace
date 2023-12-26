@@ -419,6 +419,14 @@ export default () => {
     setLoading(false);
   };
 
+  const onReviewAccept = async (imageId: string) => {
+    return await onReviewResult(imageId, EQaAction.Accept);
+  };
+
+  const onReviewReject = async (imageId: string) => {
+    return await onReviewResult(imageId, EQaAction.Reject);
+  };
+
   /**
    * Initialize page parameters from the URL.
    * @param urlPageState
@@ -487,6 +495,8 @@ export default () => {
     onNextImage,
     onLabelSave,
     onReviewResult,
+    onReviewAccept,
+    onReviewReject,
     onEnterEdit,
     onStartLabel,
     onStartRework,

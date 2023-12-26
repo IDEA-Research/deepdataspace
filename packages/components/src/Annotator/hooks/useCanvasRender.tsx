@@ -7,7 +7,12 @@ import {
   ICreatingObject,
 } from '../type';
 import { translateAnnotCoord } from '../utils/compute';
-import { EObjectType } from '../constants';
+import {
+  EBasicToolItem,
+  EElementType,
+  EnumModelType,
+  EObjectType,
+} from '../constants';
 import {
   addFilter,
   clearCanvas,
@@ -23,8 +28,9 @@ import {
   ANNO_STROKE_ALPHA,
   ANNO_STROKE_COLOR,
 } from '../constants/render';
-import { RenderStyles, ToolInstanceHookReturn } from '../tools/base';
+import { ToolInstanceHookReturn } from '../tools/base';
 import { hexToRgba } from '../utils/color';
+import PopoverMenu from '../components/PopoverMenu';
 
 interface IProps {
   visible: boolean;
@@ -37,10 +43,6 @@ interface IProps {
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
   imgRef: React.RefObject<HTMLImageElement>;
   objectHooksMap: Record<EObjectType, ToolInstanceHookReturn>;
-  getCustomObjectStyles?: (
-    object: IAnnotationObject,
-    color: string,
-  ) => Partial<RenderStyles>;
 }
 
 const useCanvasRender = ({
@@ -54,7 +56,6 @@ const useCanvasRender = ({
   activeCanvasRef,
   imgRef,
   objectHooksMap,
-  getCustomObjectStyles,
 }: IProps) => {
   // =================================================================================================================
   // Render
@@ -84,7 +85,6 @@ const useCanvasRender = ({
       fillColor = ANNO_FILL_COLOR.CREATING;
     }
 
-    const customStyles = getCustomObjectStyles?.(object, color) || {};
     return {
       strokeColor,
       fillColor,
@@ -92,7 +92,7 @@ const useCanvasRender = ({
       strokeDash: [0],
       thickness: 2,
       pointAplha: 1,
-      ...customStyles,
+      ...(object.customStyles || {}),
     };
   };
 
@@ -139,17 +139,32 @@ const useCanvasRender = ({
     const { prompt } = theDrawData;
 
     if (
-      prompt.maskPrompts ||
-      prompt.creatingMask ||
+      prompt.creatingPrompt ||
+      prompt.promptsQueue ||
       prompt.activeRectWhileLoading
     ) {
-      objectHooksMap[EObjectType.Mask].renderPrompt({
-        prompt,
-      });
-    } else if (prompt.segmentationClicks) {
-      objectHooksMap[EObjectType.Polygon].renderPrompt({
-        prompt,
-      });
+      if (
+        theDrawData.selectedTool === EBasicToolItem.Mask ||
+        theDrawData.creatingObject?.type === EObjectType.Mask
+      ) {
+        objectHooksMap[EObjectType.Mask].renderPrompt({
+          prompt,
+        });
+      } else if (
+        theDrawData.selectedTool === EBasicToolItem.Polygon ||
+        theDrawData.creatingObject?.type === EObjectType.Polygon
+      ) {
+        objectHooksMap[EObjectType.Polygon].renderPrompt({
+          prompt,
+        });
+      } else if (
+        theDrawData.selectedTool === EBasicToolItem.Rectangle &&
+        theDrawData.selectedModel === EnumModelType.IVP
+      ) {
+        objectHooksMap[EObjectType.Rectangle].renderPrompt({
+          prompt,
+        });
+      }
     }
     return;
   };
@@ -209,16 +224,23 @@ const useCanvasRender = ({
       if (
         obj.hidden ||
         index === activeObjectIndex ||
-        index === editState.focusObjectIndex
+        index === editState.focusObjectIndex ||
+        obj.frameEmpty
       ) {
         return;
       }
-      renderObject(obj, false);
+      renderObject(obj, drawData.editingAttribute?.index === index);
     });
   };
 
   const updateRender = (updateDrawData?: DrawData) => {
-    if (!visible || !canvasRef.current || !imgRef.current) return;
+    if (
+      !visible ||
+      !canvasRef.current ||
+      !imgRef.current ||
+      !imgRef.current.complete
+    )
+      return;
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,
@@ -258,14 +280,41 @@ const useCanvasRender = ({
       editState.focusObjectIndex > -1 &&
       editState.focusObjectIndex !== drawData.activeObjectIndex &&
       theDrawData.objectList[editState.focusObjectIndex] &&
-      !theDrawData.objectList[editState.focusObjectIndex].hidden
+      !theDrawData.objectList[editState.focusObjectIndex].hidden &&
+      !theDrawData.objectList[editState.focusObjectIndex].frameEmpty
     ) {
       renderObject(theDrawData.objectList[editState.focusObjectIndex], true);
     }
   };
 
+  const renderPopoverMenu = () => {
+    if (
+      editState.focusObjectIndex > -1 &&
+      drawData.objectList[editState.focusObjectIndex] &&
+      !drawData.objectList[editState.focusObjectIndex].hidden &&
+      editState.focusEleIndex > -1 &&
+      editState.focusEleType === EElementType.Circle
+    ) {
+      const target =
+        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
+          editState.focusEleIndex
+        ];
+      if (target) {
+        return (
+          <PopoverMenu
+            index={editState.focusEleIndex}
+            targetElement={target!}
+            imagePos={imagePos.current}
+          />
+        );
+      }
+    }
+    return <></>;
+  };
+
   return {
     updateRender,
+    renderPopoverMenu,
   };
 };
 

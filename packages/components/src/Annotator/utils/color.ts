@@ -83,19 +83,10 @@ export const createColorList = (count: number) => {
   return colors;
 };
 
-export const getCategoryColors = (list: string[], cur?: string) => {
+export const getCategoryColors = (list: string[]) => {
   if (!list.length) return {};
 
   const sortList = [...list];
-  if (cur === 'All') {
-    sortList.shift();
-  } else if (cur) {
-    // Move cur to the first position in the array.
-    const curIndex = sortList.findIndex((item) => item === cur);
-    sortList.splice(curIndex, 1);
-    sortList[0] = cur;
-  }
-
   const colors = createColorList(sortList.length);
   const result: Record<string, string> = {};
   sortList.forEach((item, index) => {

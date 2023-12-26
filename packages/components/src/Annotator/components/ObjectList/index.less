@@ -21,10 +21,15 @@
   .ant-tabs-tab {
     padding: 12px;
     margin: 0;
+    font-size: 16px;
   }
 
-  .ant-tabs-tab-active {
-    border-bottom: 2px solid @colorPrimary;
+  // .ant-tabs-tab-active {
+  //   border-bottom: 2px solid @colorPrimary;
+  // }
+
+  .ant-tabs-ink-bar {
+    background: transparent;
   }
 
   .ant-tabs-nav {
@@ -33,6 +38,10 @@
     top: 0;
     z-index: 1;
     background: #000;
+
+    &::before {
+      display: none;
+    }
   }
 
   .ant-collapse-item {
@@ -98,7 +107,31 @@
     right: 5%;
     top: 50%;
     transform: translateY(-50%);
-    border: 0;
+
+    button {
+      border: 0;
+    }
+
+    &-color-btn {
+      width: 28px;
+      height: 28px;
+      margin: 0 0.5rem;
+      border: 0;
+      background-color: transparent;
+      color: #fff;
+      border-radius: 5px;
+      box-shadow: unset;
+
+      &:hover {
+        background-color: @colorPrimary;
+        transform: scale(1.2);
+      }
+    }
+
+    &-color-btn-active {
+      color: @colorPrimary;
+      background-color: @colorPrimary;
+    }
   }
 
   .tab-collapse {
@@ -202,13 +235,13 @@
 
       .label-icon {
         margin-left: 15px;
+        margin-right: 12px;
         width: 15px;
         height: 15px;
       }
 
       .label {
         flex: 1;
-        max-width: 100px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -216,10 +249,44 @@
 
       .label-actions {
         margin-right: 5%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .label-btn {
         border: 0;
+      }
+
+      .attr-btn {
+        border: 0;
+
+        svg {
+          width: 22px;
+          height: 22px;
+          fill: @colorPrimary;
+        }
+      }
+
+      .attr-btn-warn {
+        svg {
+          fill: #f53f3f;
+        }
+      }
+
+      .frame-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 0 8px;
+        font-size: 14px;
+
+        svg {
+          width: 14px;
+          height: 14px;
+          fill: #fff;
+        }
       }
     }
 

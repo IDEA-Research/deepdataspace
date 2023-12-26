@@ -2,18 +2,25 @@ import { Updater } from 'use-immer';
 import { useKeyPress } from 'ahooks';
 import { EObjectType } from '../constants';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../constants/shortcuts';
-import { DrawData, EditState, EditorMode, IAnnotationObject } from '../type';
+import {
+  Category,
+  DrawData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+} from '../type';
 
 interface IProps {
   visible: boolean;
   mode: EditorMode;
   drawData: DrawData;
+  categories: Category[];
   isMousePress: boolean;
   setDrawData: Updater<DrawData>;
   setEditState: Updater<EditState>;
-  onSaveAnnotations: (drawData: DrawData) => Promise<void>;
-  onAccept: () => void;
-  onReject: () => void;
+  onSaveAnnotations?: () => void;
+  onAcceptAnnotations?: () => void;
+  onRejectAnnotations?: () => void;
   onChangeObjectHidden: (index: number, hidden: boolean) => void;
   onChangeCategoryHidden: (category: string, hidden: boolean) => void;
   removeObject: (index: number) => void;
@@ -24,12 +31,13 @@ const useShortcuts = ({
   visible,
   mode,
   drawData,
+  categories,
   isMousePress,
   setDrawData,
   setEditState,
   onSaveAnnotations,
-  onAccept,
-  onReject,
+  onAcceptAnnotations,
+  onRejectAnnotations,
   onChangeObjectHidden,
   onChangeCategoryHidden,
   removeObject,
@@ -41,7 +49,7 @@ const useShortcuts = ({
     (event: KeyboardEvent) => {
       event.preventDefault();
       if (mode === EditorMode.Edit) {
-        onSaveAnnotations(drawData);
+        onSaveAnnotations?.();
       }
     },
     {
@@ -54,7 +62,7 @@ const useShortcuts = ({
     EDITOR_SHORTCUTS[EShortcuts.Accept].shortcut,
     (event: KeyboardEvent) => {
       event.preventDefault();
-      onAccept();
+      onAcceptAnnotations?.();
     },
     {
       exactMatch: true,
@@ -66,7 +74,7 @@ const useShortcuts = ({
     EDITOR_SHORTCUTS[EShortcuts.Reject].shortcut,
     (event: KeyboardEvent) => {
       event.preventDefault();
-      onReject();
+      onRejectAnnotations?.();
     },
     {
       exactMatch: true,
@@ -149,8 +157,10 @@ const useShortcuts = ({
     (event) => {
       if (drawData.activeObjectIndex < 0) return;
       event.preventDefault();
-      const { label, hidden } = drawData.objectList[drawData.activeObjectIndex];
-      onChangeCategoryHidden(label, !hidden);
+      const { labelId, hidden } =
+        drawData.objectList[drawData.activeObjectIndex];
+      const labelName = categories.find((c) => c.id === labelId)?.name || '';
+      onChangeCategoryHidden(labelName, !hidden);
     },
     {
       exactMatch: true,
@@ -209,14 +219,14 @@ const useShortcuts = ({
         drawData.creatingObject &&
         drawData.creatingObject.type === EObjectType.Polygon
       ) {
-        const { polygon, type, hidden, label, status, color } =
+        const { polygon, type, hidden, labelId, status, color } =
           drawData.creatingObject!;
         if (polygon && polygon.group && polygon.group[0].length > 2) {
           const newObject: IAnnotationObject = {
             polygon,
             type,
             hidden,
-            label,
+            labelId,
             status,
             color,
           };

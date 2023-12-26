@@ -1,4 +1,4 @@
-.dds-annotator-anno-editor {
+.dds-annotator-seg-confirm {
   position: absolute;
   right: 1rem;
   top: 1rem;
@@ -33,9 +33,8 @@
 
   .content {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 12px;
 
     .item {
@@ -44,15 +43,6 @@
       justify-content: space-around;
       gap: 12px;
       width: 100%;
-    }
-
-    .list {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      width: 100%;
-      height: 150px;
-      overflow-y: scroll;
     }
 
     .selector {
@@ -71,7 +61,7 @@
   }
 }
 
-.dds-annotator-anno-editor-visible {
+.dds-annotator-seg-confirm-visible {
   opacity: 1;
   pointer-events: all;
 }

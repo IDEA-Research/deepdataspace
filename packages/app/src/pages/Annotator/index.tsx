@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useModel } from '@umijs/max';
+import { history, useModel } from '@umijs/max';
 import styles from './index.less';
 import { AnnotateEditor, EditorMode } from 'dds-components/Annotator';
 import { ImageList } from './components/ImageList';
@@ -102,6 +102,7 @@ const Page: React.FC = () => {
       </div>
       <div className={styles.right}>
         <AnnotateEditor
+          isOldMode
           isSeperate={true}
           visible={true}
           mode={EditorMode.Edit}
@@ -123,6 +124,7 @@ const Page: React.FC = () => {
               }
             });
           }}
+          onCancel={() => history.push('/')}
         />
       </div>
       <div

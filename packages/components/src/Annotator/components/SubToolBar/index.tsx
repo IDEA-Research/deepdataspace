@@ -1,129 +1,34 @@
 import { Button, Popover, Slider } from 'antd';
-import Icon from '@ant-design/icons';
 import classNames from 'classnames';
 import { ESubToolItem } from '../../constants';
 import { FloatWrapper } from '../FloatWrapper';
-import { TShortcutItem } from '../../constants/shortcuts';
-import { ReactComponent as PenAddIcon } from '../../assets/pen-add.svg';
-import { ReactComponent as PenEraseIcon } from '../../assets/pen-erase.svg';
-import { ReactComponent as BrushAddIcon } from '../../assets/brush-add.svg';
-import { ReactComponent as BrushEraseIcon } from '../../assets/brush-erase.svg';
-import { ReactComponent as MagicBoxIcon } from '../../assets/magic-box.svg';
-import { ReactComponent as ClickIcon } from '../../assets/magic-click.svg';
-import { ReactComponent as EdgeStitchIcon } from '../../assets/edge-stitch.svg';
-import { ReactComponent as SegmentEverythingIcon } from '../../assets/segment-everything.svg';
-import { ReactComponent as StrokeIcon } from '../../assets/magic-brush.svg';
-import { useLocale } from 'dds-utils/locale';
 import { memo, useMemo } from 'react';
 import { useKeyPress } from 'ahooks';
+import { TSubtoolOptions, TToolItem } from '@/Annotator/hooks/useSubtools';
 import './index.less';
 
-type TToolItem<T> = {
-  key: T;
-  name: string;
-  shortcut?: TShortcutItem;
-  icon: JSX.Element;
-  description?: string;
-  available: boolean;
-};
 interface IProps {
+  toolOptions: TSubtoolOptions;
   selectedSubTool: ESubToolItem;
   isAIAnnotationActive: boolean;
-  isSegEverythingAvailable: boolean;
-  isManualAvailable: boolean;
   brushSize: number;
   onChangeSubTool: (type: ESubToolItem) => void;
   onActiveAIAnnotation: (active: boolean) => void;
   onChangeBrushSize: (size: number) => void;
 }
 
-export const SubToolBar: React.FC<IProps> = memo(
+const SubToolBar: React.FC<IProps> = memo(
   ({
+    toolOptions,
     selectedSubTool,
     isAIAnnotationActive,
-    isSegEverythingAvailable,
-    isManualAvailable,
     brushSize,
     onChangeSubTool,
     onChangeBrushSize,
   }) => {
-    const { localeText } = useLocale();
-
-    const basicMaskTools: TToolItem<ESubToolItem>[] = [
-      {
-        key: ESubToolItem.PenAdd,
-        name: localeText('DDSAnnotator.subtoolbar.mask.penAdd'),
-        icon: <Icon component={PenAddIcon} />,
-        available: isManualAvailable,
-      },
-      {
-        key: ESubToolItem.PenErase,
-        name: localeText('DDSAnnotator.subtoolbar.mask.penErase'),
-        icon: <Icon component={PenEraseIcon} />,
-        available: isManualAvailable,
-      },
-      {
-        key: ESubToolItem.BrushAdd,
-        name: localeText('DDSAnnotator.subtoolbar.mask.brushAdd'),
-        icon: <Icon component={BrushAddIcon} />,
-        available: isManualAvailable,
-      },
-      {
-        key: ESubToolItem.BrushErase,
-        name: localeText('DDSAnnotator.subtoolbar.mask.brushErase'),
-        icon: <Icon component={BrushEraseIcon} />,
-        available: isManualAvailable,
-      },
-    ];
-
-    const smartMaskTools: TToolItem<ESubToolItem>[] = useMemo(() => {
-      return [
-        {
-          key: ESubToolItem.AutoSegmentByBox,
-          name: localeText('DDSAnnotator.subtoolbar.mask.box'),
-          icon: <Icon component={MagicBoxIcon} />,
-          available: true,
-        },
-        {
-          key: ESubToolItem.AutoSegmentByStroke,
-          name: localeText('DDSAnnotator.subtoolbar.mask.stroke'),
-          icon: <Icon component={StrokeIcon} />,
-          available: true,
-        },
-        {
-          key: ESubToolItem.AutoSegmentByClick,
-          name: localeText('DDSAnnotator.subtoolbar.mask.click'),
-          icon: <Icon component={ClickIcon} />,
-          available: true,
-        },
-        {
-          key: ESubToolItem.AutoEdgeStitching,
-          name: localeText('DDSAnnotator.subtoolbar.mask.edgeStitch'),
-          icon: <Icon component={EdgeStitchIcon} />,
-          available: true,
-        },
-        {
-          key: ESubToolItem.AutoSegmentEverything,
-          name: localeText('DDSAnnotator.subtoolbar.mask.sam'),
-          icon: <Icon component={SegmentEverythingIcon} />,
-          available: isSegEverythingAvailable,
-          description: isSegEverythingAvailable
-            ? localeText('DDSAnnotator.subtoolbar.mask.sam.desc')
-            : localeText('DDSAnnotator.subtoolbar.mask.sam.notAllow'),
-        },
-      ];
-    }, [isSegEverythingAvailable]);
-
-    const toolsWithBrushSize = [
-      ESubToolItem.BrushAdd,
-      ESubToolItem.BrushErase,
-      ESubToolItem.AutoSegmentByStroke,
-      ESubToolItem.AutoEdgeStitching,
-    ];
-
     const allSubTools = useMemo(() => {
-      return [...basicMaskTools, ...smartMaskTools];
-    }, [basicMaskTools, smartMaskTools]);
+      return [...toolOptions.basicTools, ...toolOptions.smartTools];
+    }, [toolOptions.basicTools, toolOptions.smartTools]);
 
     const shortcuts = useMemo(() => {
       const keys: string[] = [];
@@ -141,7 +46,7 @@ export const SubToolBar: React.FC<IProps> = memo(
         });
         if (tool && tool.available) {
           if (
-            smartMaskTools.find((item) => tool.key === item.key) &&
+            toolOptions.smartTools.find((item) => tool.key === item.key) &&
             !isAIAnnotationActive
           )
             return;
@@ -154,10 +59,10 @@ export const SubToolBar: React.FC<IProps> = memo(
     );
 
     const mouseEventHandler = (event: React.MouseEvent) => {
-      // enable mouseup propagate only for brush
+      const tool = allSubTools.find((item) => item.key === selectedSubTool);
       if (
-        toolsWithBrushSize.includes(selectedSubTool) &&
-        event.type === 'mouseup'
+        event.type === 'mouseup' &&
+        (tool?.withSize || tool?.withCustomElement)
       ) {
         return;
       } else {
@@ -221,16 +126,28 @@ export const SubToolBar: React.FC<IProps> = memo(
     return (
       <FloatWrapper eventHandler={mouseEventHandler}>
         <div className="dds-annotator-subtoolbar">
-          {basicMaskTools.map((item) => ToolItemBtn(item))}
+          {toolOptions.basicTools.map((item) => ToolItemBtn(item))}
           {isAIAnnotationActive && (
             <>
-              <div className="dds-annotator-subtoolbar-divider"></div>
-              {smartMaskTools.map((item) => ToolItemBtn(item))}
+              {toolOptions.basicTools.length > 0 && (
+                <div className="dds-annotator-subtoolbar-divider"></div>
+              )}
+              {toolOptions.smartTools.map((item) => ToolItemBtn(item))}
             </>
           )}
-          {toolsWithBrushSize.includes(selectedSubTool) && (
+          {toolOptions.customElement && (
             <>
               <div className="dds-annotator-subtoolbar-divider"></div>
+              {toolOptions.customElement}
+            </>
+          )}
+          {!!allSubTools.find((item) => item.key === selectedSubTool)
+            ?.withSize && (
+            <>
+              <div className="dds-annotator-subtoolbar-divider"></div>
+              <div className="dds-annotator-subtoolbar-title">
+                {'Brush Size'}
+              </div>
               <div className="dds-annotator-subtoolbar-slider">
                 <Slider
                   defaultValue={20}
@@ -247,3 +164,5 @@ export const SubToolBar: React.FC<IProps> = memo(
     );
   },
 );
+
+export default SubToolBar;

@@ -1,10 +1,4 @@
-import { AnnotationType, EElementType, EObjectType } from '../constants';
-import {
-  getObjectType,
-  translateBoundingBoxToRect,
-  translatePointsToPointObjs,
-  getSegmentationPoints,
-} from '../utils/compute';
+import { EElementType, EObjectType } from '../constants';
 import { Updater } from 'use-immer';
 import {
   BaseObject,
@@ -12,12 +6,13 @@ import {
   EditState,
   EditorMode,
   IAnnotationObject,
-  EObjectStatus,
   DrawObject,
+  IEditingAttribute,
+  EObjectStatus,
+  VideoFramesData,
 } from '../type';
-import { rleToCanvas } from '../tools/useMask';
-import { useCallback } from 'react';
-import { generateUniformHexColor } from '../utils/color';
+import { useCallback, useMemo } from 'react';
+import { cloneDeep } from 'lodash';
 
 interface IProps {
   mode: EditorMode;
@@ -26,11 +21,16 @@ interface IProps {
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
-  editState: EditState;
+  framesData?: VideoFramesData;
+  setFramesData?: Updater<VideoFramesData>;
   setEditState: Updater<EditState>;
-  clientSize: ISize;
-  naturalSize: ISize;
-  displayAnnotationType?: AnnotationType;
+  translateToObject?: (annotation: any, videoFrameCount?: number) => any;
+  judgeEditingAttribute?: (
+    object: IAnnotationObject,
+    index: number,
+  ) => IEditingAttribute | undefined;
+  limitActiveObjectAfterCreate?: boolean;
+  updateHistory: (drawData: DrawData, theframesData?: VideoFramesData) => void;
 }
 
 const useObjects = ({
@@ -38,114 +38,51 @@ const useObjects = ({
   drawData,
   setDrawData,
   setDrawDataWithHistory,
+  framesData,
+  setFramesData,
   setEditState,
-  clientSize,
-  naturalSize,
-  editState,
-  displayAnnotationType,
+  translateToObject,
+  judgeEditingAttribute,
+  limitActiveObjectAfterCreate,
+  updateHistory,
 }: IProps) => {
-  const translateAnnotationToObject = (
-    annotation: DrawObject,
-    labelColors: Record<string, string>,
-  ): IAnnotationObject => {
-    let {
-      categoryName,
-      boundingBox,
-      points,
-      lines,
-      pointNames,
-      pointColors,
-      segmentation,
-      mask,
-      alpha,
-    } = annotation;
-
-    const color = editState.annotsDisplayOptions.colorByCategory
-      ? labelColors[categoryName || ''] || '#ffffff'
-      : generateUniformHexColor();
-
-    const newObj: IAnnotationObject = {
-      label: categoryName || '',
-      type: EObjectType.Rectangle,
-      hidden: false,
-      conf: annotation.conf || 1,
-      labelId: annotation.labelId,
-      compareResult: annotation.compareResult,
-      status: EObjectStatus.Commited,
-      color,
-    };
-
-    if (boundingBox) {
-      const rect = translateBoundingBoxToRect(boundingBox, clientSize);
-      Object.assign(newObj, { rect: { visible: true, ...rect } });
-    }
-
-    if (
-      points &&
-      points.length > 0 &&
-      lines &&
-      lines.length > 0 &&
-      pointNames &&
-      pointColors
-    ) {
-      const pointObjs: IElement<IPoint>[] = translatePointsToPointObjs(
-        points,
-        pointNames,
-        pointColors,
-        naturalSize,
-        clientSize,
-      );
-      Object.assign(newObj, {
-        keypoints: {
-          points: pointObjs,
-          lines,
-        },
-      });
-    }
-    if (segmentation) {
-      const group = getSegmentationPoints(
-        segmentation,
-        naturalSize,
-        clientSize,
-      );
-      const polygon: IElement<IPolygonGroup> = {
-        group,
-        visible: true,
-      };
-      Object.assign(newObj, { polygon });
-    }
-
-    if (mask && mask.length) {
-      Object.assign(newObj, {
-        maskRle: mask,
-        maskCanvasElement: rleToCanvas(mask, naturalSize, color),
-      });
-    }
-
-    if (alpha) {
-      const alphaImageElement = new Image();
-      alphaImageElement.src = alpha;
-      // alphaImageElement.crossOrigin = 'anonymous';
-      Object.assign(newObj, {
-        alpha,
-        alphaImageElement,
-      });
-    }
-
-    newObj.type = getObjectType(newObj, displayAnnotationType);
-    return newObj;
-  };
-
-  const initObjectList = (
-    annotations: DrawObject[],
-    labelColors: Record<string, string>,
-  ) => {
-    setDrawDataWithHistory((s) => {
-      s.objectList = annotations
-        .map((annotation) => {
-          return translateAnnotationToObject(annotation, labelColors);
-        })
-        .filter((annotation) => annotation.type !== EObjectType.Custom);
+  const initObjectList = (annotations: DrawObject[]) => {
+    setDrawData((s) => {
+      const newDrawData = cloneDeep(s);
+      const newFramesData = cloneDeep(framesData);
+      newDrawData.initialized = true;
+      if (newFramesData) {
+        // video
+        const objects = annotations.map(
+          (annotation) =>
+            translateToObject?.(annotation, newFramesData.list.length) || {},
+        );
+        newFramesData.objects = objects
+          .filter((item) => !!item.objects)
+          .map((item) => item.objects);
+        newDrawData.classifications = objects
+          .filter((item) => !!item.classification)
+          .map((item) => item.classification);
+        newDrawData.objectList = newFramesData.objects.map(
+          (item) => item[newFramesData.activeIndex],
+        );
+        setFramesData?.(newFramesData);
+      } else {
+        // image
+        const objects = annotations.map(
+          (annotation) => translateToObject?.(annotation) || {},
+        );
+        newDrawData.classifications = objects.filter(
+          (item) => item.type === EObjectType.Classification,
+        );
+        newDrawData.objectList = objects.filter(
+          (item) =>
+            item.type !== EObjectType.Custom &&
+            item.type !== EObjectType.Classification,
+        );
+      }
+      updateHistory(cloneDeep(newDrawData), cloneDeep(newFramesData));
+      return newDrawData;
     });
   };
 
@@ -153,47 +90,82 @@ const useObjects = ({
     if (mode !== EditorMode.Edit) return;
     setDrawDataWithHistory((s) => {
       s.objectList.push(object);
-      s.creatingObject = { ...object };
-      s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
+
+      if (limitActiveObjectAfterCreate) {
+        s.creatingObject = undefined;
+        s.activeObjectIndex = -1;
+      } else {
+        s.creatingObject = { ...object };
+        s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
+
+        // Show attribut editor
+        if (judgeEditingAttribute) {
+          s.editingAttribute = judgeEditingAttribute(
+            object,
+            s.objectList.length - 1,
+          );
+        }
+      }
     });
   };
 
-  const removeObject = useCallback(
-    (index: number) => {
-      if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
-      setDrawDataWithHistory((s) => {
-        if (s.objectList[index]) {
-          s.objectList.splice(index, 1);
-          s.activeObjectIndex = -1;
-          s.creatingObject = undefined;
-        }
-      });
-      setEditState((s) => {
-        s.focusObjectIndex = -1;
-        s.focusEleIndex = -1;
-        s.focusEleType = EElementType.Rect;
-      });
-    },
-    [mode, drawData.objectList],
-  );
-
-  const removeAllObjects = useCallback(() => {
-    if (mode !== EditorMode.Edit) return;
-    setDrawDataWithHistory((s) => {
-      s.objectList = [];
-      s.creatingObject = undefined;
-      s.prompt = {};
-    });
+  const removeObject = (index: number) => {
+    if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setEditState((s) => {
       s.focusObjectIndex = -1;
       s.focusEleIndex = -1;
       s.focusEleType = EElementType.Rect;
     });
+
+    const newFramesData = cloneDeep(framesData);
+    const newDrawData = cloneDeep(drawData);
+    if (newFramesData && newFramesData.objects[index]) {
+      newFramesData.objects.splice(index, 1);
+      setFramesData?.(newFramesData);
+    }
+    if (newDrawData.objectList[index]) {
+      newDrawData.objectList.splice(index, 1);
+      newDrawData.activeObjectIndex = -1;
+      newDrawData.creatingObject = undefined;
+      newDrawData.editingAttribute = undefined;
+    }
+    setDrawData(newDrawData);
+    updateHistory(cloneDeep(newDrawData), cloneDeep(newFramesData));
+  };
+
+  const removeAllObjects = useCallback(() => {
+    if (mode !== EditorMode.Edit) return;
+    setEditState((s) => {
+      s.focusObjectIndex = -1;
+      s.focusEleIndex = -1;
+      s.focusEleType = EElementType.Rect;
+    });
+
+    const newFramesData = cloneDeep(framesData);
+    const newDrawData = cloneDeep(drawData);
+    if (newFramesData) {
+      newFramesData.objects = [];
+      setFramesData?.(newFramesData);
+    }
+    newDrawData.objectList = [];
+    newDrawData.activeObjectIndex = -1;
+    newDrawData.creatingObject = undefined;
+    newDrawData.editingAttribute = undefined;
+    setDrawData(newDrawData);
+    updateHistory(cloneDeep(newDrawData), cloneDeep(newFramesData));
   }, [mode]);
 
   const updateObject = (object: IAnnotationObject, index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;
     setDrawDataWithHistory((s) => {
+      // Change label & Show attribut editor
+      if (
+        object.labelId !== s.objectList[index].labelId &&
+        judgeEditingAttribute
+      ) {
+        s.editingAttribute = judgeEditingAttribute(object, index);
+      }
+
       s.objectList[index] = object;
       if (s.creatingObject && s.activeObjectIndex === index) {
         s.creatingObject = { ...object };
@@ -232,6 +204,22 @@ const useObjects = ({
     });
   };
 
+  const commitedObjects = useMemo(() => {
+    return drawData.objectList.filter((obj) => {
+      return obj.status === EObjectStatus.Commited;
+    });
+  }, [drawData.isBatchEditing, drawData.objectList]);
+
+  const currObject = useMemo(() => {
+    return (
+      drawData.objectList[drawData.activeObjectIndex] || drawData.creatingObject
+    );
+  }, [
+    drawData.objectList,
+    drawData.activeObjectIndex,
+    drawData.creatingObject,
+  ]);
+
   return {
     initObjectList,
     addObject,
@@ -241,6 +229,8 @@ const useObjects = ({
     updateAllObject,
     updateObjectWithoutHistory,
     updateAllObjectWithoutHistory,
+    commitedObjects,
+    currObject,
   };
 };
 

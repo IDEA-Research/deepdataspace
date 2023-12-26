@@ -30,7 +30,6 @@ import {
   PageState,
 } from './type';
 import { isNumber } from 'lodash';
-import { IAnnotationObject } from 'dds-components/Annotator';
 import { NsDataSet } from '@/types/dataset';
 
 export default () => {
@@ -275,6 +274,40 @@ export default () => {
         displayLabelIds,
         isTiledDiff,
       };
+
+      // filter displayType
+      const displayType = pageState.filterValues.displayAnnotationType;
+      objects = objects
+        .filter((obj) => {
+          return (
+            (obj.mask && displayType === AnnotationType.Mask) ||
+            (obj.alpha && displayType === AnnotationType.Matting) ||
+            (obj.points && displayType === AnnotationType.KeyPoints) ||
+            (obj.segmentation && displayType === AnnotationType.Segmentation) ||
+            (obj.boundingBox && displayType === AnnotationType.Detection)
+          );
+        })
+        .map((obj) => {
+          return {
+            ...obj,
+            mask: displayType === AnnotationType.Mask ? obj.mask : undefined,
+            alpha:
+              displayType === AnnotationType.Matting ? obj.alpha : undefined,
+            points:
+              displayType === AnnotationType.KeyPoints ? obj.points : undefined,
+            segmentation:
+              displayType === AnnotationType.Segmentation
+                ? obj.segmentation
+                : undefined,
+            boundingBox: [
+              AnnotationType.Detection,
+              AnnotationType.KeyPoints,
+            ].includes(displayType!)
+              ? obj.boundingBox
+              : undefined,
+          };
+        });
+
       // Analysis mode -> filter fn/fp to display
       if (analysisMode) {
         const predObjects = objects.filter(
@@ -314,72 +347,75 @@ export default () => {
         });
       }
 
-      return objects.filter((item) => {
-        const { showAnnotations, showAllCategory } = displayOptionsResult;
-        const categoryId = pageState.filterValues.categoryId || '';
-        if (
-          !showAnnotations ||
-          (!showAllCategory && item.categoryId !== categoryId) ||
-          (diffMode &&
-            item.labelId &&
-            !diffMode.displayLabelIds.includes(item.labelId)) ||
-          (diffMode &&
-            diffMode.isTiledDiff &&
-            item.labelId !== imageData.curLabelId)
-        ) {
-          return false;
-        }
-        if (!analysisMode && diffMode) {
-          const label = diffMode.labels.find(
-            (label) => label.id === item.labelId,
+      return objects
+        .filter((item) => {
+          const { showAnnotations, showAllCategory } = displayOptionsResult;
+          const categoryId = pageState.filterValues.categoryId || '';
+          if (
+            !showAnnotations ||
+            (!showAllCategory && item.categoryId !== categoryId) ||
+            (diffMode &&
+              item.labelId &&
+              !diffMode.displayLabelIds.includes(item.labelId)) ||
+            (diffMode &&
+              diffMode.isTiledDiff &&
+              item.labelId !== imageData.curLabelId)
+          ) {
+            return false;
+          }
+          if (!analysisMode && diffMode) {
+            const label = diffMode.labels.find(
+              (label) => label.id === item.labelId,
+            );
+            if (!label) return false;
+            if (label.source === LABEL_SOURCE.gt) return true;
+            return (
+              item.conf !== undefined &&
+              item.conf >= label?.confidenceRange[0] &&
+              item.conf <= label?.confidenceRange[1]
+            );
+          }
+          return true;
+        })
+        .map((item) => {
+          // get custom style
+          const newItem = { ...item };
+          const {
+            colorAplha: pointAplha,
+            strokeDash,
+            lineWidth: thickness,
+          } = getLabelCustomStyles(
+            item.labelId,
+            displayLabelIds,
+            isTiledDiff || Boolean(pageState.comparisons),
           );
-          if (!label) return false;
-          if (label.source === LABEL_SOURCE.gt) return true;
-          return (
-            item.conf !== undefined &&
-            item.conf >= label?.confidenceRange[0] &&
-            item.conf <= label?.confidenceRange[1]
-          );
-        }
-        return true;
-      });
+          if (analysisMode && item.compareResult) {
+            newItem.customStyles = {
+              pointAplha,
+              strokeDash,
+              thickness,
+              fillColor:
+                // @ts-ignore
+                COMPARE_RESULT_FILL_COLORS[item.compareResult] || 'transparent',
+            };
+          } else {
+            newItem.customStyles = {
+              pointAplha,
+              strokeDash,
+              thickness,
+            };
+          }
+          return newItem;
+        });
     },
     [
+      pageState.filterValues.displayAnnotationType,
       pageState.comparisons,
       pageData.filters.labels,
       displayLabelIds,
       isTiledDiff,
       displayOptionsResult,
     ],
-  );
-
-  const getCustomObjectStyles = useCallback(
-    (object: IAnnotationObject) => {
-      const {
-        colorAplha: pointAplha,
-        strokeDash,
-        lineWidth: thickness,
-      } = getLabelCustomStyles(
-        object.labelId,
-        displayLabelIds,
-        isTiledDiff || Boolean(pageState.comparisons),
-      );
-      if (Boolean(pageState.comparisons) && object.compareResult) {
-        return {
-          pointAplha,
-          strokeDash,
-          thickness,
-          fillColor:
-            COMPARE_RESULT_FILL_COLORS[object.compareResult] || 'transparent',
-        };
-      }
-      return {
-        pointAplha,
-        strokeDash,
-        thickness,
-      };
-    },
-    [displayLabelIds, isTiledDiff, Boolean(pageState.comparisons)],
   );
 
   return {
@@ -405,6 +441,5 @@ export default () => {
 
     // common render
     displayObjectsFilter,
-    getCustomObjectStyles,
   };
 };

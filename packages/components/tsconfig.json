@@ -5,6 +5,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@@/*": ["../../applications/app/src/.umi/*"],
+      "dds-components": ["../../packages/components/src"],
+      "dds-components/*": ["../../packages/components/src/*"],
       "dds-utils/*": ["../../packages/utils/src/*"],
       "dds-hooks": ["../../packages/hooks/src"]
     }
