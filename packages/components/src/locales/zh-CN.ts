@@ -205,4 +205,64 @@ export default {
   'DDSAnnotator.video.track.setting': '推理设置',
   'DDSAnnotator.video.frame': '帧',
   'DDSAnnotator.video.track.backward': '向后推理帧数',
+
+  /** dds-upload */
+  'dds-upload.title': '将文件拖动到这里或点击进行上传',
+  'dds-upload.limit.type.image': '图片格式支持: .jpg/.jpeg/.png',
+  'dds-upload.limit.type.video': '视频格式支持: .mp4/.mov、时长 <= 60s',
+  'dds-upload.upload': '添加',
+  'dds-upload.tip.successLoad': '成功加载{count}个文件',
+  'dds-upload.tip.fileCountLimitMsg': '文件数量不能超过{count}',
+  'dds-upload.videoFrame.title': '调整帧率',
+  'dds-upload.videoFrame.tip': '注意',
+  'dds-upload.videoFrame.tip.content':
+    '选择您想要标注的帧数。高帧率将创建更多相似的帧。低帧率将创建较少的帧，但图像更多样化。',
+  'dds-upload.videoFrame.adjust': '帧数调整范围',
+  'dds-upload.videoFrame.fps': '帧/秒',
+  'dds-upload.videoFrame.matchNative': '与原始帧率匹配',
+  'dds-upload.videoFrame.total': '共{count}帧',
+  'dds-upload.videoFrame.batch.all': '应用到所有的视频中',
+  'dds-upload.videoFrame.batch.rest': '应用到剩余的视频中',
+  'dds-upload.videoFrame.confirmbtn': '上传{count}个视频',
+
+  /** dds-upload-pre-anno */
+  'dds-upload-pre-anno': '上传预标注数据',
+  'dds-upload-pre-anno.tip':
+    '目前仅支持DDS格式的标注。文件大小不得超过{maxSize} MB。',
+
+  /** QuickLabel */
+  'quicklabel.formModal.attn': '注意',
+  'quicklabel.formModal.tip':
+    '快速模式不会上传图像或保存标注结果。我们建议在离开之前点击工作区右上角的“导出标注”按钮，这样可以将标注结果保存到本地。',
+  'quicklabel.formModal.start': '开始',
+  'quicklabel.formModal.confirm': '确定',
+  'quicklabel.title': '快速标注',
+  'quicklabel.setting': '设置',
+  'quicklabel.imageFilter': '图片筛选',
+  'quicklabel.clearFilter': '清除筛选',
+  'quicklabel.allCategories': '全部类别',
+  'quicklabel.annotate': '标注',
+  'quicklabel.export': '导出标注',
+  'quicklabel.formModal.title': '开始之前',
+  'quicklabel.formModal.importImages': '导入图片',
+  'quicklabel.formModal.importPreAnnots': '导入预标注',
+  'quicklabel.notice':
+    '快速标注模式不会上传任何图片或保存标注结果，为了防止数据丢失，建议您在离开前点击工作区右上方"导出标注"按钮，将标注结果保存到本地。',
+  'quicklabel.formModal.imageTips':
+    '注意：最多导入{count}张图片，每张图片不超过{size}MB。',
+  'quicklabel.formModal.categories': '导入标注类别',
+  'quicklabel.formModal.addCategory': '添加',
+  'quicklabel.formModal.categoryPlaceholder':
+    '请输入类别名称, 多个类别可以换行分隔, 例如: \n person \n dog \n car',
+  'quicklabel.formModal.categoriesCount': '当前类别标签数量',
+  'quicklabel.formModal.fileRequiredMsg': '请至少导入一张图片',
+  'quicklabel.formModal.fileCountLimitMsg': '图片量不能超过{count}张',
+  'quicklabel.formModal.fileSizeLimitMsg': '单张图片不能超过{size}MB',
+  'quicklabel.formModal.categoryRequiredMsg': '请至少输入一个类别标签',
+  'quicklabel.formModal.deleteCategory.title': '注意',
+  'quicklabel.formModal.deleteCategory.desc':
+    '有标注中使用了这个类别，请先手动删除这些标注或修改它们的类别',
+  'quicklabel.formModal.deleteImage.title': '注意',
+  'quicklabel.formModal.deleteImage.desc':
+    '该图片内包含标注信息，请先手动删除这些标注'
 };

@@ -225,4 +225,66 @@ export default {
   'DDSAnnotator.video.track.setting': 'Tracking settings',
   'DDSAnnotator.video.frame': 'Frames',
   'DDSAnnotator.video.track.backward': 'Backward inference frames',
+
+  /** dds-upload */
+  'dds-upload.title': 'Drag or Click to upload your data',
+  'dds-upload.limit.type.image': 'Image files (.jpg/.jpeg/.png) are supported.',
+  'dds-upload.limit.type.video':
+    'Video files (.mp4/.mov & duration < 60s) are supported.',
+  'dds-upload.upload': 'Add',
+  'dds-upload.tip.successLoad': 'Had added {count} files',
+  'dds-upload.tip.fileCountLimitMsg': 'File count should not exceed {count}.',
+  'dds-upload.videoFrame.title': 'Adjust Frame Count',
+  'dds-upload.videoFrame.tip': 'Attn',
+  'dds-upload.videoFrame.tip.content':
+    'Choose how many frames you want to annotate. A high frequency will create more, similarframes. A low one will create less frames but more varied imagery.',
+  'dds-upload.videoFrame.adjust': 'Frame rate adjustment range',
+  'dds-upload.videoFrame.fps': 'frames per second',
+  'dds-upload.videoFrame.matchNative': 'Match native frame rate',
+  'dds-upload.videoFrame.total': 'Total of {count} Frames',
+  'dds-upload.videoFrame.batch.all': 'Apply to all videos in this upload',
+  'dds-upload.videoFrame.batch.rest': 'Apply to rest videos in this upload',
+  'dds-upload.videoFrame.confirmbtn': 'Upload {count} Video',
+
+  /** dds-upload-pre-anno */
+  'dds-upload-pre-anno': 'Upload Pre-annotate Data',
+  'dds-upload-pre-anno.tip':
+    'Only annotations in DDS format are supported. File size should not exceed {maxSize} MB.',
+
+  /** QuickLabel */
+  'quicklabel.formModal.attn': 'Attn',
+  'quicklabel.formModal.tip':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
+  'quicklabel.formModal.start': 'Start',
+  'quicklabel.formModal.confirm': 'Confirm',
+  'quicklabel.title': 'Quick Label',
+  'quicklabel.setting': 'Setting',
+  'quicklabel.imageFilter': 'Image Filter',
+  'quicklabel.clearFilter': 'Clear Filter',
+  'quicklabel.allCategories': 'All Categories',
+  'quicklabel.export': 'Export Annotation',
+  'quicklabel.notice':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
+  'quicklabel.formModal.title': 'Before you start',
+  'quicklabel.formModal.importImages': 'Import Images',
+  'quicklabel.formModal.importVideos': 'Import Videos',
+  'quicklabel.formModal.importPreAnnots': 'Import Annotations',
+  'quicklabel.formModal.imageTips':
+    'Tips: Import a maximum of {count} images, with each image not exceeding {size}MB.',
+  'quicklabel.formModal.categories': 'Categories',
+  'quicklabel.formModal.addCategory': 'Add',
+  'quicklabel.formModal.categoryPlaceholder':
+    'Please enter the category names. You can input multiple categories by separating them with a new line. E.g.: \n person \n dog \n car',
+  'quicklabel.formModal.categoriesCount': 'Categories Count',
+  'quicklabel.formModal.fileRequiredMsg': 'At least one image is required.',
+  'quicklabel.formModal.fileSizeLimitMsg':
+    'The size of each individual image cannot exceed {size} MB.',
+  'quicklabel.formModal.categoryRequiredMsg':
+    'At least one category is required.',
+  'quicklabel.formModal.deleteCategory.title': 'Info',
+  'quicklabel.formModal.deleteCategory.desc':
+    'This category is used by current annotations. Please manually remove these annotations or revise their category first.',
+  'quicklabel.formModal.deleteImage.title': 'Info',
+  'quicklabel.formModal.deleteImage.desc':
+    'This image contains annotations. Please manually remove these annotations first.',
 };
