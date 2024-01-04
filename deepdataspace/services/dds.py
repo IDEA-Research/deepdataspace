@@ -66,10 +66,11 @@ class DDS(metaclass=SingletonMeta):
                 for key, val in config_data.items():
                     if val is not None:
                         self.config_data[key] = val
+                        print(f"reading config, {key} = {val}")
 
         self.data_dir = self.argument_or_config("data_dir", data_dir, None)
-        self.quickstart = self.argument_or_config("quickstart", quickstart, False)
-        self.verbose = self.argument_or_config("verbose", verbose, False)
+        self.quickstart = self.argument_or_config("quick_start", quickstart, False)
+        self.verbose = self.argument_or_config("verbose_log", verbose, False)
         self.public = public or False
         if host is None and public:
             host = get_output_ip_address()
