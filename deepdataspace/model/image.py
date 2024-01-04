@@ -461,7 +461,7 @@ class ImageModel(BaseModel):
         self.objects.append(anno_obj)
 
     def finish_batch_add_annotation(self):
-        self.dataset.batch_save_image(self)
+        self.dataset.batch_save_image()
 
 
 _image_models: Dict[str, Type[ImageModel]] = {}  # a cache for ImageModel for each dataset

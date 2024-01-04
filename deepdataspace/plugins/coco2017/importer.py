@@ -33,6 +33,9 @@ class COCO2017Importer(FileImporter):
 
         self.meta_path = os.path.abspath(meta_path)
         info = self.parse_meta(meta_path)
+        if info is None:
+            raise RuntimeError(f"Cannot import coco dataset: {meta_path}")
+
         dataset_name = info["dataset_name"]
         self.ground_truth = info["ground_truth"]
         self.image_root = info["image_root"]
