@@ -44,7 +44,8 @@ const Page: React.FC = () => {
     onNextImage,
     onPrevImage,
     onLabelSave,
-    onReviewResult,
+    onReviewAccept,
+    onReviewReject,
     onEnterEdit,
     onStartLabel,
     onStartRework,
@@ -239,6 +240,7 @@ const Page: React.FC = () => {
                         }}
                       >
                         <AnnotateView
+                          isOldMode
                           categories={pageData.categoryList}
                           data={item}
                           wrapWidth={itemWidth}
@@ -261,6 +263,7 @@ const Page: React.FC = () => {
       {isEditorVisible && (
         <div className={styles.editor}>
           <AnnotateEditor
+            isOldMode
             isSeperate={false}
             mode={pageData.editorMode}
             visible={isEditorVisible}
@@ -287,8 +290,8 @@ const Page: React.FC = () => {
             actionElements={actionElements}
             onCancel={onExitEditor}
             onSave={onLabelSave}
-            onReviewResult={onReviewResult}
-            onEnterEdit={onEnterEdit}
+            onReviewAccept={onReviewAccept}
+            onReviewReject={onReviewReject}
             onNext={onNextImage}
             onPrev={onPrevImage}
           />

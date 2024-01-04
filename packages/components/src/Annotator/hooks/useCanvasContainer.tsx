@@ -13,8 +13,12 @@ import {
   MAX_SCALE,
   BUTTON_SCALE_STEP,
   WHEEL_SCALE_STEP,
+  ESubToolItem,
+  EObjectType,
+  EBasicToolItem,
 } from '../constants';
 import { fixedFloatNum } from 'dds-utils/digit';
+import { DrawData } from '../type';
 
 interface IProps {
   isRequiring: boolean;
@@ -24,10 +28,10 @@ interface IProps {
     left: number;
   };
   allowMove: boolean;
-  isCustomCursorActive: boolean;
   cursorSize: number;
-  showReferenceLine?: boolean;
+  drawData: DrawData;
   onClickMaskBg?: React.MouseEventHandler<HTMLDivElement>;
+  hideReferenceLine?: boolean;
 }
 
 export default function useCanvasContainer({
@@ -35,10 +39,10 @@ export default function useCanvasContainer({
   visible,
   minPadding = { top: 0, left: 0 },
   allowMove,
-  showReferenceLine,
-  isCustomCursorActive,
+  drawData,
   cursorSize,
   onClickMaskBg,
+  hideReferenceLine,
 }: IProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const containerSize = useSize(() => containerRef.current);
@@ -87,8 +91,8 @@ export default function useCanvasContainer({
 
   const [movingImgAnchor, setMovingImgAnchor] = useImmer<IPoint | null>(null);
 
-  const initClientSizeToFit = (naturalSize: ISize) => {
-    if (naturalSize && containerSize) {
+  const initClientSizeToFit = (naturalSize: ISize, containerSize: ISize) => {
+    if (naturalSize?.width && containerSize?.height) {
       const containerWidth = containerSize.width;
       const containerHeight = containerSize.height;
       const [width, height, scale] = zoomImgSize(
@@ -112,8 +116,10 @@ export default function useCanvasContainer({
 
   /** Initial position to fit container */
   useEffect(() => {
-    initClientSizeToFit(naturalSize);
-  }, [naturalSize, containerSize]);
+    if (naturalSize && containerSize) {
+      initClientSizeToFit(naturalSize, containerSize);
+    }
+  }, [containerSize]);
 
   const adaptImagePosWhileZoom = () => {
     if (!containerSize) return;
@@ -199,8 +205,15 @@ export default function useCanvasContainer({
 
   const onReset = useCallback(() => {
     lastScalePosRef.current = undefined;
-    initClientSizeToFit(naturalSize);
-  }, [naturalSize.width, naturalSize.height]);
+    if (containerSize && naturalSize) {
+      initClientSizeToFit(naturalSize, containerSize);
+    }
+  }, [
+    naturalSize.width,
+    naturalSize.height,
+    containerSize?.width,
+    containerSize?.height,
+  ]);
 
   // Reset data when hidden.
   useEffect(() => {
@@ -219,8 +232,9 @@ export default function useCanvasContainer({
   const [isMousePress, setMousePress] = useState(false);
 
   useEventListener('mousedown', () => {
+    if (!visible || !containerRef.current || !isInCanvas(containerMouse))
+      return;
     setMousePress(true);
-    if (!visible || !containerRef.current) return;
     setMovingImgAnchor({
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -261,11 +275,16 @@ export default function useCanvasContainer({
     }
   }, [allowMove]);
 
-  const onLoadImg = (e: React.UIEvent<HTMLImageElement, UIEvent>) => {
+  const onLoadImg = (
+    e: React.UIEvent<HTMLImageElement, UIEvent>,
+    withoutInitClientSize?: boolean,
+  ) => {
     const img = e.target as HTMLImageElement;
     const naturalSize = { width: img.naturalWidth, height: img.naturalHeight };
     setNaturalSize(naturalSize);
-    initClientSizeToFit(naturalSize);
+    if (containerSize && naturalSize && !withoutInitClientSize) {
+      initClientSizeToFit(naturalSize, containerSize);
+    }
   };
 
   const onClickBg = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -273,6 +292,44 @@ export default function useCanvasContainer({
       onClickMaskBg?.(event);
     }
   };
+
+  const isCustomCursorActive = useMemo(() => {
+    const isToolWithSize = [
+      ESubToolItem.AutoEdgeStitching,
+      ESubToolItem.AutoSegmentByStroke,
+      ESubToolItem.BrushAdd,
+      ESubToolItem.BrushErase,
+    ].includes(drawData.selectedSubTool);
+
+    if (
+      drawData.creatingObject &&
+      drawData.activeObjectIndex > -1 &&
+      [EObjectType.Mask, EObjectType.Polygon].includes(
+        drawData.creatingObject.type,
+      )
+    ) {
+      return isToolWithSize;
+    }
+    if (
+      drawData.selectedTool !== EBasicToolItem.Drag &&
+      !drawData.isBatchEditing
+    ) {
+      return (
+        [EBasicToolItem.Mask, EBasicToolItem.Polygon].includes(
+          drawData.selectedTool,
+        ) && isToolWithSize
+      );
+    }
+    return false;
+  }, [drawData.selectedTool, drawData.selectedSubTool]);
+
+  const showReferenceLine = useMemo(() => {
+    return (
+      drawData.selectedTool !== EBasicToolItem.Drag &&
+      !isCustomCursorActive &&
+      !hideReferenceLine
+    );
+  }, [drawData.selectedTool, isCustomCursorActive, hideReferenceLine]);
 
   /** Container render function */
   const CanvasContainer = ({
@@ -296,57 +353,49 @@ export default function useCanvasContainer({
             {/* leftLine */}
             <div
               style={{
-                position: 'fixed',
+                position: 'absolute',
                 backgroundColor: '#fff',
                 width: containerMouse.elementX - 18,
                 height: 1,
                 left: 0,
-                bottom: 0,
-                transformOrigin: 'bottom left',
-                transform: `translate(${containerMouse.elementPosX}px, -${
-                  window.innerHeight - containerMouse.clientY - 1
-                }px)`,
+                top: 0,
+                transform: `translateY(${containerMouse.elementY}px)`,
               }}
             />
             {/* rightLine */}
             <div
               style={{
-                position: 'fixed',
+                position: 'absolute',
                 backgroundColor: '#fff',
                 height: 1,
                 width: containerMouse.elementW - containerMouse.elementX - 18,
-                left: 0,
-                bottom: 0,
-                transformOrigin: 'bottom left',
-                transform: `translate(${containerMouse.clientX + 18}px, -${
-                  window.innerHeight - containerMouse.clientY - 1
-                }px)`,
+                right: 0,
+                top: 0,
+                transform: `translateY(${containerMouse.elementY}px)`,
               }}
             />
             {/* upLine */}
             <div
               style={{
-                position: 'fixed',
+                position: 'absolute',
                 backgroundColor: '#fff',
                 width: 1,
                 height: containerMouse.elementY - 18,
                 left: 0,
-                bottom: 0,
-                transformOrigin: 'bottom left',
-                transform: `translate(${containerMouse.clientX - 1}px, 
-                  -${window.innerHeight - containerMouse.clientY + 18}px)`,
+                top: 0,
+                transform: `translateX(${containerMouse.elementX - 1}px`,
               }}
             />
             {/* downLine */}
             <div
               style={{
-                position: 'fixed',
+                position: 'absolute',
                 backgroundColor: '#fff',
                 width: 1,
                 height: containerMouse.elementH - containerMouse.elementY - 18,
                 left: 0,
                 bottom: 0,
-                transform: `translate(${containerMouse.clientX - 1}px)`,
+                transform: `translateX(${containerMouse.elementX - 1}px`,
               }}
             />
           </>

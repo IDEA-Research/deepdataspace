@@ -5,11 +5,16 @@ import { Category, EditState } from '../type';
 interface IProps {
   categories: Category[];
   editState: EditState;
+  forceColorByObject?: boolean;
 }
 
-export default function useColor({ categories, editState }: IProps) {
+export default function useColor({
+  categories,
+  editState,
+  forceColorByObject,
+}: IProps) {
   const labelColors = useMemo(() => {
-    return getCategoryColors(categories.map((item) => item.name));
+    return getCategoryColors(categories.map((item) => item.id));
   }, [categories]);
 
   const colorSeedRef = useRef(0);
@@ -31,12 +36,13 @@ export default function useColor({ categories, editState }: IProps) {
   }, [editState.annotsDisplayOptions.colorByCategory]);
 
   const getAnnotColor = useCallback(
-    (category: string, forceColorByCategory?: boolean) => {
+    (categoryId: string, forceColorByCategory?: boolean) => {
       if (
-        editState.annotsDisplayOptions.colorByCategory ||
-        forceColorByCategory
+        !forceColorByObject &&
+        (editState.annotsDisplayOptions.colorByCategory || forceColorByCategory)
       ) {
-        return labelColors[category] || '#fff';
+        const catagory = categories.find((item) => item.id === categoryId);
+        return catagory?.renderColor || labelColors[categoryId] || '#fff';
       } else {
         return getUniformHexColor(colorSeedRef.current);
       }
@@ -46,6 +52,7 @@ export default function useColor({ categories, editState }: IProps) {
       labelColors,
       getUniformHexColor,
       colorSeedRef.current,
+      forceColorByObject,
     ],
   );
 

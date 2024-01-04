@@ -15,6 +15,7 @@ import {
   setRectBetweenPixels,
 } from '../utils/compute';
 import {
+  Category,
   DrawData,
   EditState,
   EObjectStatus,
@@ -24,13 +25,13 @@ import {
 } from '../type';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { Updater } from 'use-immer';
-import { HistoryItem } from '../hooks/useHistory';
 import { OnAiAnnotationFunc } from '../hooks/useActions';
 import useRectangle from './useRectangle';
 import usePolygon from './usePolygon';
 import useSkeleton from './useSkeleton';
 import useMask from './useMask';
 import useMatting from './useMatting';
+import usePoint from './usePoint';
 
 export type RenderStyles = {
   strokeColor: string;
@@ -70,7 +71,7 @@ export namespace ToolHooksFunc {
     point: { x: number; y: number };
     basic: {
       hidden: boolean;
-      label: string;
+      labelId: string;
       status: EObjectStatus;
       color: string;
     };
@@ -121,7 +122,7 @@ export interface ToolInstanceHookProps {
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
-  updateHistory: (item: HistoryItem) => void;
+  updateHistory: (drawData: DrawData) => void;
   updateObject: (object: IAnnotationObject, index: number) => void;
   addObject: (object: IAnnotationObject, notActive?: boolean) => void;
   clientSize: ISize;
@@ -133,9 +134,10 @@ export interface ToolInstanceHookProps {
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
   updateMouseCursor: (value: string, position?: Direction) => void;
   getAnnotColor: (category: string) => string;
-  aiLabels?: string[];
+  aiLabels?: string;
   onAiAnnotation?: OnAiAnnotationFunc;
   displayOptionsResult?: { [key in DisplayOption]?: boolean };
+  categories: Category[];
 }
 
 export type ToolInstanceHook = (
@@ -148,6 +150,7 @@ export const useToolInstances = (props: ToolInstanceHookProps) => {
   const skeletonHooks = useSkeleton(props);
   const maskHooks = useMask(props);
   const mattingHooks = useMatting(props);
+  const pointHooks = usePoint(props);
 
   const objectHooksMap: Record<EObjectType, ToolInstanceHookReturn> = {
     [EObjectType.Rectangle]: rectangleHooks,
@@ -155,6 +158,7 @@ export const useToolInstances = (props: ToolInstanceHookProps) => {
     [EObjectType.Skeleton]: skeletonHooks,
     [EObjectType.Mask]: maskHooks,
     [EObjectType.Matting]: mattingHooks,
+    [EObjectType.Point]: pointHooks,
     [EObjectType.Custom]: rectangleHooks, // todo
   };
 

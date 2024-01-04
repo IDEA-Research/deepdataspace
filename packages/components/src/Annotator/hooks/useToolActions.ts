@@ -1,7 +1,12 @@
 import { useCallback } from 'react';
 import { Updater } from 'use-immer';
 import { Modal, message } from 'antd';
-import { EBasicToolItem, EObjectType, ESubToolItem } from '../constants';
+import {
+  EBasicToolItem,
+  EnumModelType,
+  EObjectType,
+  ESubToolItem,
+} from '../constants';
 import {
   DrawData,
   EditState,
@@ -14,13 +19,15 @@ import {
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import { useLocale } from 'dds-utils/locale';
 import { cloneDeep } from 'lodash';
+import { OnAiAnnotationFunc } from './useActions';
 
 interface IProps {
   mode: EditorMode;
   drawData: DrawData;
+  manualMode?: boolean;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
-  setAiLabels: (labels: string[]) => void;
+  setAiLabels: (labels?: string) => void;
   editState: EditState;
   setEditState: Updater<EditState>;
   getAnnotColor: (category: string) => string;
@@ -30,13 +37,14 @@ interface IProps {
     object: IAnnotationObject,
     notActive?: boolean | undefined,
   ) => void;
-  removeObject: (index: number) => void;
   updateObject: (object: IAnnotationObject, index: number) => void;
   updateAllObject: (objectList: IAnnotationObject[]) => void;
+  onAiAnnotation: OnAiAnnotationFunc;
 }
 
 const useToolActions = ({
   mode,
+  manualMode,
   drawData,
   setDrawData,
   setDrawDataWithHistory,
@@ -46,52 +54,23 @@ const useToolActions = ({
   clientSize,
   naturalSize,
   addObject,
-  removeObject,
   updateObject,
   updateAllObject,
   getAnnotColor,
+  onAiAnnotation,
 }: IProps) => {
   const { localeText } = useLocale();
 
-  const onDeleteCurrObject = useCallback(() => {
-    if (
-      drawData.isBatchEditing &&
-      drawData.objectList[drawData.activeObjectIndex]?.status !==
-        EObjectStatus.Commited
-    ) {
-      setDrawData((s) => {
-        s.objectList[s.activeObjectIndex].status = EObjectStatus.Unchecked;
-        s.creatingObject = undefined;
-        s.prompt = {};
-        s.activeObjectIndex = -1;
-      });
-      return;
-    }
-
-    if (drawData.activeObjectIndex > -1) {
-      removeObject(drawData.activeObjectIndex);
-    }
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.prompt = {};
-      s.activeObjectIndex = -1;
-    });
-  }, [
-    drawData.isBatchEditing,
-    drawData.objectList,
-    drawData.activeObjectIndex,
-  ]);
-
   // TODO
   const getColorForMaskObj = useCallback(
-    (label: string) => {
+    (labelId: string) => {
       if (editState.annotsDisplayOptions.colorByCategory) {
-        return getAnnotColor(label);
+        return getAnnotColor(labelId);
       }
       if (drawData.activeObjectIndex > -1) {
         return drawData.objectList[drawData.activeObjectIndex].color;
       }
-      return drawData.creatingObject?.color || getAnnotColor(label);
+      return drawData.creatingObject?.color || getAnnotColor(labelId);
     },
     [
       editState.annotsDisplayOptions.colorByCategory,
@@ -102,8 +81,37 @@ const useToolActions = ({
     ],
   );
 
+  const onChangeObjectLabel = (labelId: string) => {
+    const editObject = drawData.objectList[drawData.activeObjectIndex];
+    if (editObject) {
+      const newObject = {
+        ...drawData.objectList[drawData.activeObjectIndex],
+        attributes: undefined,
+      };
+      newObject.labelId = labelId;
+      if (editState.annotsDisplayOptions.colorByCategory) {
+        newObject.color = getAnnotColor(labelId);
+      }
+      if (newObject.type === EObjectType.Mask && newObject.maskRle) {
+        newObject.maskCanvasElement = rleToCanvas(
+          newObject.maskRle,
+          naturalSize,
+          newObject.color,
+        );
+      }
+      // batch editing set conf to 1
+      if (drawData.isBatchEditing) {
+        newObject.conf = 1;
+      }
+      updateObject(newObject, drawData.activeObjectIndex);
+    }
+    setEditState((s) => {
+      s.latestLabelId = labelId;
+    });
+  };
+
   const onFinishCurrCreate = useCallback(
-    (label: string) => {
+    (labelId: string) => {
       if (drawData.creatingObject?.type === EObjectType.Mask) {
         const maskRle = objectToRle(
           clientSize,
@@ -112,10 +120,11 @@ const useToolActions = ({
           drawData.creatingObject?.maskCanvasElement,
         );
         if (maskRle && maskRle.length > 0) {
-          const color = getColorForMaskObj(label);
+          const color = getColorForMaskObj(labelId);
           const newObject = {
+            ...drawData.objectList[drawData.activeObjectIndex],
             type: EObjectType.Mask,
-            label,
+            labelId,
             hidden: false,
             maskRle,
             maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
@@ -139,13 +148,32 @@ const useToolActions = ({
             localeText('DDSAnnotator.anno.mask.translateToRleError'),
           );
         }
+      } else if (drawData.creatingObject?.type === EObjectType.Polygon) {
+        const color = getAnnotColor(labelId);
+        const newObject = {
+          ...drawData.objectList[drawData.activeObjectIndex],
+          type: EObjectType.Polygon,
+          labelId,
+          hidden: false,
+          polygon: drawData.creatingObject?.polygon,
+          conf: 1,
+          status: EObjectStatus.Commited,
+          color,
+        };
+        if (drawData.activeObjectIndex > -1) {
+          // edit existing polygon
+          updateObject(newObject, drawData.activeObjectIndex);
+        } else {
+          // add new polygon
+          addObject(newObject, true);
+        }
       } else {
         const newObject = {
           ...drawData.objectList[drawData.activeObjectIndex],
         };
-        newObject.label = label;
+        newObject.labelId = labelId;
         if (editState.annotsDisplayOptions.colorByCategory) {
-          newObject.color = getAnnotColor(label);
+          newObject.color = getAnnotColor(labelId);
         }
         // batch editing set conf to 1
         if (drawData.isBatchEditing) {
@@ -157,12 +185,19 @@ const useToolActions = ({
         s.creatingObject = undefined;
         s.prompt = {};
         s.activeObjectIndex = -1;
+        if (
+          [ESubToolItem.PenErase, ESubToolItem.BrushErase].includes(
+            s.selectedSubTool,
+          )
+        ) {
+          s.selectedSubTool = ESubToolItem.PenAdd;
+        }
       });
       setEditState((s) => {
-        s.latestLabel = label;
+        s.latestLabelId = labelId;
       });
     },
-    [drawData.creatingObject],
+    [drawData.creatingObject, drawData.activeObjectIndex, drawData.objectList],
   );
 
   const onCloseAnnotationEditor = useCallback(() => {
@@ -181,7 +216,7 @@ const useToolActions = ({
         .map((obj) => {
           obj.status = EObjectStatus.Commited;
           if (obj.type !== EObjectType.Mask) {
-            obj.color = getAnnotColor(obj.label);
+            obj.color = getAnnotColor(obj.labelId);
           }
           return obj;
         });
@@ -189,8 +224,9 @@ const useToolActions = ({
       s.isBatchEditing = false;
       s.activeObjectIndex = -1;
       s.creatingObject = undefined;
+      s.prompt = {};
     });
-    setAiLabels([]);
+    setAiLabels(undefined);
   }, [drawData.objectList]);
 
   const onAbortBatchObjects = useCallback(() => {
@@ -202,6 +238,7 @@ const useToolActions = ({
       s.isBatchEditing = false;
       s.activeObjectIndex = -1;
       s.creatingObject = undefined;
+      s.prompt = {};
     });
   }, [drawData.objectList]);
 
@@ -209,7 +246,7 @@ const useToolActions = ({
     (tool: EBasicToolItem) => {
       if (
         mode !== EditorMode.Edit ||
-        tool === drawData.selectedTool ||
+        (tool === drawData.selectedTool && drawData.AIAnnotation) ||
         drawData.isBatchEditing
       )
         return;
@@ -219,12 +256,27 @@ const useToolActions = ({
           s.selectedSubTool = s.AIAnnotation
             ? ESubToolItem.AutoSegmentByBox
             : ESubToolItem.PenAdd;
+        } else if (tool === EBasicToolItem.Polygon) {
+          s.selectedSubTool = ESubToolItem.AutoSegmentByBox;
+        } else if (
+          tool === EBasicToolItem.Rectangle &&
+          s.selectedModel === EnumModelType.IVP
+        ) {
+          s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
         }
+        s.AIAnnotation = false;
         s.activeObjectIndex = -1;
         s.creatingObject = undefined;
+        s.editingAttribute = undefined;
+        s.prompt = {};
       });
     },
-    [mode, drawData.selectedTool, drawData.isBatchEditing],
+    [
+      mode,
+      drawData.selectedTool,
+      drawData.isBatchEditing,
+      drawData.selectedModel,
+    ],
   );
 
   const selectSubTool = useCallback(
@@ -232,9 +284,11 @@ const useToolActions = ({
       if (
         mode !== EditorMode.Edit ||
         tool === drawData.selectedSubTool ||
-        drawData.isBatchEditing
+        (drawData.selectedTool === EBasicToolItem.Mask &&
+          drawData.isBatchEditing)
       )
         return;
+
       setDrawData((s) => {
         s.selectedSubTool = tool;
       });
@@ -242,7 +296,7 @@ const useToolActions = ({
       // save unfinished mask object
       if (tool === ESubToolItem.AutoEdgeStitching && drawData.creatingObject) {
         onFinishCurrCreate(
-          drawData.creatingObject.label || editState.latestLabel || '',
+          drawData.creatingObject.labelId || editState.latestLabelId || '',
         );
       }
     },
@@ -260,7 +314,7 @@ const useToolActions = ({
   );
 
   const onExitAIAnnotation = useCallback(() => {
-    setDrawData((s) => {
+    setDrawDataWithHistory((s) => {
       s.objectList = s.objectList.filter(
         (obj) => obj.status === EObjectStatus.Commited,
       );
@@ -279,6 +333,40 @@ const useToolActions = ({
       });
     },
     [mode],
+  );
+
+  const setPointResolution = useCallback(
+    (value: number) => {
+      if (mode !== EditorMode.Edit) return;
+      setDrawData((s) => {
+        s.pointResolution = value;
+      });
+    },
+    [mode],
+  );
+
+  const onChangePointResolution = useCallback(
+    (value: number, update?: boolean) => {
+      setPointResolution(value);
+      if (
+        update &&
+        drawData.creatingObject &&
+        drawData.creatingObject.type === EObjectType.Polygon &&
+        drawData.prompt.promptsQueue &&
+        drawData.prompt.promptsQueue.length > 0
+      ) {
+        const updateDrawData: DrawData = {
+          ...drawData,
+          pointResolution: value,
+        };
+        onAiAnnotation({
+          type: EObjectType.Polygon,
+          drawData: updateDrawData,
+          promptsQueue: drawData.prompt.promptsQueue,
+        });
+      }
+    },
+    [drawData.creatingObject, drawData.prompt],
   );
 
   const displayAIModeUnavailableModal = () => {
@@ -300,38 +388,14 @@ const useToolActions = ({
         displayAIModeUnavailableModal();
         return;
       }
-      if (mode !== EditorMode.Edit || drawData.isBatchEditing) return;
+      if (mode !== EditorMode.Edit || drawData.isBatchEditing || manualMode)
+        return;
       setDrawData((s) => {
         s.AIAnnotation = active;
       });
     },
     [mode, drawData.isBatchEditing],
   );
-
-  const onSaveAIPolygon = useCallback(() => {
-    const label = drawData.creatingObject?.label || '';
-    const color = getAnnotColor(label);
-    addObject({
-      type: EObjectType.Polygon,
-      polygon: drawData.creatingObject?.polygon,
-      label,
-      color,
-      hidden: false,
-      status: EObjectStatus.Commited,
-    });
-    setDrawData((s) => {
-      s.activeObjectIndex = s.objectList.length - 1;
-      s.prompt = {};
-    });
-  }, [drawData.creatingObject]);
-
-  const onCancelAIPolygon = useCallback(() => {
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.activeObjectIndex = -1;
-      s.prompt = {};
-    });
-  }, []);
 
   const onChangeSkeletonConf = useCallback(
     (range: [number, number]) => {
@@ -404,7 +468,7 @@ const useToolActions = ({
   const onChangeColorMode = useCallback(() => {
     if (!drawData.objectList || !drawData.objectList.length) return;
     const newObjectList = cloneDeep(drawData.objectList).map((item) => {
-      const color = getAnnotColor(item.label);
+      const color = getAnnotColor(item.labelId);
       if (
         item.type === EObjectType.Mask &&
         item.maskRle &&
@@ -421,8 +485,20 @@ const useToolActions = ({
     updateAllObject(newObjectList);
   }, [drawData.objectList, getAnnotColor]);
 
+  const onSelectModel = useCallback((type: EnumModelType) => {
+    setDrawData((s) => {
+      s.selectedModel = type;
+      if (type === EnumModelType.IVP) {
+        s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
+      } else {
+        // TODO
+        s.selectedSubTool = ESubToolItem.PenAdd;
+      }
+    });
+  }, []);
+
   return {
-    onDeleteCurrObject,
+    onChangeObjectLabel,
     onFinishCurrCreate,
     onCloseAnnotationEditor,
     onAcceptValidObjects,
@@ -434,13 +510,13 @@ const useToolActions = ({
     setBrushSize,
     activeAIAnnotation,
     displayAIModeUnavailableModal,
-    onSaveAIPolygon,
-    onCancelAIPolygon,
     onChangeSkeletonConf,
     onChangeLimitConf,
     onChangeImageDisplayOpts,
     onChangeAnnotsDisplayOpts,
     onChangeColorMode,
+    onChangePointResolution,
+    onSelectModel,
   };
 };
 

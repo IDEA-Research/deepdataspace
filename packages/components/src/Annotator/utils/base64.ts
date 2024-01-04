@@ -42,6 +42,11 @@ export const isBlobUrl = (str: string) => {
   return blobUrlRegex.test(str);
 };
 
+export const isHttpsUrl = (str: string) => {
+  const httpsRegex = /^https?:\/\//i;
+  return httpsRegex.test(str);
+};
+
 export const getImgBase64ByBlob = (blobUrl: Blob) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();

@@ -1,18 +1,12 @@
 import {
-  AnnotationType,
   EElementType,
   EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
 } from '../constants';
-import {
-  BaseObject,
-  DrawData,
-  IAnnotationObject,
-  MaskPromptItem,
-} from '../type';
+import { DrawData, IAnnotationObject, PromptItem } from '../type';
 import { CursorState } from 'ahooks/lib/useMouse';
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
-import { cloneDeep, isNumber } from 'lodash';
+import { cloneDeep, isEqual, isNumber } from 'lodash';
 
 /**
  * Calculate the scaled width and height.
@@ -103,6 +97,27 @@ export const getSegmentationPoints = (
   paths?.forEach((item) => {
     const points = [];
     const nums = item.split(',').map(Number);
+    for (let i = 0; i < nums.length; i += 2) {
+      const point = getCanvasPoint(
+        [nums[i], nums[i + 1]],
+        naturalSize,
+        clientSize,
+      );
+      points.push(point);
+    }
+    groups.push(points);
+  });
+  return groups;
+};
+
+export const translatePointGroupsToPoints = (
+  pointGroups: number[][],
+  naturalSize: ISize,
+  clientSize: ISize,
+): IPoint[][] => {
+  const groups: IPoint[][] = [];
+  pointGroups.forEach((nums) => {
+    const points = [];
     for (let i = 0; i < nums.length; i += 2) {
       const point = getCanvasPoint(
         [nums[i], nums[i + 1]],
@@ -271,6 +286,22 @@ export const translateRectZoom = (
 });
 
 /**
+ * translate rect to points
+ * @param theRect
+ * @param fromSize
+ * @param toSize
+ * @returns
+ */
+export const translateRectToPointsArray = (
+  theRect: IRect,
+  fromSize: ISize,
+  toSize: ISize,
+): number[] => {
+  const rect = translateRectZoom(theRect, fromSize, toSize);
+  return [rect.x, rect.y, rect.x + rect.width, rect.y + rect.height];
+};
+
+/**
  * zoom point size
  * @param point
  * @param size
@@ -283,6 +314,25 @@ export const translatePointZoom = (
 ): IPoint => ({
   x: (point.x * toSize.width) / formSize.width,
   y: (point.y * toSize.height) / formSize.height,
+});
+
+/**
+ * transtlate points to rect
+ * @param box
+ * @param size
+ * @returns
+ */
+export const translatePointsToRect = (
+  points: [number, number, number, number],
+  formSize: ISize,
+  toSize: ISize,
+): IRect => ({
+  x: ((points[0] || 0) / formSize.width) * toSize.width,
+  y: ((points[1] || 0) / formSize.height) * toSize.height,
+  width:
+    (((points[2] || 0) - (points[0] || 0)) / formSize.width) * toSize.width,
+  height:
+    (((points[3] || 0) - (points[1] || 0)) / formSize.height) * toSize.height,
 });
 
 /**
@@ -310,6 +360,8 @@ export const translateAbsBBoxToRect = (box: IBoundingBox): IRect => ({
 
 /**
  * format points
+ * keypoints: [x, y, z, w, visible, conf, ...]
+ * visible 0: not labeled, v=1: labeled but not visible, and v=2: labeled and visible.
  * @param box
  * @param size
  * @returns
@@ -360,6 +412,71 @@ export const translatePointObjsToPointAttrs = (
     const rgb = rgbaToRgbArray(point.color!);
     const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
     points.push(naturalPoint.x, naturalPoint.y, 0, 1, point.visible, 1);
+    pointNames.push(point.name!);
+    pointColors.push(rgb[0] || '255', rgb[1] || '255', rgb[2] || '255');
+  }
+
+  return {
+    points,
+    pointNames,
+    pointColors,
+  };
+};
+
+/**
+ * format points (new model)
+ * keypoints: [x, y, visible, conf, ...]
+ * visible 0: not labeled, v=1: labeled but not visible, and v=2: labeled and visible.
+ * @param box
+ * @param size
+ * @returns
+ */
+export const newTranslatePointsToPointObjs = (
+  points: number[],
+  pointNames: string[],
+  pointColors: string[],
+  naturalSize: ISize,
+  clientSize: ISize,
+): IElement<IPoint>[] => {
+  const pointList = [];
+  for (let i = 0; i * 4 < points.length; i++) {
+    const { x, y } = getCanvasPoint(
+      [points[i * 4], points[i * 4 + 1]],
+      naturalSize,
+      clientSize,
+    );
+    const color = rgbArrayToRgba(pointColors.slice(i * 3, i * 3 + 3), 1);
+    const point = {
+      x,
+      y,
+      visible: points[i * 4 + 2],
+      color,
+      name: pointNames[i],
+    };
+    pointList.push(point);
+  }
+  return pointList;
+};
+
+export const newTranslatePointObjsToPointAttrs = (
+  pointObjs: IElement<IPoint>[],
+  naturalSize: ISize,
+  clientSize: ISize,
+): {
+  points: number[];
+  pointNames: string[];
+  pointColors: string[];
+} => {
+  const points = [];
+  const pointNames = [];
+  const pointColors = [];
+
+  for (let i = 0; i < pointObjs.length; i++) {
+    const point = pointObjs[i];
+    const { x, y } = point;
+    const rgb = rgbaToRgbArray(point.color!);
+    const naturalPoint = getNaturalPoint([x, y], naturalSize, clientSize);
+    points.push(naturalPoint.x, naturalPoint.y, point.visible, 1);
     pointNames.push(point.name!);
     pointColors.push(rgb[0] || '255', rgb[1] || '255', rgb[2] || '255');
   }
@@ -541,7 +658,7 @@ export const judgeFocusOnSingleObject = (
   object: IAnnotationObject,
   clientSize?: ISize,
 ): boolean => {
-  if (object.hidden) {
+  if (object.hidden || object.frameEmpty) {
     return false;
   }
 
@@ -1074,43 +1191,33 @@ export const isValidRect = (rect: IRect) => {
 };
 
 // TODO: How to confirm ObjectType
-export const getObjectType = (
-  obj: IAnnotationObject,
-  displayType?: AnnotationType,
-): EObjectType => {
-  if (obj.maskRle && (!displayType || displayType === AnnotationType.Mask)) {
+export const getObjectType = (obj: IAnnotationObject): EObjectType => {
+  if (obj.maskRle) {
     return EObjectType.Mask;
   }
-  if (obj.alpha && (!displayType || displayType === AnnotationType.Matting)) {
+  if (obj.alpha) {
     return EObjectType.Matting;
   }
-  if (
-    obj.keypoints &&
-    (!displayType || displayType === AnnotationType.KeyPoints)
-  ) {
+  if (obj.keypoints) {
     return EObjectType.Skeleton;
   }
-  if (
-    obj.polygon &&
-    (!displayType || displayType === AnnotationType.Segmentation)
-  ) {
+  if (obj.polygon) {
     return EObjectType.Polygon;
   }
-  if (
-    obj.rect &&
-    isValidRect(obj.rect) &&
-    (!displayType || displayType === AnnotationType.Detection)
-  ) {
+  if (obj.point) {
+    return EObjectType.Point;
+  }
+  if (obj.rect && isValidRect(obj.rect)) {
     return EObjectType.Rectangle;
   }
   return EObjectType.Custom;
 };
 
-export const translatePolygonsToSegmentation = (
+export const translatePolygonsToPointsArrayGroup = (
   polygons: IElement<IPolygonGroup>,
   naturalSize: ISize,
   clientSize: ISize,
-): string => {
+): number[][] => {
   const arr = polygons.group.map((polygon) => {
     return polygon.reduce((acc: number[], point: IPoint) => {
       const { x, y } = point;
@@ -1118,7 +1225,19 @@ export const translatePolygonsToSegmentation = (
       return acc.concat([naturalPoint.x, naturalPoint.y]);
     }, []);
   });
+  return arr;
+};
 
+export const translatePolygonsToSegmentation = (
+  polygons: IElement<IPolygonGroup>,
+  naturalSize: ISize,
+  clientSize: ISize,
+): string => {
+  const arr = translatePolygonsToPointsArrayGroup(
+    polygons,
+    naturalSize,
+    clientSize,
+  );
   const res =
     arr
       .map((polygon) => {
@@ -1127,55 +1246,6 @@ export const translatePolygonsToSegmentation = (
       .join('/') || '';
 
   return res;
-};
-
-export const translateObjectsToAnnotations = (
-  objectList: IAnnotationObject[],
-  naturalSize: ISize,
-  clientSize: ISize,
-  needNormalizeBbox: boolean = true,
-): BaseObject[] => {
-  const annotations = objectList.map((obj) => {
-    const { label, rect, keypoints, polygon, maskRle } = obj;
-    const annoObj = {
-      categoryName: label,
-    };
-    if (rect) {
-      Object.assign(annoObj, {
-        boundingBox: needNormalizeBbox
-          ? translateRectToBoundingBox(rect, clientSize)
-          : translateRectToAbsBbox(rect),
-      });
-    }
-    if (keypoints) {
-      Object.assign(annoObj, {
-        lines: keypoints.lines,
-        ...translatePointObjsToPointAttrs(
-          keypoints.points,
-          naturalSize,
-          clientSize,
-        ),
-      });
-    }
-    if (polygon) {
-      const segmentation = translatePolygonsToSegmentation(
-        polygon,
-        naturalSize,
-        clientSize,
-      );
-      Object.assign(annoObj, {
-        segmentation,
-      });
-    }
-    if (maskRle) {
-      Object.assign(annoObj, {
-        mask: maskRle,
-      });
-    }
-    return annoObj;
-  });
-
-  return annotations;
 };
 
 export const getClosestPointOnLineSegment = (
@@ -1346,7 +1416,7 @@ export const translateAnnotCoord = (
   annoObj: IAnnotationObject,
   newCoordOrigin: IPoint,
 ): IAnnotationObject => {
-  const { rect, polygon, keypoints } = annoObj;
+  const { rect, polygon, keypoints, point } = annoObj;
   const newAnnoObj = { ...annoObj };
 
   if (rect) {
@@ -1376,6 +1446,13 @@ export const translateAnnotCoord = (
     newAnnoObj.keypoints = {
       ...keypoints,
       points: newPoints,
+    };
+  }
+
+  if (point) {
+    newAnnoObj.point = {
+      ...point,
+      ...translatePointCoord(point, newCoordOrigin),
     };
   }
 
@@ -1416,15 +1493,18 @@ export const scaleObject = (
     });
     newObj.polygon = { ...newObj.polygon, group: newGroups };
   }
+  if (newObj.point) {
+    const newPoint = translatePointZoom(newObj.point, preSize, curSize);
+    newObj.point = { ...newObj.point, ...newPoint };
+  }
   return newObj;
 };
-
 const scalePromptItem = (
-  promptItem: MaskPromptItem,
+  promptItem: PromptItem,
   preSize: ISize,
   curSize: ISize,
-): MaskPromptItem => {
-  const { point, startPoint, rect, stroke } = promptItem;
+): PromptItem => {
+  const { point, startPoint, rect, stroke, polygons } = promptItem;
   const scaledPromptItem = { ...promptItem };
   if (point) {
     Object.assign(scaledPromptItem, {
@@ -1448,7 +1528,41 @@ const scalePromptItem = (
       }),
     });
   }
+  if (polygons) {
+    Object.assign(scaledPromptItem, {
+      polygons: polygons.map((polygon) => {
+        const res = [];
+        for (let i = 0; i < polygon.length; i += 2) {
+          const point = { x: polygon[i], y: polygon[i + 1] };
+          const scaledPoint = translatePointZoom(point, preSize, curSize);
+          res.push(scaledPoint.x, scaledPoint.y);
+        }
+        return res;
+      }),
+    });
+  }
   return scaledPromptItem;
+};
+
+/**
+ * Scale frames objects
+ * @param preSize
+ * @param curSize
+ */
+export const scaleFramesObjects = (
+  framesObjects: IAnnotationObject[][],
+  preSize: ISize,
+  curSize: ISize,
+) => {
+  const updateFramesObjects = cloneDeep(framesObjects);
+  return updateFramesObjects.map((objs) => {
+    if (objs) {
+      return objs.map((obj) => {
+        return obj ? scaleObject(obj, preSize, curSize) : obj;
+      });
+    }
+    return objs;
+  });
 };
 
 /**
@@ -1511,34 +1625,19 @@ export const scaleDrawData = (
     }
   }
 
-  if (updateDrawData.prompt.segmentationClicks) {
-    updateDrawData.prompt.segmentationClicks =
-      updateDrawData.prompt.segmentationClicks.map((click) => {
-        if (click.point) {
-          const newPoint = translatePointZoom(click.point, preSize, curSize);
-          return {
-            ...click,
-            point: newPoint,
-          };
-        }
-        return click;
-      });
-  }
-
-  if (updateDrawData.prompt.creatingMask) {
-    updateDrawData.prompt.creatingMask = scalePromptItem(
-      updateDrawData.prompt.creatingMask,
+  if (updateDrawData.prompt.creatingPrompt) {
+    updateDrawData.prompt.creatingPrompt = scalePromptItem(
+      updateDrawData.prompt.creatingPrompt,
       preSize,
       curSize,
     );
   }
 
-  if (updateDrawData.prompt.maskPrompts) {
-    updateDrawData.prompt.maskPrompts = updateDrawData.prompt.maskPrompts?.map(
-      (item) => {
+  if (updateDrawData.prompt.promptsQueue) {
+    updateDrawData.prompt.promptsQueue =
+      updateDrawData.prompt.promptsQueue?.map((item) => {
         return scalePromptItem(item, preSize, curSize);
-      },
-    );
+      });
   }
 
   if (updateDrawData.prompt.activeRectWhileLoading) {
@@ -1550,6 +1649,41 @@ export const scaleDrawData = (
   }
 
   return updateDrawData;
+};
+
+export const convertFrameObjectsIntoFramesObjects = (
+  currFrameObjects: IAnnotationObject[],
+  framesObjects: IAnnotationObject[][],
+  frameCount: number,
+  activeIndex: number,
+) => {
+  const tempObjects = [...framesObjects];
+  currFrameObjects.forEach((item, objectIdx) => {
+    const objectframes =
+      tempObjects[objectIdx] || new Array(frameCount).fill(undefined);
+    tempObjects[objectIdx] = objectframes.map((obj, frameIdx) => {
+      if (frameIdx === activeIndex) {
+        return item;
+      }
+      let resultObject = obj;
+      if (frameIdx > activeIndex) {
+        // frame change to after active frame
+        resultObject = isEqual(obj, objectframes[activeIndex]) ? item : obj;
+      }
+      return {
+        ...resultObject,
+        type: item.type,
+        labelId: item.labelId,
+        hidden: item.hidden,
+        color: item.color,
+        customStyles: item.customStyles,
+        attributes: item.attributes,
+        status: item.status,
+        frameEmpty: obj?.frameEmpty || Boolean(!obj),
+      };
+    });
+  });
+  return tempObjects;
 };
 
 export const getVisibleAreaForImage = (

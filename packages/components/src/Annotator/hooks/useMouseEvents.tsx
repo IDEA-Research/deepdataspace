@@ -19,6 +19,7 @@ import {
   EBasicToolItem,
   EBasicToolTypeMap,
   EElementType,
+  EnumModelType,
   EObjectType,
 } from '../constants';
 import { Updater } from 'use-immer';
@@ -271,13 +272,17 @@ const useMouseEvents = ({
           });
         } else {
           s.activeObjectIndex = index;
-          s.creatingObject = {
-            ...drawData.objectList[index],
-            currIndex: undefined,
-            startPoint: undefined,
-            tempMaskSteps: [],
-            maskStep: undefined,
-          };
+          if (!drawData.objectList[index].frameEmpty) {
+            s.creatingObject = {
+              ...drawData.objectList[index],
+              currIndex: undefined,
+              startPoint: undefined,
+              tempMaskSteps: [],
+              maskStep: undefined,
+            };
+          } else {
+            s.creatingObject = undefined;
+          }
 
           if (
             s.selectedTool !== EBasicToolItem.Drag &&
@@ -286,6 +291,9 @@ const useMouseEvents = ({
           ) {
             s.selectedTool = EBasicToolItem.Drag;
           }
+        }
+        if (s.editingAttribute?.index !== index) {
+          s.editingAttribute = undefined;
         }
       });
     },
@@ -333,7 +341,9 @@ const useMouseEvents = ({
                 backgroundColor: drawData.objectList[index]?.color || '#fff',
               }}
             />
-            {drawData.objectList[index]?.label}
+            {categories.find(
+              (c) => c.id === drawData.objectList[index]?.labelId,
+            )?.name || ''}
             {drawData.isBatchEditing &&
               ` (${fixedFloatNum(drawData.objectList[index]?.conf || 0)})`}
           </div>
@@ -347,7 +357,8 @@ const useMouseEvents = ({
       !visible ||
       editState.allowMove ||
       editState.isRequiring ||
-      !isInCanvas(contentMouse)
+      !isInCanvas(contentMouse) ||
+      !isInCanvas(containerMouse)
     )
       return;
 
@@ -371,8 +382,11 @@ const useMouseEvents = ({
     // 2. Create object
     if (
       drawData.selectedTool !== EBasicToolItem.Drag &&
-      !drawData.isBatchEditing
+      (!drawData.isBatchEditing || drawData.selectedModel === EnumModelType.IVP)
     ) {
+      setDrawData((s) => {
+        s.editingAttribute = undefined;
+      });
       const objectType = EBasicToolTypeMap[drawData.selectedTool];
       if (
         mode === EditorMode.Edit &&
@@ -385,9 +399,9 @@ const useMouseEvents = ({
           },
           basic: {
             hidden: false,
-            label: editState.latestLabel || categories[0].name,
+            labelId: editState.latestLabelId || categories[0].id,
             status: EObjectStatus.Commited,
-            color: getAnnotColor(editState.latestLabel || categories[0].name),
+            color: getAnnotColor(editState.latestLabelId || categories[0].name),
           },
         })
       ) {

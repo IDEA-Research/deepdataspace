@@ -19,8 +19,8 @@ export const ANNO_STROKE_ALPHA = {
 
 export const ANNO_MASK_ALPHA = {
   CREATING: 0.7,
-  FOCUS: 0.6,
-  DEFAULT: 0.4,
+  FOCUS: 0.7,
+  DEFAULT: 0.5,
 };
 
 export const ANNO_STROKE_COLOR = {
@@ -33,7 +33,12 @@ export const ANNO_FILL_COLOR = {
   CREATING_NEGATIVE: '#e91d00',
 };
 
+export const PROMPT_STROKE_COLOR = {
+  POSITIVE: 'rgba(1, 128, 0, 1)',
+  NEGATIVE: 'rgba(255, 3, 0, 1)',
+};
+
 export const PROMPT_FILL_COLOR = {
-  POSITIVE: 'rgba(1, 128, 0, 0.7)',
-  NEGATIVE: 'rgba(255, 3, 0, 0.7)',
+  POSITIVE: 'rgba(1, 128, 0, 0.6)',
+  NEGATIVE: 'rgba(255, 3, 0, 0.6)',
 };

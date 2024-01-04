@@ -3,14 +3,23 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 0 16px;
   width: 100%;
   height: 56px;
   color: #fff;
   background: #1f1f1f;
-  border-bottom: 2px solid #141414;
+  border-bottom: 1px solid #141414;
   pointer-events: auto;
+  overflow-x: scroll;
   z-index: 1;
+
+  /* Hide scrollbar */
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome Safari */
+  }
 
   &-row {
     display: flex;

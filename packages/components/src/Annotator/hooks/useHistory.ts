@@ -1,19 +1,23 @@
 import { useCallback, useState } from 'react';
 import { DraftFunction, Updater, useImmer } from 'use-immer';
 import { cloneDeep, isEqual } from 'lodash';
-import { scaleDrawData, translateObjectsToAnnotations } from '../utils/compute';
-import { BaseObject, DrawData } from '../type';
+import { scaleDrawData, scaleFramesObjects } from '../utils/compute';
+import { BaseObject, DrawData, VideoFramesData } from '../type';
 
 export interface HistoryItem {
   drawData: DrawData;
+  framesData?: VideoFramesData;
   clientSize: ISize;
 }
 
 interface IProps {
   clientSize: ISize;
   naturalSize: ISize;
+  framesData?: VideoFramesData;
+  setFramesData?: Updater<VideoFramesData>;
   setDrawData: Updater<DrawData>;
   onAutoSave?: (annotations: BaseObject[], naturalSize: ISize) => void;
+  translateObject?: (object: any) => any;
 }
 
 const useHistory = ({
@@ -21,20 +25,45 @@ const useHistory = ({
   naturalSize,
   onAutoSave,
   setDrawData,
+  translateObject,
+  framesData,
+  setFramesData,
 }: IProps) => {
   const [historyQueue, setHistoryQueue] = useImmer<HistoryItem[]>([]);
   const [currentIndex, setCurrIndex] = useState(0);
   const maxCacheSize = 20;
 
   const autoSave = (item: HistoryItem) => {
-    const annotations = translateObjectsToAnnotations(
-      item.drawData.objectList,
-      naturalSize,
-      item.clientSize,
-      true,
-    );
-    if (onAutoSave) onAutoSave(annotations, naturalSize);
+    if (onAutoSave) {
+      const annotations = item.drawData.objectList.map(
+        (obj) => translateObject?.(obj) || {},
+      );
+      onAutoSave(annotations, naturalSize);
+    }
   };
+
+  const updateCurrentRecord = useCallback(
+    (record: HistoryItem) => {
+      if (record.framesData) {
+        setFramesData?.({
+          ...record.framesData,
+          objects: scaleFramesObjects(
+            record.framesData.objects,
+            record.clientSize,
+            clientSize,
+          ),
+        });
+      }
+      const updateDrawData = scaleDrawData(
+        record.drawData,
+        record.clientSize,
+        clientSize,
+      );
+      setDrawData(updateDrawData);
+      autoSave(record);
+    },
+    [clientSize.width, clientSize.height],
+  );
 
   /**
    * Undo the last action
@@ -42,16 +71,9 @@ const useHistory = ({
   const undo = useCallback(() => {
     if (currentIndex > 0) {
       setCurrIndex((prevIndex) => prevIndex - 1);
-      const record = historyQueue[currentIndex - 1];
-      const updateDrawData = scaleDrawData(
-        record.drawData,
-        record.clientSize,
-        clientSize,
-      );
-      setDrawData(updateDrawData);
-      autoSave(record);
+      updateCurrentRecord(historyQueue[currentIndex - 1]);
     }
-  }, [currentIndex, historyQueue, clientSize.width, clientSize.height]);
+  }, [currentIndex, historyQueue, updateCurrentRecord]);
 
   /**
    * Redo the last undone action
@@ -59,21 +81,22 @@ const useHistory = ({
   const redo = useCallback(() => {
     if (currentIndex < historyQueue.length - 1) {
       setCurrIndex((prevIndex) => prevIndex + 1);
-      const record = historyQueue[currentIndex + 1];
-      const updateDrawData = scaleDrawData(
-        record.drawData,
-        record.clientSize,
-        clientSize,
-      );
-      setDrawData(updateDrawData);
-      autoSave(record);
+      updateCurrentRecord(historyQueue[currentIndex + 1]);
     }
-  }, [currentIndex, historyQueue, clientSize.width, clientSize.height]);
+  }, [currentIndex, historyQueue, updateCurrentRecord]);
 
   /**
    * Update the history queue with the new objects
    */
-  const updateHistory = (item: HistoryItem) => {
+  const updateHistory = (
+    drawData: DrawData,
+    theframesData?: VideoFramesData,
+  ) => {
+    const item = {
+      drawData,
+      clientSize,
+      framesData: theframesData || framesData,
+    };
     setHistoryQueue((queue) => {
       if (queue[currentIndex] && isEqual(item, queue[currentIndex])) {
         return queue;
@@ -85,6 +108,7 @@ const useHistory = ({
         // fix to change image current render
         return queue;
       }
+      // console.log('>>> updata history', item.drawData, framesData);
       queue.splice(currentIndex + 1);
       queue.push(item);
       if (queue.length > maxCacheSize) {
@@ -105,21 +129,11 @@ const useHistory = ({
     if (typeof updater === 'function') {
       setDrawData((s) => {
         updater(s);
-        updateHistory(
-          cloneDeep({
-            drawData: s,
-            clientSize,
-          }),
-        );
+        updateHistory(cloneDeep(s));
       });
     } else {
       setDrawData(updater);
-      updateHistory(
-        cloneDeep({
-          drawData: updater,
-          clientSize,
-        }),
-      );
+      updateHistory(cloneDeep(updater));
     }
   };
 

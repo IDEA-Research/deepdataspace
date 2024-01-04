@@ -1,7 +1,7 @@
 import { Button, Tooltip } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
-import { DrawImageData } from '../../type';
+import { AnnoItem } from '../../type';
 import { memo, useState } from 'react';
 import { useKeyPress } from 'ahooks';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
@@ -9,7 +9,7 @@ import { useLocale } from 'dds-utils/locale';
 import './index.less';
 
 interface IProps {
-  list: DrawImageData[];
+  list: AnnoItem[];
   current: number;
   total: number;
   customText?: React.ReactElement;

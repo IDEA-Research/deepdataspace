@@ -1,0 +1,200 @@
+.dds-annotator-slidertoolbar {
+  position: relative;
+  height: 100%;
+  background: #212121;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 50px;
+  pointer-events: auto;
+  font-weight: 600;
+  padding: 1rem 0.5rem 2rem;
+  z-index: 99;
+  overflow-y: scroll;
+
+  /* Hide scrollbar */
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome Safari */
+  }
+
+  &-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .slidertoolbar-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    background-color: transparent;
+    border-radius: 5px;
+
+    svg {
+      color: #fff;
+      fill: #fff;
+      scale: 1.2;
+    }
+
+    &:hover {
+      background-color: @colorPrimary;
+      transform: scale(1.2);
+    }
+  }
+
+  .slidertoolbar-btn-active {
+    color: @colorPrimary;
+    background-color: @colorPrimary;
+  }
+
+  // .slidertoolbar-tool-btn-active {
+  //   svg {
+  //     color: @colorPrimary;
+  //     fill: @colorPrimary;
+  //   }
+  // }
+
+  .slidertoolbar-btn-disabled {
+    color: rgba(255, 255, 255, 0.25);
+    pointer-events: none;
+
+    svg {
+      fill: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  .slidertoolbar-annotool-active-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 50px;
+    padding: 10px 0;
+    background: #484848;
+    border-radius: 12px;
+  }
+
+  .slidertoolbar-scale-text {
+    font-size: 12px;
+    font-weight: normal;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 12px 0;
+    user-select: none;
+  }
+
+  .slidertoolbar-divider {
+    width: 100%;
+    margin: 8px 6px;
+    border-bottom: 1px solid #bbb;
+  }
+}
+
+.dds-annotator-slidertoolbar-popover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+
+  .popover-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 10px;
+  }
+
+  .popover-key {
+    min-width: 30px;
+    justify-content: center;
+    border-radius: 2px;
+    padding: 2px 5px;
+    color: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .popover-divider {
+    width: 100%;
+    margin: 10px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .popover-description {
+    max-width: 220px;
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.8);
+  }
+}
+
+.dds-annotator-editor-light {
+  .dds-annotator-slidertoolbar {
+    background: #fff;
+
+    .slidertoolbar-btn {
+      box-shadow: none;
+
+      svg {
+        color: #000;
+        fill: #000;
+        scale: 1.2;
+      }
+
+      &:hover {
+        svg {
+          color: #fff;
+          fill: #fff;
+        }
+      }
+    }
+
+    .slidertoolbar-btn-active {
+      svg {
+        color: #fff;
+        fill: #fff;
+        scale: 1.2;
+      }
+    }
+
+    .slidertoolbar-btn-disabled {
+      color: rgba(0, 0, 0, 0.25);
+
+      svg {
+        fill: rgba(0, 0, 0, 0.25);
+      }
+    }
+
+    .slidertoolbar-annotool-active-wrap {
+      background: #484848;
+    }
+
+    .slidertoolbar-scale-text {
+      color: rgba(0, 0, 0, 0.8);
+    }
+
+    .slidertoolbar-divider {
+      border-bottom: 1px solid #bbb;
+    }
+  }
+
+  .dds-annotator-slidertoolbar-popover {
+    .popover-key {
+      color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 1px 3px rgba(255, 255, 255, 0.3),
+        0 1px 2px rgba(255, 255, 255, 0.1);
+    }
+
+    .popover-divider {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .popover-description {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
