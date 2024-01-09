@@ -1,0 +1,77 @@
+.dds-annotator-attributes-form {
+  width: 100%;
+  padding: 12px 12px 0;
+
+  .ant-form-item {
+    margin-bottom: 14px;
+  }
+
+  .ant-form-item-label {
+    font-weight: 500;
+  }
+
+  .ant-input {
+    border-color: @colorPrimary;
+  }
+
+  &-item-title {
+    display: flex;
+    align-items: center;
+
+    &-btn {
+      margin-left: 12px;
+      height: 24px;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-items: center;
+
+      svg {
+        width: 22px;
+        height: 22px;
+        fill: @colorPrimary;
+      }
+    }
+
+    .attribute-warn {
+      fill: #f53f3f;
+    }
+  }
+}
+
+.dds-annotator-attributes-form-dark {
+  .ant-form-item-label {
+    & > label {
+      color: #fff;
+    }
+  }
+
+  .ant-radio-wrapper {
+    color: #fff;
+
+    .ant-radio-disabled .ant-radio-inner {
+      background-color: #fff;
+    }
+  }
+
+  .ant-checkbox-wrapper {
+    color: #fff;
+
+    .ant-checkbox-disabled .ant-checkbox-inner {
+      background-color: #fff;
+    }
+
+    .ant-checkbox-disabled + span {
+      color: #fff;
+    }
+  }
+
+  .ant-input {
+    color: #fff;
+    background-color: transparent;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}

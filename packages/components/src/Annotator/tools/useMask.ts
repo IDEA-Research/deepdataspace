@@ -29,10 +29,10 @@ import {
   PROMPT_FILL_COLOR,
 } from '../constants/render';
 import {
-  EMaskPromptType,
+  EPromptType,
   ICreatingMaskStep,
   ICreatingObject,
-  MaskPromptItem,
+  PromptItem,
 } from '../type';
 import { hexToRgbArray, hexToRgba } from '../utils/color';
 import { cloneDeep } from 'lodash';
@@ -467,12 +467,12 @@ const useMask: ToolInstanceHook = ({
 
   const renderPrompt: ToolHooksFunc.RenderPrompt = ({ prompt }) => {
     // draw creating prompt
-    if (prompt.creatingMask) {
+    if (prompt.creatingPrompt) {
       const strokeColor = ANNO_STROKE_COLOR.CREATING;
       const fillColor = ANNO_FILL_COLOR.CREATING;
-      switch (prompt.creatingMask.type) {
-        case EMaskPromptType.Rect: {
-          const { startPoint } = prompt.creatingMask;
+      switch (prompt.creatingPrompt.type) {
+        case EPromptType.Rect: {
+          const { startPoint } = prompt.creatingPrompt;
           const rect = getRectFromPoints(
             startPoint!,
             {
@@ -498,10 +498,10 @@ const useMask: ToolInstanceHook = ({
           );
           break;
         }
-        case EMaskPromptType.Point: {
-          if (!prompt.creatingMask.point) break;
+        case EPromptType.Point: {
+          if (!prompt.creatingPrompt.point) break;
           const canvasCoordPoint = translatePointCoord(
-            prompt.creatingMask.point,
+            prompt.creatingPrompt.point,
             {
               x: -imagePos.current.x,
               y: -imagePos.current.y,
@@ -511,29 +511,31 @@ const useMask: ToolInstanceHook = ({
             activeCanvasRef.current!,
             canvasCoordPoint,
             4,
-            prompt.creatingMask.isPositive
+            prompt.creatingPrompt.isPositive
               ? PROMPT_FILL_COLOR.POSITIVE
               : PROMPT_FILL_COLOR.NEGATIVE,
             2,
             '#fff',
           );
         }
-        case EMaskPromptType.EdgeStitch:
-        case EMaskPromptType.Stroke: {
-          if (!prompt.creatingMask.stroke || !prompt.creatingMask.radius) break;
+        case EPromptType.EdgeStitch:
+        case EPromptType.Stroke: {
+          if (!prompt.creatingPrompt.stroke || !prompt.creatingPrompt.radius)
+            break;
           const canvasCoordStroke = translatePolygonCoord(
-            prompt.creatingMask.stroke,
+            prompt.creatingPrompt.stroke,
             {
               x: -imagePos.current.x,
               y: -imagePos.current.y,
             },
           );
           const radius =
-            (prompt.creatingMask.radius * clientSize.width) / naturalSize.width;
+            (prompt.creatingPrompt.radius * clientSize.width) /
+            naturalSize.width;
           const color =
-            prompt.creatingMask.type === EMaskPromptType.EdgeStitch
+            prompt.creatingPrompt.type === EPromptType.EdgeStitch
               ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
-              : prompt.creatingMask.isPositive
+              : prompt.creatingPrompt.isPositive
               ? PROMPT_FILL_COLOR.POSITIVE
               : PROMPT_FILL_COLOR.NEGATIVE;
           drawQuadraticPath(
@@ -562,9 +564,9 @@ const useMask: ToolInstanceHook = ({
     }
 
     // draw existing prompts
-    if (prompt.maskPrompts) {
-      prompt.maskPrompts.forEach((item) => {
-        if (item.type === EMaskPromptType.Point) {
+    if (prompt.promptsQueue) {
+      prompt.promptsQueue.forEach((item) => {
+        if (item.type === EPromptType.Point) {
           const canvasCoordPoint = translatePointCoord(item.point!, {
             x: -imagePos.current.x,
             y: -imagePos.current.y,
@@ -629,34 +631,29 @@ const useMask: ToolInstanceHook = ({
               )
             ) {
               // Brush tool need not push history when mousedown
-              updateHistory(
-                cloneDeep({
-                  drawData: s,
-                  clientSize,
-                }),
-              );
+              updateHistory(cloneDeep(s));
             }
           }
-          s.prompt.segmentationMask = undefined;
+          s.prompt.sessionId = undefined;
           break;
         case ESubToolItem.AutoSegmentByBox:
-          s.prompt.creatingMask = {
-            type: EMaskPromptType.Rect,
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Rect,
             startPoint: mouse,
             isPositive: true,
           };
           break;
         case ESubToolItem.AutoSegmentByClick:
-          s.prompt.creatingMask = {
-            type: EMaskPromptType.Point,
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Point,
             startPoint: mouse,
             point: mouse,
             isPositive: getPromptBoolean(event),
           };
           break;
         case ESubToolItem.AutoSegmentByStroke:
-          s.prompt.creatingMask = {
-            type: EMaskPromptType.Stroke,
+          s.prompt.creatingPrompt = {
+            type: EPromptType.Stroke,
             startPoint: mouse,
             stroke: [mouse],
             radius: s.brushSize,
@@ -664,8 +661,8 @@ const useMask: ToolInstanceHook = ({
           };
           break;
         case ESubToolItem.AutoEdgeStitching:
-          s.prompt.creatingMask = {
-            type: EMaskPromptType.EdgeStitch,
+          s.prompt.creatingPrompt = {
+            type: EPromptType.EdgeStitch,
             startPoint: mouse,
             stroke: [mouse],
             radius: s.brushSize,
@@ -708,26 +705,26 @@ const useMask: ToolInstanceHook = ({
                 },
                 tempMaskSteps: [],
               };
-              s.prompt.segmentationMask = undefined;
+              s.prompt.sessionId = undefined;
               break;
             case ESubToolItem.AutoSegmentByBox:
-              s.prompt.creatingMask = {
-                type: EMaskPromptType.Rect,
+              s.prompt.creatingPrompt = {
+                type: EPromptType.Rect,
                 startPoint: point,
                 isPositive: true,
               };
               break;
             case ESubToolItem.AutoSegmentByClick:
-              s.prompt.creatingMask = {
-                type: EMaskPromptType.Point,
+              s.prompt.creatingPrompt = {
+                type: EPromptType.Point,
                 startPoint: point,
                 point: point,
                 isPositive: getPromptBoolean(event),
               };
               break;
             case ESubToolItem.AutoSegmentByStroke:
-              s.prompt.creatingMask = {
-                type: EMaskPromptType.Stroke,
+              s.prompt.creatingPrompt = {
+                type: EPromptType.Stroke,
                 startPoint: point,
                 stroke: [point],
                 radius: s.brushSize,
@@ -735,8 +732,8 @@ const useMask: ToolInstanceHook = ({
               };
               break;
             case ESubToolItem.AutoEdgeStitching:
-              s.prompt.creatingMask = {
-                type: EMaskPromptType.EdgeStitch,
+              s.prompt.creatingPrompt = {
+                type: EPromptType.EdgeStitch,
                 startPoint: point,
                 stroke: [point],
                 radius: s.brushSize,
@@ -757,7 +754,7 @@ const useMask: ToolInstanceHook = ({
     event,
     object,
   }) => {
-    if (object || drawData.prompt.creatingMask) {
+    if (object || drawData.prompt.creatingPrompt) {
       updateMouseCursor('crosshair');
       const allowRecordMousePath = [
         ESubToolItem.BrushAdd,
@@ -782,7 +779,7 @@ const useMask: ToolInstanceHook = ({
         ].includes(drawData.selectedSubTool);
         setDrawData((s) => {
           if (isCreatingPrompt) {
-            s.prompt.creatingMask?.stroke?.push(mouse);
+            s.prompt.creatingPrompt?.stroke?.push(mouse);
           } else {
             s.creatingObject?.maskStep?.points.push(mouse);
           }
@@ -810,7 +807,7 @@ const useMask: ToolInstanceHook = ({
     };
 
   const finishMaskWhenMouseUp = () => {
-    if (!drawData.creatingObject && !drawData.prompt.creatingMask) return;
+    if (!drawData.creatingObject && !drawData.prompt.creatingPrompt) return;
     const mouse = {
       x: contentMouse.elementX,
       y: contentMouse.elementY,
@@ -843,75 +840,75 @@ const useMask: ToolInstanceHook = ({
               s.creatingObject.maskStep = undefined;
             }
           }
-          s.prompt.segmentationMask = undefined;
+          s.prompt.sessionId = undefined;
         });
         break;
       }
       case ESubToolItem.AutoSegmentByBox: {
-        if (!drawData.prompt.creatingMask?.startPoint) break;
+        if (!drawData.prompt.creatingPrompt?.startPoint) break;
         if (
-          mouse.x === drawData.prompt.creatingMask.startPoint?.x ||
-          mouse.y === drawData.prompt.creatingMask.startPoint?.y
+          mouse.x === drawData.prompt.creatingPrompt.startPoint?.x ||
+          mouse.y === drawData.prompt.creatingPrompt.startPoint?.y
         ) {
-          setDrawData((s) => (s.prompt.creatingMask = undefined));
+          setDrawData((s) => (s.prompt.creatingPrompt = undefined));
           break;
         }
         const rect = getRectFromPoints(
-          drawData.prompt.creatingMask.startPoint as IPoint,
+          drawData.prompt.creatingPrompt.startPoint as IPoint,
           mouse,
           {
             width: contentMouse.elementW,
             height: contentMouse.elementH,
           },
         );
-        const promptItem: MaskPromptItem = {
-          type: EMaskPromptType.Rect,
+        const promptItem: PromptItem = {
+          type: EPromptType.Rect,
           isPositive: true,
           rect,
         };
         setDrawDataWithHistory((s) => {
           s.prompt.activeRectWhileLoading = rect;
         });
-        const maskPrompts = drawData.prompt.maskPrompts
-          ? [...drawData.prompt.maskPrompts, promptItem]
+        const promptsQueue = drawData.prompt.promptsQueue
+          ? [...drawData.prompt.promptsQueue, promptItem]
           : [promptItem];
-        onAiAnnotation?.({ type: EObjectType.Mask, drawData, maskPrompts });
+        onAiAnnotation?.({ type: EObjectType.Mask, drawData, promptsQueue });
         break;
       }
       case ESubToolItem.AutoSegmentByClick: {
         if (
           !isInCanvas(contentMouse) ||
           !isInCanvas(containerMouse) ||
-          !drawData.prompt.creatingMask?.point
+          !drawData.prompt.creatingPrompt?.point
         )
           break;
-        const promptItem: MaskPromptItem = {
-          type: EMaskPromptType.Point,
-          isPositive: drawData.prompt.creatingMask.isPositive,
-          point: drawData.prompt.creatingMask.point,
+        const promptItem: PromptItem = {
+          type: EPromptType.Point,
+          isPositive: drawData.prompt.creatingPrompt.isPositive,
+          point: drawData.prompt.creatingPrompt.point,
         };
-        const maskPrompts = drawData.prompt.maskPrompts
-          ? [...drawData.prompt.maskPrompts, promptItem]
+        const promptsQueue = drawData.prompt.promptsQueue
+          ? [...drawData.prompt.promptsQueue, promptItem]
           : [promptItem];
-        onAiAnnotation?.({ type: EObjectType.Mask, drawData, maskPrompts });
+        onAiAnnotation?.({ type: EObjectType.Mask, drawData, promptsQueue });
         break;
       }
       case ESubToolItem.AutoSegmentByStroke: {
-        if (!drawData.prompt.creatingMask?.stroke) break;
-        const promptItem: MaskPromptItem = {
-          type: EMaskPromptType.Stroke,
-          isPositive: drawData.prompt.creatingMask.isPositive,
-          stroke: drawData.prompt.creatingMask.stroke,
+        if (!drawData.prompt.creatingPrompt?.stroke) break;
+        const promptItem: PromptItem = {
+          type: EPromptType.Stroke,
+          isPositive: drawData.prompt.creatingPrompt.isPositive,
+          stroke: drawData.prompt.creatingPrompt.stroke,
           radius: drawData.brushSize,
         };
-        const maskPrompts = drawData.prompt.maskPrompts
-          ? [...drawData.prompt.maskPrompts, promptItem]
+        const promptsQueue = drawData.prompt.promptsQueue
+          ? [...drawData.prompt.promptsQueue, promptItem]
           : [promptItem];
-        onAiAnnotation?.({ type: EObjectType.Mask, drawData, maskPrompts });
+        onAiAnnotation?.({ type: EObjectType.Mask, drawData, promptsQueue });
         break;
       }
       case ESubToolItem.AutoEdgeStitching: {
-        if (!drawData.prompt.creatingMask?.stroke) break;
+        if (!drawData.prompt.creatingPrompt?.stroke) break;
         onAiAnnotation?.({ type: EObjectType.Mask, drawData });
         break;
       }

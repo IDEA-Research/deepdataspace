@@ -326,6 +326,7 @@ class ImageModel(BaseModel):
                         keypoint_colors: List[int] = None,
                         keypoint_skeleton: List[int] = None,
                         keypoint_names: List[str] = None,
+                        caption: str = None,
                         confirm_type: int = 0,
                         ):
         if bbox:
@@ -341,7 +342,7 @@ class ImageModel(BaseModel):
                                                               keypoint_skeleton,
                                                               keypoint_names)
         anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
-                          category_name=category, category_id=category_obj.id,
+                          category_name=category, category_id=category_obj.id, caption=caption,
                           bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
                           conf=conf, is_group=is_group, confirm_type=confirm_type)
@@ -361,6 +362,7 @@ class ImageModel(BaseModel):
                        keypoint_colors: List[int] = None,
                        keypoint_skeleton: List[int] = None,
                        keypoint_names: List[str] = None,
+                       caption: str = None,
                        confirm_type: int = 0,
                        ):
         """
@@ -380,13 +382,14 @@ class ImageModel(BaseModel):
         :param keypoint_names: the key point names, ["nose", "left_eye", ...].
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
+        :param caption: the caption of the annotation.
         :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         """
 
         self._add_annotation(category, label, label_type, conf,
                              is_group, bbox, segmentation, alpha_uri,
                              keypoints, keypoint_colors, keypoint_skeleton, keypoint_names,
-                             confirm_type)
+                             caption, confirm_type)
 
         self.save()
         self._update_dataset(bbox, segmentation, alpha_uri, keypoints)
@@ -434,6 +437,7 @@ class ImageModel(BaseModel):
         :param keypoint_names: the key point names, ["nose", "left_eye", ...].
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
+        :param caption: the caption of the annotation.
         :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         :return: None
         """
@@ -457,7 +461,7 @@ class ImageModel(BaseModel):
         self.objects.append(anno_obj)
 
     def finish_batch_add_annotation(self):
-        self.dataset.batch_save_image(self)
+        self.dataset.batch_save_image()
 
 
 _image_models: Dict[str, Type[ImageModel]] = {}  # a cache for ImageModel for each dataset

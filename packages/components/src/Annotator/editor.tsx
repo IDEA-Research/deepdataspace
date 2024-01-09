@@ -1,43 +1,26 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Button, Divider, Dropdown, Modal } from 'antd';
-import {
-  EObjectType,
-  EElementType,
-  EBasicToolItem,
-  ESubToolItem,
-} from './constants';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Dropdown, Modal } from 'antd';
+import { EBasicToolItem } from './constants';
 import { Updater, useImmer } from 'use-immer';
-import TopTools from './components/TopTools';
 import useLabels from './hooks/useLabels';
 import useActions from './hooks/useActions';
-import PopoverMenu from './components/PopoverMenu';
 import { ObjectList } from './components/ObjectList';
-import { MainToolBar } from './components/MainToolBar';
 import SmartAnnotationControl from './components/SmartAnnotationControl';
-import { ScaleToolBar } from './components/ScaleToolBar';
-import { ArrowLeftOutlined } from '@ant-design/icons';
 import { TopPagination } from './components/TopPagination';
-import { AnnotationEditor } from './components/AnnotationEditor';
-import { ShortcutsInfo } from './components/ShortcutsInfo';
 import useHistory from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
 import useCanvasContainer from './hooks/useCanvasContainer';
-import usePreviousState from './hooks/usePreviousState';
 import { cloneDeep } from 'lodash';
-import { useLocale } from 'dds-utils/locale';
-import { SubToolBar } from './components/SubToolBar';
 import {
   BaseObject,
   Category,
   DEFAULT_DRAW_DATA,
   DEFAULT_EDIT_STATE,
   DrawData,
-  DrawImageData,
+  AnnoItem,
   EditState,
   EditorMode,
-  EObjectStatus,
   DrawObject,
-  EQaAction,
 } from './type';
 import useMouseCursor from './hooks/useMouseCursor';
 import useShortcuts from './hooks/useShortcuts';
@@ -45,17 +28,32 @@ import useToolActions from './hooks/useToolActions';
 import useMouseEvents from './hooks/useMouseEvents';
 import useCanvasRender from './hooks/useCanvasRender';
 import useDataEffect from './hooks/useDataEffect';
+import useSubTools from './hooks/useSubtools';
 import { useToolInstances } from './tools/base';
 import useColor from './hooks/useColor';
 import { ImageView } from './components/ImageView';
+import useTranslate from './hooks/useTranslate';
+import ClassificationPanel from './components/Classification';
+import AttributeEditor from './components/AttributeEditor';
+import SegConfirmModal from './components/SegConfirmModal';
+import useAttributes from './hooks/useAttributes';
+import SliderToolBar from './components/SliderToolBar';
+import useTopTools from './hooks/useTopTools';
 import './index.less';
+import classNames from 'classnames';
+import ModelSelectModal from './components/ModelSelectModal';
+import PointsEditModal from './components/PointsEditModal';
 
 export interface EditProps {
-  isSeperate: boolean;
+  isOldMode?: boolean; // is old dataset design mode
+  isSeperate?: boolean; // is quickmode single editor
+  theme?: 'light' | 'dark';
   visible: boolean;
   mode: EditorMode;
+  enableReviewerModify?: boolean;
+  limitToolTypes?: EBasicToolItem[];
   categories: Category[];
-  list: DrawImageData[];
+  list: AnnoItem[];
   current: number;
   pagination?: {
     show: boolean;
@@ -63,13 +61,38 @@ export interface EditProps {
     customText?: React.ReactElement;
     customDisableNext?: boolean;
   };
+  titleElements?: React.ReactElement[];
   actionElements?: React.ReactElement[];
+  layoutOptions?: {
+    wrapHeight?: string;
+    hideRightList?: boolean;
+    hideTopBar?: boolean;
+    hideTopBarActions?: boolean;
+    hideUndoRedoActions?: boolean;
+    hideReferenceLine?: boolean;
+    minPadding?: {
+      top: number;
+      left: number;
+    };
+  };
+  manualMode?: boolean;
+  forceColorByObject?: boolean;
+  limitActiveObject?: boolean;
+  limitActiveObjectAfterCreate?: boolean;
+  customDefaultDrawData?: Partial<DrawData>;
+  customDefaultEditState?: EditState;
+  customDrawData?: DrawData;
+  customEditState?: EditState;
+  customObjects?: DrawObject[];
+  customObjectsFilter?: (imageData: any) => BaseObject[];
   objectsFilter?: (imageData: any) => BaseObject[];
-  onCancel?: () => void;
-  onSave?: (imageId: string, annotations: BaseObject[]) => Promise<void>;
   onAutoSave?: (annotations: BaseObject[], naturalSize: ISize) => void;
-  onReviewResult?: (imageId: string, action: EQaAction) => Promise<void>;
-  onEnterEdit?: () => void;
+  onCancel?: () => void;
+  onSave?: (id: string, labels: any[]) => Promise<void>;
+  onCommit?: (id: string, labels: any[]) => Promise<void>;
+  onReviewModify?: (id: string, labels: any[]) => Promise<void>;
+  onReviewAccept?: (id: string, labels: any[]) => Promise<void>;
+  onReviewReject?: (id: string, labels: any[]) => Promise<void>;
   onPrev?: () => Promise<void>;
   onNext?: () => Promise<void>;
   setCategories?: Updater<Category[]>;
@@ -77,6 +100,8 @@ export interface EditProps {
 
 const Edit: React.FC<EditProps> = (props) => {
   const {
+    theme = 'dark',
+    isOldMode,
     isSeperate,
     visible,
     categories,
@@ -84,19 +109,28 @@ const Edit: React.FC<EditProps> = (props) => {
     current,
     pagination,
     mode,
+    enableReviewerModify,
+    limitToolTypes,
+    titleElements,
     actionElements,
+    layoutOptions,
+    manualMode,
+    forceColorByObject,
+    limitActiveObject,
+    limitActiveObjectAfterCreate,
+    customDefaultDrawData,
     onPrev,
     onNext,
     onCancel,
     onSave,
-    onEnterEdit,
-    onReviewResult,
+    onCommit,
+    onReviewModify,
+    onReviewAccept,
+    onReviewReject,
     setCategories,
     onAutoSave,
     objectsFilter,
   } = props;
-
-  const { localeText } = useLocale();
   const [modal, contextHolder] = Modal.useModal();
 
   const [annotations, setAnnotations] = useImmer<DrawObject[]>([]);
@@ -105,47 +139,25 @@ const Edit: React.FC<EditProps> = (props) => {
     cloneDeep(DEFAULT_EDIT_STATE),
   );
 
-  const [drawData, setDrawData] = useImmer<DrawData>(
-    cloneDeep(DEFAULT_DRAW_DATA),
-  );
+  const [drawData, setDrawData] = useImmer<DrawData>({
+    ...cloneDeep(DEFAULT_DRAW_DATA),
+    ...customDefaultDrawData,
+  });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const isCustomCursorActive = useMemo(() => {
-    const isToolWithSize = [
-      ESubToolItem.AutoEdgeStitching,
-      ESubToolItem.AutoSegmentByStroke,
-      ESubToolItem.BrushAdd,
-      ESubToolItem.BrushErase,
-    ].includes(drawData.selectedSubTool);
+  const currAnnoItem = useMemo(() => {
+    return list[current];
+  }, [list, current]);
 
-    if (
-      drawData.creatingObject &&
-      drawData.activeObjectIndex > -1 &&
-      drawData.creatingObject.type === EObjectType.Mask
-    ) {
-      return isToolWithSize;
-    }
-    if (
-      drawData.selectedTool !== EBasicToolItem.Drag &&
-      !drawData.isBatchEditing
-    ) {
-      return drawData.selectedTool === EBasicToolItem.Mask && isToolWithSize;
-    }
-    return false;
-  }, [drawData.selectedTool, drawData.selectedSubTool]);
+  const currImageItem = currAnnoItem;
 
-  const showReferenceLine = useMemo(() => {
-    return (
-      drawData.selectedTool !== EBasicToolItem.Drag && !isCustomCursorActive
-    );
-  }, [drawData.selectedTool, isCustomCursorActive]);
-
-  const { labelColors, getAnnotColor } = useColor({
+  const { getAnnotColor, labelColors } = useColor({
     categories,
     editState,
+    forceColorByObject,
   });
 
   const {
@@ -163,19 +175,24 @@ const Edit: React.FC<EditProps> = (props) => {
     isMousePress,
   } = useCanvasContainer({
     visible,
+    drawData,
     allowMove: editState.allowMove,
     isRequiring: editState.isRequiring,
-    showReferenceLine,
-    minPadding: {
+    minPadding: layoutOptions?.minPadding || {
       top: 30,
       left: 80,
     },
-    isCustomCursorActive,
     cursorSize: drawData.brushSize,
+    hideReferenceLine: !!layoutOptions?.hideReferenceLine,
   });
 
-  const [preClientSize, clearPreClientSize] =
-    usePreviousState<ISize>(clientSize);
+  const { translateObject, translateToObject } = useTranslate({
+    isOldMode,
+    clientSize,
+    naturalSize,
+    categories,
+    getAnnotColor,
+  });
 
   const {
     undo,
@@ -189,7 +206,14 @@ const Edit: React.FC<EditProps> = (props) => {
     naturalSize,
     setDrawData,
     onAutoSave,
+    translateObject,
   });
+
+  const { judgeEditingAttribute, onConfirmAttibuteEdit, onCancelAttibuteEdit } =
+    useAttributes({
+      setDrawDataWithHistory,
+      categories,
+    });
 
   const {
     addObject,
@@ -200,29 +224,34 @@ const Edit: React.FC<EditProps> = (props) => {
     updateObject,
     updateObjectWithoutHistory,
     updateAllObjectWithoutHistory,
+    commitedObjects,
+    currObject,
   } = useObjects({
     annotations,
     setAnnotations,
-    clientSize,
-    naturalSize,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
-    editState,
     setEditState,
     mode,
+    translateToObject,
+    judgeEditingAttribute,
+    limitActiveObjectAfterCreate,
+    updateHistory,
   });
 
   const {
+    labelOptions,
+    classificationOptions,
     aiLabels,
     setAiLabels,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     onChangeActiveClass,
     onCreateCategory,
-    onChangePointVisible
+    onChangePointVisible,
   } = useLabels({
-    visible,
+    isOldMode,
     mode,
     categories,
     setCategories,
@@ -236,13 +265,14 @@ const Edit: React.FC<EditProps> = (props) => {
   const {
     onAiAnnotation,
     onSaveAnnotations,
+    onCommitAnnotations,
     onCancelAnnotations,
-    onReject,
-    onAccept,
+    onRejectAnnotations,
+    onAcceptAnnotations,
+    onModifyAnnotations,
   } = useActions({
     mode,
-    list,
-    current,
+    currImageItem,
     modal,
     drawData,
     setDrawData,
@@ -253,12 +283,18 @@ const Edit: React.FC<EditProps> = (props) => {
     clientSize,
     imagePos,
     containerMouse,
-    onCancel,
-    onSave,
     updateAllObject,
     hadChangeRecord,
-    latestLabel: editState.latestLabel,
     getAnnotColor,
+    categories,
+    translateObject,
+    onCancel,
+    onSave,
+    onCommit,
+    onReviewModify,
+    onReviewAccept,
+    onReviewReject,
+    classificationOptions,
   });
 
   const { updateMouseCursor } = useMouseCursor({
@@ -268,9 +304,8 @@ const Edit: React.FC<EditProps> = (props) => {
   });
 
   const {
-    onDeleteCurrObject,
+    onChangeObjectLabel,
     onFinishCurrCreate,
-    onCloseAnnotationEditor,
     onAcceptValidObjects,
     onAbortBatchObjects,
     selectTool,
@@ -279,15 +314,16 @@ const Edit: React.FC<EditProps> = (props) => {
     onExitAIAnnotation,
     setBrushSize,
     activeAIAnnotation,
-    onSaveAIPolygon,
-    onCancelAIPolygon,
     onChangeSkeletonConf,
     onChangeLimitConf,
     onChangeAnnotsDisplayOpts,
     onChangeImageDisplayOpts,
     onChangeColorMode,
+    onChangePointResolution,
+    onSelectModel,
   } = useToolActions({
     mode,
+    manualMode: !!manualMode,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
@@ -298,9 +334,14 @@ const Edit: React.FC<EditProps> = (props) => {
     clientSize,
     naturalSize,
     addObject,
-    removeObject,
     updateObject,
     updateAllObject,
+    onAiAnnotation,
+  });
+
+  const { showSubTools, currSubTools } = useSubTools({
+    drawData,
+    onChangePointResolution,
   });
 
   const { objectHooksMap } = useToolInstances({
@@ -324,9 +365,10 @@ const Edit: React.FC<EditProps> = (props) => {
     aiLabels,
     onAiAnnotation,
     getAnnotColor,
+    categories,
   });
 
-  const { updateRender } = useCanvasRender({
+  const { updateRender, renderPopoverMenu } = useCanvasRender({
     visible,
     drawData,
     editState,
@@ -359,18 +401,20 @@ const Edit: React.FC<EditProps> = (props) => {
     imagePos,
     containerMouse,
     getAnnotColor,
+    limitActiveObject,
   });
 
   useShortcuts({
     visible,
     mode,
     drawData,
+    categories,
     isMousePress,
     setDrawData,
     setEditState,
     onSaveAnnotations,
-    onAccept,
-    onReject,
+    onAcceptAnnotations,
+    onRejectAnnotations,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     removeObject,
@@ -380,12 +424,9 @@ const Edit: React.FC<EditProps> = (props) => {
   const { resetDataWithImageData } = useDataEffect({
     imagePos,
     clientSize,
-    preClientSize,
-    clearPreClientSize,
     naturalSize,
     annotations,
     setAnnotations,
-    labelColors,
     drawData,
     setDrawData,
     editState,
@@ -394,14 +435,9 @@ const Edit: React.FC<EditProps> = (props) => {
     updateRender,
     clearHistory,
     objectsFilter,
+    labelOptions,
+    customDefaultDrawData,
   });
-
-  /** Copy annots from previous image  */
-  const repeatPrevious = useCallback(() => {
-    if (current > 0 && current < list.length) {
-      resetDataWithImageData(list[current - 1], visible, false);
-    }
-  }, [resetDataWithImageData, list, current, visible]);
 
   // =================================================================================================================
   // Effects
@@ -410,12 +446,15 @@ const Edit: React.FC<EditProps> = (props) => {
   /** Limit bottom layer body scroll */
   useEffect(() => {
     document.body.style.overflow = visible ? 'hidden' : 'overlay';
+    return () => {
+      document.body.style.overflow = 'overlay';
+    };
   }, [visible]);
 
   /** Reset data when hiding the editor or switching images */
   useEffect(() => {
-    resetDataWithImageData(list[current], visible);
-  }, [visible, mode, current, objectsFilter]);
+    resetDataWithImageData(currImageItem, visible);
+  }, [visible, mode, current, currImageItem?.id, objectsFilter]);
 
   useEffect(() => {
     onChangeColorMode();
@@ -426,156 +465,98 @@ const Edit: React.FC<EditProps> = (props) => {
   // =================================================================================================================
 
   const fileName = useMemo(() => {
-    if (
-      list[current]?.urlFullRes &&
-      list[current]?.urlFullRes.indexOf('http') === 0
-    ) {
-      const url = decodeURIComponent(list[current]?.urlFullRes);
+    if (currAnnoItem?.name) return currAnnoItem?.name;
+    if (currAnnoItem?.url && currAnnoItem?.url.indexOf('http') === 0) {
+      const url = decodeURIComponent(currAnnoItem?.url);
       return url.replace(/\?.*$/, '').split('/').pop() || '';
     }
     return '';
-  }, [list, current]);
+  }, [currAnnoItem]);
 
-  const supportActions = useMemo(() => {
-    const actions = actionElements
-      ? actionElements.map((item) => ({ customElement: item }))
-      : [];
-    if (mode === EditorMode.Review && onReviewResult) {
-      actions.push(
-        ...[
-          {
-            customElement: (
-              <Button type="primary" danger onClick={onReject}>
-                {localeText('DDSAnnotator.reject')}
-              </Button>
-            ),
-          },
-          {
-            customElement: (
-              <Button type="primary" onClick={onAccept}>
-                {localeText('DDSAnnotator.approve')}
-              </Button>
-            ),
-          },
-        ],
-      );
-    }
-    if (mode === EditorMode.Edit && !isSeperate) {
-      actions.push(
-        ...[
-          {
-            customElement: (
-              <Button
-                type="primary"
-                onClick={() => onSaveAnnotations(drawData)}
-              >
-                {localeText('DDSAnnotator.save')}
-              </Button>
-            ),
-          },
-        ],
-      );
-    }
-    actions.unshift({
-      customElement: (
-        <>
-          <ShortcutsInfo viewOnly={mode === EditorMode.View} />
-          <Divider
-            type="vertical"
-            style={{
-              height: 20,
-              borderLeft: '1px solid #fff',
-            }}
-          />
-        </>
-      ),
-    });
-    return actions;
-  }, [mode, onReviewResult, onEnterEdit, onSaveAnnotations, list[current]]);
+  const topBarCenterElement =
+    pagination && pagination.show ? (
+      <TopPagination
+        list={list}
+        current={current}
+        total={pagination.total}
+        customText={pagination.customText}
+        customDisableNext={pagination.customDisableNext}
+        onPrev={onPrev}
+        onNext={onNext}
+      />
+    ) : null;
 
-  const renderPopoverMenu = () => {
-    if (
-      editState.focusObjectIndex > -1 &&
-      drawData.objectList[editState.focusObjectIndex] &&
-      !drawData.objectList[editState.focusObjectIndex].hidden &&
-      editState.focusEleIndex > -1 &&
-      editState.focusEleType === EElementType.Circle
-    ) {
-      const target =
-        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
-          editState.focusEleIndex
-        ];
-      if (target) {
-        return (
-          <PopoverMenu
-            index={editState.focusEleIndex}
-            targetElement={target!}
-            imagePos={imagePos.current}
-          />
-        );
-      }
-    }
-    return <></>;
-  };
+  const { topToolsBar } = useTopTools({
+    isOldMode,
+    isSeperate,
+    mode,
+    hideTopBarActions: layoutOptions?.hideTopBarActions,
+    fileName,
+    drawData,
+    editState,
+    titleElements,
+    actionElements,
+    enableReviewerModify,
+    labelOptions,
+    showSubTools,
+    currSubTools,
+    topBarCenterElement,
+    labelColors,
+    selectSubTool,
+    setBrushSize,
+    activeAIAnnotation,
+    onChangeImageDisplayOpts,
+    onChangeAnnotsDisplayOpts,
+    onChangeObjectLabel,
+    onCreateCategory,
+    onSaveAnnotations,
+    onCommitAnnotations,
+    onRejectAnnotations,
+    onAcceptAnnotations,
+    onModifyAnnotations,
+    onCancelAnnotations,
+    onSelectModel,
+  });
 
-  const isAnnotEditorVisible =
-    mode === EditorMode.Edit &&
-    !(
-      drawData.isBatchEditing &&
-      drawData.selectedTool === EBasicToolItem.Skeleton
-    ) &&
-    !(
-      drawData.selectedTool === EBasicToolItem.Polygon &&
-      drawData.AIAnnotation &&
-      drawData.activeObjectIndex === -1
-    );
+  if (!visible) {
+    return null;
+  }
 
-  const showSubTools =
-    drawData.selectedTool === EBasicToolItem.Mask ||
-    (drawData.creatingObject &&
-      drawData.creatingObject.type === EObjectType.Mask);
-
-  const commitedObjects = useMemo(() => {
-    return drawData.objectList.filter((obj) => {
-      return obj.status === EObjectStatus.Commited;
-    });
-  }, [drawData.isBatchEditing, drawData.objectList]);
-
-  if (visible) {
-    return (
-      <div className="dds-annotator dds-annotator-editor">
-        <TopTools
-          leftTools={[
-            ...(isSeperate
-              ? []
-              : [
-                  {
-                    title: localeText('DDSAnnotator.exit'),
-                    icon: <ArrowLeftOutlined />,
-                    onClick: () => onCancelAnnotations(),
-                  },
-                ]),
-            {
-              customElement: fileName,
-            },
-          ]}
-          rightTools={supportActions}
-        >
-          {pagination && pagination.show && (
-            <TopPagination
-              list={list}
-              current={current}
-              total={pagination.total}
-              customText={pagination.customText}
-              customDisableNext={pagination.customDisableNext}
-              onPrev={onPrev}
-              onNext={onNext}
-            />
-          )}
-        </TopTools>
-        <div className="editor-container">
-          <div className="left-slider"></div>
-          <div className="center-content">
+  return (
+    <div
+      className={classNames(
+        'dds-annotator',
+        'dds-annotator-editor',
+        `dds-annotator-editor-${theme}`,
+      )}
+      style={{
+        height: layoutOptions?.wrapHeight || '100vh',
+      }}
+    >
+      {!layoutOptions?.hideTopBar && topToolsBar}
+      <div
+        className="editor-container"
+        style={{ top: layoutOptions?.hideTopBar ? '0' : '' }}
+      >
+        <SliderToolBar
+          onlySupportZoom={mode !== EditorMode.Edit}
+          selectedTool={drawData.selectedTool}
+          manualMode={!!manualMode}
+          limitToolTypes={limitToolTypes}
+          isAIAnnotationActive={drawData.AIAnnotation}
+          onChangeSelectedTool={selectTool}
+          onActiveAIAnnotation={activeAIAnnotation}
+          hideUndoRedoActions={layoutOptions?.hideUndoRedoActions}
+          undo={undo}
+          redo={redo}
+          deleteAll={removeAllObjects}
+          scale={scale}
+          onZoomIn={onZoomIn}
+          onZoomOut={onZoomOut}
+          onZoomReset={onReset}
+        />
+        <div className="center-content">
+          {currImageItem && (
             <Dropdown
               dropdownRender={mouseRightObjectsDropDownRender}
               trigger={['contextMenu']}
@@ -586,139 +567,123 @@ const Edit: React.FC<EditProps> = (props) => {
                 children: (
                   <>
                     <ImageView
-                      url={list[current]?.urlFullRes}
+                      url={currImageItem?.url}
                       imgRef={imgRef}
                       canvasRef={canvasRef}
                       activeCanvasRef={activeCanvasRef}
                       clientSize={clientSize}
                       imagePos={imagePos}
-                      onLoad={onLoadImg}
+                      onLoad={(event) => {
+                        // Possibly size not changed but image changed
+                        updateRender();
+                        onLoadImg(event);
+                      }}
                     />
                     {renderPopoverMenu()}
                   </>
                 ),
               })}
             </Dropdown>
-            {isAnnotEditorVisible && (
-              <AnnotationEditor
-                hideTitle={drawData.creatingObject?.type === EObjectType.Mask}
-                allowAddCategory={isSeperate}
-                latestLabel={editState.latestLabel}
-                categories={categories}
-                currEditObject={
-                  drawData.objectList[drawData.activeObjectIndex] ||
-                  (drawData.selectedTool === EBasicToolItem.Mask &&
-                    drawData.creatingObject)
-                }
-                currObjectIndex={drawData.activeObjectIndex}
-                focusObjectIndex={editState.focusObjectIndex}
-                focusEleType={editState.focusEleType}
-                focusEleIndex={editState.focusEleIndex}
-                onCreateCategory={onCreateCategory}
-                onDeleteCurrObject={onDeleteCurrObject}
-                onFinishCurrCreate={onFinishCurrCreate}
-                onCloseAnnotationEditor={onCloseAnnotationEditor}
-                onChangePointVisible={onChangePointVisible}
+          )}
+          <SegConfirmModal
+            mode={mode}
+            isAiAnnotation={drawData.AIAnnotation}
+            latestLabelId={editState.latestLabelId}
+            currObject={currObject}
+            onFinishCurrCreate={onFinishCurrCreate}
+          />
+          <PointsEditModal
+            mode={mode}
+            isAiAnnotation={drawData.AIAnnotation}
+            currObject={currObject}
+            currObjectIndex={drawData.activeObjectIndex}
+            focusObjectIndex={editState.focusObjectIndex}
+            focusEleType={editState.focusEleType}
+            focusEleIndex={editState.focusEleIndex}
+            onChangePointVisible={onChangePointVisible}
+            setEditState={setEditState}
+          />
+          <SmartAnnotationControl
+            selectedTool={drawData.selectedTool}
+            selectedSubTool={drawData.selectedSubTool}
+            selectedModel={drawData.selectedModel}
+            isBatchEditing={drawData.isBatchEditing}
+            AIAnnotation={drawData.AIAnnotation}
+            hasPolygonPreds={!!drawData.creatingObject?.polygon}
+            isCtrlPressed={editState.isCtrlPressed}
+            limitConf={drawData.limitConf}
+            aiLabels={aiLabels}
+            naturalSize={naturalSize}
+            categories={categories}
+            setAiLabels={setAiLabels}
+            forceChangeTool={forceChangeTool}
+            onAiAnnotation={onAiAnnotation}
+            onExitAIAnnotation={onExitAIAnnotation}
+            onChangeConfidenceRange={onChangeSkeletonConf}
+            onChangeLimitConf={onChangeLimitConf}
+            onAcceptValidObjects={onAcceptValidObjects}
+            onCancelBatchEdit={onAbortBatchObjects}
+          />
+          <ModelSelectModal
+            selectedTool={drawData.selectedTool}
+            AIAnnotation={drawData.AIAnnotation}
+            selectedModel={drawData.selectedModel}
+            onSelectModel={onSelectModel}
+            onCloseModal={() =>
+              setDrawData((s) => {
+                s.AIAnnotation = false;
+              })
+            }
+          />
+          {drawData.editingAttribute && (
+            <AttributeEditor
+              data={drawData.editingAttribute}
+              supportEdit={mode === EditorMode.Edit}
+              onConfirmAttibuteEdit={onConfirmAttibuteEdit}
+              onCancelAttibuteEdit={onCancelAttibuteEdit}
+            />
+          )}
+        </div>
+        {!layoutOptions?.hideRightList && (
+          <div className="right-slider">
+            {classificationOptions.length > 0 && (
+              <ClassificationPanel
+                className="classifications"
+                supportEdit={mode === EditorMode.Edit}
+                classificationOptions={classificationOptions}
+                values={drawData.classifications}
+                setDrawDataWithHistory={setDrawDataWithHistory}
               />
             )}
-            <SmartAnnotationControl
-              selectedTool={drawData.selectedTool}
-              selectedSubTool={drawData.selectedSubTool}
-              isBatchEditing={drawData.isBatchEditing}
-              AIAnnotation={drawData.AIAnnotation}
-              hasPolygonPreds={!!drawData.creatingObject?.polygon}
-              isCtrlPressed={editState.isCtrlPressed}
-              limitConf={drawData.limitConf}
-              aiLabels={aiLabels}
-              naturalSize={naturalSize}
+            <ObjectList
+              supportEdit={mode === EditorMode.Edit}
+              className="object-list"
+              objects={commitedObjects}
               categories={categories}
-              setAiLabels={setAiLabels}
-              forceChangeTool={forceChangeTool}
-              onAiAnnotation={onAiAnnotation}
-              onExitAIAnnotation={onExitAIAnnotation}
-              onSaveAIPolygon={onSaveAIPolygon}
-              onCancelAIPolygon={onCancelAIPolygon}
-              onChangeConfidenceRange={onChangeSkeletonConf}
-              onChangeLimitConf={onChangeLimitConf}
-              onAcceptValidObjects={onAcceptValidObjects}
-              onCancelBatchEdit={onAbortBatchObjects}
-              onCreateCategory={onCreateCategory}
-            />
-            <ScaleToolBar
-              scale={scale}
-              onZoomIn={onZoomIn}
-              onZoomOut={onZoomOut}
-              onReset={onReset}
-              displayOption={editState.imageDisplayOptions}
+              activeObjectIndex={drawData.activeObjectIndex}
+              activeClassName={drawData.activeClassName}
+              onFocusObject={forceChangeFocusObject}
+              onActiveObject={selectFocusObject}
+              onChangeObjectHidden={onChangeObjectHidden}
+              onChangeCategoryHidden={onChangeCategoryHidden}
+              onDeleteObject={removeObject}
+              onChangeActiveClassName={onChangeActiveClass}
+              setDrawDataWithHistory={setDrawDataWithHistory}
               colorByCategory={editState.annotsDisplayOptions.colorByCategory}
-              onChangeImageDisplayOpts={onChangeImageDisplayOpts}
               onChangeAnnotsDisplayOpts={onChangeAnnotsDisplayOpts}
             />
-            {mode === EditorMode.Edit && (
-              <>
-                <MainToolBar
-                  selectedTool={drawData.selectedTool}
-                  isAIAnnotationActive={drawData.AIAnnotation}
-                  onChangeSelectedTool={selectTool}
-                  onActiveAIAnnotation={activeAIAnnotation}
-                  undo={undo}
-                  redo={redo}
-                  repeatPrevious={repeatPrevious}
-                  deleteAll={removeAllObjects}
-                />
-                {showSubTools && (
-                  <SubToolBar
-                    selectedSubTool={drawData.selectedSubTool}
-                    isAIAnnotationActive={drawData.AIAnnotation}
-                    isSegEverythingAvailable={
-                      (drawData.objectList.length === 0 &&
-                        !drawData.creatingObject) ||
-                      drawData.isBatchEditing
-                    }
-                    isManualAvailable={
-                      !drawData.prompt.segmentationMask &&
-                      !(
-                        drawData.prompt.maskPrompts &&
-                        drawData.prompt.maskPrompts.length > 0
-                      ) &&
-                      !drawData.isBatchEditing
-                    }
-                    brushSize={drawData.brushSize}
-                    onChangeSubTool={selectSubTool}
-                    onChangeBrushSize={setBrushSize}
-                    onActiveAIAnnotation={activeAIAnnotation}
-                  />
-                )}
-              </>
-            )}
           </div>
-          <ObjectList
-            supportEdit={mode === EditorMode.Edit}
-            className="right-slider"
-            objects={commitedObjects}
-            labelColors={labelColors}
-            activeObjectIndex={drawData.activeObjectIndex}
-            activeClassName={drawData.activeClassName}
-            onFocusObject={forceChangeFocusObject}
-            onActiveObject={selectFocusObject}
-            onChangeObjectHidden={onChangeObjectHidden}
-            onChangeCategoryHidden={onChangeCategoryHidden}
-            onDeleteObject={removeObject}
-            onChangeActiveClassName={onChangeActiveClass}
-          />
-        </div>
-        <div
-          onMouseDown={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          {contextHolder}
-        </div>
+        )}
       </div>
-    );
-  } else {
-    return <></>;
-  }
+      <div
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        {contextHolder}
+      </div>
+    </div>
+  );
 };
 
 export default Edit;

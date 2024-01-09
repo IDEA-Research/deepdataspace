@@ -1,0 +1,67 @@
+.dds-annotator-seg-confirm {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  width: 300px;
+  box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 99;
+
+  .ant-card-head {
+    background-color: @colorPrimary;
+    color: #fff;
+    font-size: 15px;
+    padding: 0 15px;
+    min-height: 45px;
+  }
+
+  .ant-card-body {
+    padding: 12px;
+  }
+
+  .btn {
+    border: 0;
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .selector {
+      width: 100%;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+  }
+
+  &:hover {
+    box-shadow: 2px 2px 12px 3px rgba(0, 0, 0, 0.6);
+  }
+}
+
+.dds-annotator-seg-confirm-visible {
+  opacity: 1;
+  pointer-events: all;
+}

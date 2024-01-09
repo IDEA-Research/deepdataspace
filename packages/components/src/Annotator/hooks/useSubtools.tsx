@@ -1,0 +1,281 @@
+import { TShortcutItem } from '../constants/shortcuts';
+import { useLocale } from 'dds-utils/locale';
+import {
+  EBasicToolItem,
+  EnumModelType,
+  EObjectType,
+  ESubToolItem,
+} from '../constants';
+import Icon from '@ant-design/icons';
+import { ReactComponent as PenAddIcon } from '../assets/pen-add.svg';
+import { ReactComponent as PenEraseIcon } from '../assets/pen-erase.svg';
+import { ReactComponent as BrushAddIcon } from '../assets/brush-add.svg';
+import { ReactComponent as BrushEraseIcon } from '../assets/brush-erase.svg';
+import { ReactComponent as MagicBoxIcon } from '../assets/magic-box.svg';
+import { ReactComponent as ClickIcon } from '../assets/magic-click.svg';
+import { ReactComponent as EdgeStitchIcon } from '../assets/edge-stitch.svg';
+import { ReactComponent as SegmentEverythingIcon } from '../assets/segment-everything.svg';
+import { ReactComponent as StrokeIcon } from '../assets/magic-brush.svg';
+import { ReactComponent as AddPromptIcon } from '../assets/add-prompt.svg';
+import { ReactComponent as RemovePromptIcon } from '../assets/remove-prompt.svg';
+import { useMemo } from 'react';
+import { DrawData } from '../type';
+import { Slider } from 'antd';
+
+export type TToolItem<T> = {
+  key: T;
+  name: string;
+  shortcut?: TShortcutItem;
+  icon: JSX.Element;
+  available: boolean;
+  description?: string;
+  withSize?: boolean;
+  withCustomElement?: boolean;
+};
+
+export type TSubtoolOptions = {
+  basicTools: TToolItem<ESubToolItem>[];
+  smartTools: TToolItem<ESubToolItem>[];
+  customElement?: React.ReactNode;
+};
+
+interface IProps {
+  drawData: DrawData;
+  onChangePointResolution: (value: number, update?: boolean) => void;
+}
+
+const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
+  const { localeText } = useLocale();
+
+  const isSegEverythingAvailable = useMemo(() => {
+    return (
+      (drawData.objectList.length === 0 && !drawData.creatingObject) ||
+      drawData.isBatchEditing
+    );
+  }, [drawData.objectList, drawData.creatingObject, drawData.isBatchEditing]);
+
+  const isManualAvailable = useMemo(() => {
+    return (
+      !drawData.prompt.sessionId &&
+      !(
+        drawData.prompt.promptsQueue && drawData.prompt.promptsQueue.length > 0
+      ) &&
+      !drawData.isBatchEditing
+    );
+  }, [drawData.prompt, drawData.isBatchEditing]);
+
+  const basicMaskTools: TToolItem<ESubToolItem>[] = useMemo(
+    () => [
+      {
+        key: ESubToolItem.PenAdd,
+        name: localeText('DDSAnnotator.subtoolbar.mask.penAdd'),
+        icon: <Icon component={PenAddIcon} />,
+        available: isManualAvailable,
+      },
+      {
+        key: ESubToolItem.PenErase,
+        name: localeText('DDSAnnotator.subtoolbar.mask.penErase'),
+        icon: <Icon component={PenEraseIcon} />,
+        available: isManualAvailable && !!drawData.creatingObject,
+      },
+      {
+        key: ESubToolItem.BrushAdd,
+        name: localeText('DDSAnnotator.subtoolbar.mask.brushAdd'),
+        icon: <Icon component={BrushAddIcon} />,
+        available: isManualAvailable,
+        withSize: true,
+      },
+      {
+        key: ESubToolItem.BrushErase,
+        name: localeText('DDSAnnotator.subtoolbar.mask.brushErase'),
+        icon: <Icon component={BrushEraseIcon} />,
+        available: isManualAvailable && !!drawData.creatingObject,
+        withSize: true,
+      },
+    ],
+    [isManualAvailable, drawData.creatingObject],
+  );
+
+  const smartMaskTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+    return [
+      {
+        key: ESubToolItem.AutoSegmentByBox,
+        name: localeText('DDSAnnotator.subtoolbar.mask.box'),
+        icon: <Icon component={MagicBoxIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByStroke,
+        name: localeText('DDSAnnotator.subtoolbar.mask.stroke'),
+        icon: <Icon component={StrokeIcon} />,
+        available: true,
+        withSize: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByClick,
+        name: localeText('DDSAnnotator.subtoolbar.mask.click'),
+        icon: <Icon component={ClickIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.AutoEdgeStitching,
+        name: localeText('DDSAnnotator.subtoolbar.mask.edgeStitch'),
+        icon: <Icon component={EdgeStitchIcon} />,
+        available: true,
+        withSize: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentEverything,
+        name: localeText('DDSAnnotator.subtoolbar.mask.sam'),
+        icon: <Icon component={SegmentEverythingIcon} />,
+        available: isSegEverythingAvailable,
+        description: isSegEverythingAvailable
+          ? localeText('DDSAnnotator.subtoolbar.mask.sam.desc')
+          : localeText('DDSAnnotator.subtoolbar.mask.sam.notAllow'),
+      },
+    ];
+  }, [isSegEverythingAvailable]);
+
+  const smartPolygonTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+    return [
+      {
+        key: ESubToolItem.AutoSegmentByBox,
+        name: localeText('DDSAnnotator.subtoolbar.mask.box'),
+        icon: <Icon component={MagicBoxIcon} />,
+        available: true,
+        withCustomElement: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByStroke,
+        name: localeText('DDSAnnotator.subtoolbar.mask.stroke'),
+        icon: <Icon component={StrokeIcon} />,
+        available: true,
+        withSize: true,
+        withCustomElement: true,
+      },
+      {
+        key: ESubToolItem.AutoSegmentByClick,
+        name: localeText('DDSAnnotator.subtoolbar.mask.click'),
+        icon: <Icon component={ClickIcon} />,
+        available: true,
+        withCustomElement: true,
+      },
+    ];
+  }, []);
+
+  const ivpTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+    return [
+      {
+        key: ESubToolItem.PositiveVisualPrompt,
+        name: localeText('DDSAnnotator.subtoolbar.visualprompt.positive'),
+        icon: <Icon component={AddPromptIcon} />,
+        available: true,
+      },
+      {
+        key: ESubToolItem.NegativeVisualPrompt,
+        name: localeText('DDSAnnotator.subtoolbar.visualprompt.negative'),
+        icon: <Icon component={RemovePromptIcon} />,
+        available: true,
+      },
+    ];
+  }, []);
+
+  const showSubTools = useMemo(() => {
+    if (drawData.selectedTool === EBasicToolItem.Mask) return true;
+
+    if (
+      drawData.selectedTool === EBasicToolItem.Polygon &&
+      drawData.AIAnnotation
+    )
+      return true;
+
+    if (
+      drawData.selectedTool === EBasicToolItem.Rectangle &&
+      drawData.AIAnnotation &&
+      drawData.selectedModel === EnumModelType.IVP
+    )
+      return true;
+
+    if (drawData.creatingObject?.type === EObjectType.Mask) return true;
+
+    if (
+      drawData.creatingObject?.type === EObjectType.Polygon &&
+      drawData.AIAnnotation
+    )
+      return true;
+
+    return false;
+  }, [
+    drawData.selectedTool,
+    drawData.creatingObject,
+    drawData.AIAnnotation,
+    drawData.selectedModel,
+  ]);
+
+  const currSubTools: TSubtoolOptions = useMemo(() => {
+    if (
+      drawData.selectedTool === EBasicToolItem.Mask ||
+      drawData.creatingObject?.type === EObjectType.Mask
+    ) {
+      return {
+        basicTools: basicMaskTools,
+        smartTools: smartMaskTools,
+      };
+    } else if (
+      drawData.selectedTool === EBasicToolItem.Polygon ||
+      drawData.creatingObject?.type === EObjectType.Polygon
+    ) {
+      return {
+        basicTools: [],
+        smartTools: smartPolygonTools,
+        customElement: (
+          <>
+            <div className="dds-annotator-subtoolbar-title">
+              {localeText('DDSAnnotator.subtoolbar.polygon.pointResolution')}
+            </div>
+            <div className="dds-annotator-subtoolbar-slider">
+              <Slider
+                min={0.1}
+                max={0.9}
+                step={0.1}
+                value={drawData.pointResolution}
+                onChange={onChangePointResolution}
+                onAfterChange={(value) => onChangePointResolution(value, true)}
+              />
+            </div>
+          </>
+        ),
+      };
+    } else if (
+      drawData.selectedTool === EBasicToolItem.Rectangle &&
+      drawData.AIAnnotation &&
+      drawData.selectedModel === EnumModelType.IVP
+    ) {
+      return {
+        basicTools: [],
+        smartTools: ivpTools,
+      };
+    }
+    return {
+      basicTools: [],
+      smartTools: [],
+    };
+  }, [
+    drawData.selectedTool,
+    drawData.creatingObject,
+    drawData.AIAnnotation,
+    drawData.selectedModel,
+    basicMaskTools,
+    smartMaskTools,
+    smartPolygonTools,
+    ivpTools,
+    drawData.pointResolution,
+  ]);
+
+  return {
+    showSubTools,
+    currSubTools,
+  };
+};
+
+export default useSubTools;

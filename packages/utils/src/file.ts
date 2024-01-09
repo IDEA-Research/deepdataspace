@@ -52,3 +52,91 @@ export const loadImage = (src: string) => {
     };
   });
 };
+
+export async function scanFiles(
+  entry: any,
+  filesList: any[],
+  acceptTypes?: string[],
+) {
+  return new Promise((resolve, reject) => {
+    if (entry.isDirectory) {
+      const directoryReader = entry.createReader();
+      directoryReader.readEntries(
+        async (entries: any[]) => {
+          for (let index = 0; index < entries.length; index++) {
+            await scanFiles(entries[index], filesList, acceptTypes);
+            if (index === entries.length - 1) {
+              resolve(1);
+            }
+          }
+        },
+        (e: any) => {
+          reject(e);
+        },
+      );
+    } else {
+      entry.file(
+        async (file: any) => {
+          const path = entry.fullPath.substring(1);
+          /**修改webkitRelativePath 是核心操作，原因是拖拽会的事件体中webkitRelativePath是空的，而且webkitRelativePath 是只读属性，普通赋值是不行的。所以目前只能使用这种方法将entry.fullPath 赋值给webkitRelativePath**/
+          const newFile: File = Object.defineProperty(
+            file,
+            'webkitRelativePath',
+            {
+              value: path,
+            },
+          );
+          if (!acceptTypes || acceptTypes.includes(newFile.type)) {
+            filesList.push(newFile);
+          }
+          resolve(1);
+          return;
+        },
+        (e: any) => {
+          reject(e);
+        },
+      );
+    }
+  });
+}
+
+export async function scanDataTransfer(
+  dataTransfer?: DataTransfer,
+  acceptTypes?: string[],
+) {
+  if (!dataTransfer) return [];
+  const filesList: File[] = [];
+
+  // files filter
+  for (const item of dataTransfer.files) {
+    if (item && (!acceptTypes || acceptTypes.includes(item.type))) {
+      filesList.push(item);
+    }
+  }
+
+  // sub directory
+  if (dataTransfer.items.length > 0) {
+    for (const item of dataTransfer.items) {
+      const itemEntry = item.webkitGetAsEntry();
+      if (itemEntry?.isDirectory) {
+        await scanFiles(itemEntry, filesList, acceptTypes);
+      }
+    }
+  }
+  return filesList;
+}
+
+export async function getImageDimensions(url: string): Promise<ISize> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+      const width = img.width;
+      const height = img.height;
+      resolve({ width, height });
+    };
+    img.onerror = () => {
+      reject(new Error('Load Image Error'));
+    };
+  });
+}

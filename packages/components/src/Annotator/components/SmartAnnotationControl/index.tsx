@@ -6,15 +6,15 @@ import {
   EActionToolItem,
   ESubToolItem,
   EToolType,
+  EnumModelType,
 } from '../../constants';
 import { CloseOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons/lib/components/Icon';
 import { Button, Card, Select, Slider, Space } from 'antd';
 import classNames from 'classnames';
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useState } from 'react';
 import { FloatWrapper } from '../FloatWrapper';
 import { useLocale } from 'dds-utils/locale';
-import CategoryCreator from '../CategoryCreator';
 import { OnAiAnnotationFunc } from '../../hooks/useActions';
 import { useImmer } from 'use-immer';
 import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
@@ -26,21 +26,19 @@ import './index.less';
 interface IProps {
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
+  selectedModel?: EnumModelType;
   AIAnnotation: boolean;
   hasPolygonPreds: boolean;
   isBatchEditing: boolean;
   isCtrlPressed: boolean;
   naturalSize: ISize;
-  aiLabels: string[];
+  aiLabels?: string;
   limitConf: number;
   categories: Category[];
-  setAiLabels: (labels: string[]) => void;
+  setAiLabels: (labels?: string) => void;
   forceChangeTool: (tool: EBasicToolItem, subtool: ESubToolItem) => void;
-  onCreateCategory: (name: string) => void;
   onExitAIAnnotation: () => void;
   onAiAnnotation: OnAiAnnotationFunc;
-  onSaveAIPolygon: () => void;
-  onCancelAIPolygon: () => void;
   onChangeConfidenceRange: (range: [number, number]) => void;
   onChangeLimitConf: (value: number) => void;
   onAcceptValidObjects: () => void;
@@ -51,8 +49,8 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
   ({
     selectedTool,
     selectedSubTool,
+    selectedModel,
     AIAnnotation,
-    hasPolygonPreds,
     isBatchEditing,
     isCtrlPressed,
     aiLabels,
@@ -60,11 +58,8 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     naturalSize,
     limitConf,
     setAiLabels,
-    onCreateCategory,
     onExitAIAnnotation,
     onAiAnnotation,
-    onSaveAIPolygon,
-    onCancelAIPolygon,
     onChangeConfidenceRange,
     onChangeLimitConf,
     onAcceptValidObjects,
@@ -72,6 +67,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     forceChangeTool,
   }) => {
     const { localeText } = useLocale();
+    const [inputText, setInputText] = useState('');
 
     /** Parameters for requesting segmemt everything API */
     const [samParams, setSamParams] = useImmer({
@@ -86,7 +82,10 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
         icon: DragToolIcon,
       },
       [EBasicToolItem.Rectangle]: {
-        name: localeText('DDSAnnotator.smart.detection.name'),
+        name:
+          selectedModel === EnumModelType.Detection
+            ? localeText('DDSAnnotator.smart.detection.name')
+            : localeText('DDSAnnotator.smart.ivp.name'),
         icon: OBJECT_ICON[EObjectType.Rectangle],
       },
       [EBasicToolItem.Polygon]: {
@@ -105,9 +104,14 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
 
     const labelOptions = useMemo(() => {
       if (selectedTool === EBasicToolItem.Rectangle) {
-        return categories?.map((category) => (
-          <Select.Option key={category.id} value={category.name}>
-            {category.name}
+        let options = categories?.map((c) => c.name);
+        options =
+          inputText && !options.includes(inputText)
+            ? [inputText, ...options]
+            : options;
+        return options.map((text) => (
+          <Select.Option key={text} value={text}>
+            {text}
           </Select.Option>
         ));
       } else if (selectedTool === EBasicToolItem.Polygon) {
@@ -119,7 +123,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
           </Select.Option>
         ));
       }
-    }, [selectedTool, categories]);
+    }, [selectedTool, categories, inputText]);
 
     const mouseEventHandler = (event: React.MouseEvent) => {
       if (
@@ -140,22 +144,27 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
       if (!AIAnnotation || selectedTool === EBasicToolItem.Drag) return false;
 
       if (
-        selectedTool === EBasicToolItem.Mask &&
-        selectedSubTool !== ESubToolItem.AutoSegmentEverything
+        (selectedTool === EBasicToolItem.Mask &&
+          selectedSubTool !== ESubToolItem.AutoSegmentEverything) ||
+        selectedTool === EBasicToolItem.Polygon
       )
         return false;
 
-      if (
-        selectedTool === EBasicToolItem.Rectangle &&
-        isBatchEditing &&
-        isCtrlPressed
-      )
-        return false;
+      if (selectedTool === EBasicToolItem.Rectangle) {
+        if (selectedModel === EnumModelType.Detection) {
+          return !(isBatchEditing && isCtrlPressed);
+        } else if (selectedModel === EnumModelType.IVP) {
+          return isBatchEditing;
+        } else {
+          return false;
+        }
+      }
 
       return true;
     }, [
       selectedTool,
       selectedSubTool,
+      selectedModel,
       AIAnnotation,
       isBatchEditing,
       isCtrlPressed,
@@ -167,7 +176,12 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     };
 
     const aiDetectionTip = useMemo(() => {
-      if (isBatchEditing && isCtrlPressed) {
+      if (
+        selectedTool === EBasicToolItem.Rectangle &&
+        selectedModel === EnumModelType.Detection &&
+        isBatchEditing &&
+        isCtrlPressed
+      ) {
         return [
           {
             text: localeText('DDSAnnotator.smart.tip.recover'),
@@ -180,7 +194,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
         ];
       }
       return [];
-    }, [isBatchEditing, isCtrlPressed]);
+    }, [isBatchEditing, isCtrlPressed, selectedModel]);
 
     const imageArea = useMemo(() => {
       return naturalSize.width * naturalSize.height;
@@ -227,6 +241,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
         >
           <div className="dds-annotator-smart-container-content">
             {selectedTool === EBasicToolItem.Rectangle &&
+              selectedModel === EnumModelType.Detection &&
               (isBatchEditing ? (
                 <div className="dds-annotator-smart-container-content-column-item">
                   <div className="dds-annotator-smart-container-content-param-controls">
@@ -273,13 +288,10 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                     placeholder={localeText(
                       'DDSAnnotator.smart.detection.input',
                     )}
-                    showArrow={true}
+                    showSearch
                     value={aiLabels}
-                    onChange={(values) =>
-                      Array.isArray(values)
-                        ? setAiLabels(values)
-                        : setAiLabels([values])
-                    }
+                    onChange={(value) => setAiLabels(value)}
+                    onSearch={(value) => setInputText(value)}
                     onInputKeyDown={(e) => {
                       if (e.code !== 'Enter') {
                         e.stopPropagation();
@@ -289,20 +301,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                     getPopupContainer={() =>
                       document.getElementById('smart-annotation-editor')
                     }
-                    mode={'multiple'}
-                    dropdownRender={(menu) => (
-                      <>
-                        {menu}
-                        {
-                          <CategoryCreator
-                            onAdd={(value) => {
-                              onCreateCategory(value);
-                              setAiLabels([...aiLabels, value]);
-                            }}
-                          />
-                        }
-                      </>
-                    )}
                   >
                     {labelOptions}
                   </Select>
@@ -314,6 +312,26 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                   </Button>
                 </div>
               ))}
+            {selectedTool === EBasicToolItem.Rectangle &&
+              selectedModel === EnumModelType.IVP && (
+                <div className="dds-annotator-smart-container-content-column-item">
+                  <div className="dds-annotator-smart-container-content-tip-text">
+                    <span>{localeText('DDSAnnotator.smart.tip')}: </span>
+                    {localeText('DDSAnnotator.smart.tip.visualPrompt')}
+                  </div>
+                  <div style={{ alignSelf: 'flex-end' }}>
+                    <Button
+                      style={{ marginRight: '10px' }}
+                      onClick={onCancelBatchEdit}
+                    >
+                      {localeText('DDSAnnotator.smart.back')}
+                    </Button>
+                    <Button type="primary" onClick={onAcceptValidObjects}>
+                      {localeText('DDSAnnotator.save')}
+                    </Button>
+                  </div>
+                </div>
+              )}
             {selectedTool === EBasicToolItem.Skeleton &&
               (isBatchEditing ? (
                 <>
@@ -363,13 +381,10 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                         placeholder={localeText(
                           'DDSAnnotator.smart.pose.input',
                         )}
-                        showArrow={true}
+                        showSearch
                         value={aiLabels}
-                        onChange={(values) =>
-                          Array.isArray(values)
-                            ? setAiLabels(values)
-                            : setAiLabels([values])
-                        }
+                        onChange={(value) => setAiLabels(value)}
+                        onSearch={(value) => setInputText(value)}
                         onInputKeyDown={(e) => {
                           if (e.code !== 'Enter') {
                             e.stopPropagation();
@@ -393,25 +408,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                   </Button>
                 </>
               ))}
-            {selectedTool === EBasicToolItem.Polygon && (
-              <>
-                <div className="dds-annotator-smart-container-content-instruction">
-                  {hasPolygonPreds
-                    ? localeText('DDSAnnotator.smart.segmentation.tipsNext')
-                    : localeText('DDSAnnotator.smart.segmentation.tipsInitial')}
-                </div>
-                {hasPolygonPreds && (
-                  <div className="dds-annotator-smart-container-content-actions">
-                    <Button danger onClick={onCancelAIPolygon}>
-                      {localeText('DDSAnnotator.delete')}
-                    </Button>
-                    <Button type="primary" onClick={onSaveAIPolygon}>
-                      {localeText('DDSAnnotator.save')}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
             {selectedTool === EBasicToolItem.Mask &&
               selectedSubTool === ESubToolItem.AutoSegmentEverything && (
                 <>

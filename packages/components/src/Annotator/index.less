@@ -1,4 +1,30 @@
 .dds-annotator {
+  &-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    z-index: 10001;
+  }
+
+  &-logo {
+    margin-left: -5px;
+    width: 33px;
+    height: 33px;
+    cursor: pointer;
+  }
+
+  &-logo-replace {
+    margin-left: -5px;
+    width: 33px;
+    height: 33px;
+  }
+
   .edit-wrap {
     position: absolute;
     inset: 0;
@@ -14,6 +40,22 @@
       position: absolute;
       inset: 0;
       cursor: crosshair;
+    }
+  }
+
+  &-qk-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+
+    svg {
+      cursor: pointer;
+      fill: #fff;
+
+      &:hover {
+        fill: @colorPrimary;
+      }
     }
   }
 
@@ -51,10 +93,10 @@
 }
 
 .dds-annotator-editor {
+  position: relative;
   top: 0;
   left: 0;
   z-index: 100;
-  position: relative;
   width: 100%;
   height: 100vh;
   background-color: #000;
@@ -69,11 +111,11 @@
 
     .left-slider {
       position: relative;
-      width: 0;
       height: 100%;
-      background: #262626;
-      border-right: 2px solid #141414;
-      backdrop-filter: blur(12px);
+      background: #212121;
+      padding: 0;
+      border-radius: 0;
+      border-left: 1px solid black;
       overflow-y: scroll;
       overflow-x: hidden;
       z-index: 1;
@@ -83,18 +125,60 @@
       position: relative;
       flex: 1;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      .draw-area {
+        position: relative;
+        flex: 1;
+        width: 100%;
+      }
     }
 
     .right-slider {
       position: relative;
       width: 256px;
+      min-width: 256px;
       height: 100%;
       background: #262626;
       border-left: 2px solid #141414;
       backdrop-filter: blur(12px);
-      overflow-y: scroll;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
       z-index: 1;
+
+      .classifications {
+        max-height: 50%;
+        overflow-x: hidden;
+        overflow-y: scroll;
+      }
+
+      .object-list {
+        flex: 1;
+        width: 100%;
+        overflow-y: scroll;
+        overflow-x: hidden;
+      }
+    }
+  }
+}
+
+.dds-annotator-editor-light {
+  background-color: #f7f7f7;
+
+  .dds-annnotator-toptools {
+    background-color: #f1f2f4;
+    border-bottom: 1px solid #f7f7f7;
+
+    &-row {
+      &-icon {
+        color: #000;
+
+        svg {
+          fill: #fff;
+        }
+      }
     }
   }
 }

@@ -1,22 +1,19 @@
 import { ReactComponent as RectIcon } from '../assets/rectangle.svg';
-import { ReactComponent as SkeletonIcon } from '../assets/point.svg';
-import { ReactComponent as MagicIcon } from '../assets/magic.svg';
+import { ReactComponent as RectAiIcon } from '../assets/rectangle-ai.svg';
 import { ReactComponent as PolygonIcon } from '../assets/polygon.svg';
+import { ReactComponent as PolygonAiIcon } from '../assets/polygon-ai.svg';
+import { ReactComponent as SkeletonIcon } from '../assets/skeleton.svg';
+import { ReactComponent as SkeletonAiIcon } from '../assets/skeleton-ai.svg';
+import { ReactComponent as MaskIcon } from '../assets/mask.svg';
+import { ReactComponent as MaskAiIcon } from '../assets/mask-ai.svg';
+import { ReactComponent as MagicIcon } from '../assets/magic.svg';
 import { ReactComponent as CustomIcon } from '../assets/custom.svg';
-import { ReactComponent as MaskIcon } from '../assets/brush.svg';
 import { ReactComponent as UndoIcon } from '../assets/undo.svg';
 import { ReactComponent as RedoIcon } from '../assets/redo.svg';
 import { ReactComponent as RepeatIcon } from '../assets/repeat.svg';
 import { ReactComponent as DeleteAllIcon } from '../assets/delete_all.svg';
-
-export enum AnnotationType {
-  Classification = 'Classification',
-  Detection = 'Detection',
-  Segmentation = 'Segmentation',
-  Matting = 'Matting',
-  KeyPoints = 'KeyPoints',
-  Mask = 'Mask',
-}
+import { ReactComponent as TextPromptIcon } from '../assets/text-prompt.svg';
+import { ReactComponent as VisualPromptIcon } from '../assets/visual-prompt.svg';
 
 export enum DisplayOption {
   showAnnotations = 'showAnnotations',
@@ -45,13 +42,23 @@ export const MAX_SCALE = 20;
 export const BUTTON_SCALE_STEP = 0.5;
 export const WHEEL_SCALE_STEP = 0.1;
 
+export enum ELabelType {
+  Rectangle = 'rect',
+  Polygon = 'polygon',
+  Mask = 'mask',
+  Skeleton = 'coco_keypoints_17',
+  Classification = 'classification',
+}
+
 export enum EObjectType {
   Custom = 'Custom',
+  Classification = 'Classification',
   Rectangle = 'Rectangle',
   Polygon = 'Polygon',
   Skeleton = 'Skeleton',
   Mask = 'Mask',
   Matting = 'Matting',
+  Point = 'Point',
 }
 
 export enum EElementType {
@@ -69,14 +76,6 @@ export enum EBasicToolItem {
   Mask = 'Mask',
 }
 
-export const EBasicToolTypeMap = {
-  [EBasicToolItem.Drag]: EObjectType.Custom,
-  [EBasicToolItem.Rectangle]: EObjectType.Rectangle,
-  [EBasicToolItem.Polygon]: EObjectType.Polygon,
-  [EBasicToolItem.Skeleton]: EObjectType.Skeleton,
-  [EBasicToolItem.Mask]: EObjectType.Mask,
-};
-
 export enum ESubToolItem {
   PenAdd = 'PenAdd',
   PenErase = 'PenErase',
@@ -87,6 +86,8 @@ export enum ESubToolItem {
   AutoSegmentByStroke = 'AutoSegmentByStroke',
   AutoSegmentEverything = 'AutoSegmentEverything',
   AutoEdgeStitching = 'AutoEdgeStitching',
+  PositiveVisualPrompt = 'PositiveVisualPrompt',
+  NegativeVisualPrompt = 'NegativeVisualPrompt',
 }
 
 export enum EActionToolItem {
@@ -99,6 +100,64 @@ export enum EActionToolItem {
 
 export type EToolType = EBasicToolItem;
 
+export const EBasicToolTypeMap = {
+  [EBasicToolItem.Drag]: EObjectType.Custom,
+  [EBasicToolItem.Rectangle]: EObjectType.Rectangle,
+  [EBasicToolItem.Polygon]: EObjectType.Polygon,
+  [EBasicToolItem.Skeleton]: EObjectType.Skeleton,
+  [EBasicToolItem.Mask]: EObjectType.Mask,
+};
+
+export enum EnumModelType {
+  Detection = 'ai_detection',
+  IVP = 'ivp',
+  SegmentByPolygon = 'ai_polygon',
+  SegmentByMask = 'ai_segmentation_mask',
+  Pose = 'ai_pose',
+  MaskEdgeStitching = 'ai_mask_edge_stitching',
+  SegmentEverything = 'ai_segment_everything',
+}
+
+export const TOOL_MODELS_MAP: Record<EBasicToolItem, EnumModelType[]> = {
+  [EBasicToolItem.Drag]: [],
+  [EBasicToolItem.Rectangle]: [EnumModelType.Detection, EnumModelType.IVP],
+  [EBasicToolItem.Polygon]: [EnumModelType.SegmentByPolygon],
+  [EBasicToolItem.Mask]: [EnumModelType.SegmentByMask],
+  [EBasicToolItem.Skeleton]: [EnumModelType.Pose],
+};
+
+export const MODEL_INTRO_MAP: Partial<
+  Record<
+    EnumModelType,
+    {
+      name: string;
+      icon: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
+      description: string;
+      hightlight: boolean;
+    }
+  >
+> = {
+  [EnumModelType.Detection]: {
+    name: 'Grounding-DINO',
+    icon: TextPromptIcon,
+    description: 'DDSAnnotator.smart.gdino.desc',
+    hightlight: false,
+  },
+  [EnumModelType.IVP]: {
+    name: 'iVP',
+    icon: VisualPromptIcon,
+    description: 'DDSAnnotator.smart.ivp.desc',
+    hightlight: true,
+  },
+};
+
+export const LABEL_TOOL_MAP = {
+  [ELabelType.Rectangle]: EBasicToolItem.Rectangle,
+  [ELabelType.Polygon]: EBasicToolItem.Polygon,
+  [ELabelType.Mask]: EBasicToolItem.Mask,
+  [ELabelType.Skeleton]: EBasicToolItem.Skeleton,
+};
+
 export const OBJECT_ICON: Record<
   EObjectType,
   React.FunctionComponent<React.SVGProps<SVGSVGElement>>
@@ -106,9 +165,18 @@ export const OBJECT_ICON: Record<
   [EObjectType.Rectangle]: RectIcon,
   [EObjectType.Skeleton]: SkeletonIcon,
   [EObjectType.Polygon]: PolygonIcon,
-  [EObjectType.Custom]: CustomIcon,
   [EObjectType.Mask]: MaskIcon,
   [EObjectType.Matting]: MaskIcon,
+  [EObjectType.Point]: CustomIcon,
+  [EObjectType.Custom]: CustomIcon,
+  [EObjectType.Classification]: CustomIcon,
+};
+
+export const OBJECT_AI_ICON = {
+  [EObjectType.Rectangle]: RectAiIcon,
+  [EObjectType.Skeleton]: SkeletonAiIcon,
+  [EObjectType.Polygon]: PolygonAiIcon,
+  [EObjectType.Mask]: MaskAiIcon,
 };
 
 export const EDITOR_TOOL_ICON: Record<

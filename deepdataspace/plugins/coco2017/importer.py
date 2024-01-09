@@ -8,6 +8,7 @@ import os
 from typing import Dict
 from typing import List
 from typing import Tuple
+import traceback
 
 from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetType
@@ -32,6 +33,9 @@ class COCO2017Importer(FileImporter):
 
         self.meta_path = os.path.abspath(meta_path)
         info = self.parse_meta(meta_path)
+        if info is None:
+            raise RuntimeError(f"Cannot import coco dataset: {meta_path}")
+
         dataset_name = info["dataset_name"]
         self.ground_truth = info["ground_truth"]
         self.image_root = info["image_root"]
@@ -94,8 +98,11 @@ class COCO2017Importer(FileImporter):
         try:
             info = COCO2017Importer._parse_meta(meta_path)
         except Exception as err:
+            logger.error(traceback.format_exc())
             logger.error(f"Failed to parse meta file {meta_path}: {err}")
             return None
+
+        logger.info(f"Successfully parsed meta file {meta_path}: {info}")
         return info
 
     def load_ground_truth(self):
@@ -118,7 +125,7 @@ class COCO2017Importer(FileImporter):
 
     def load_predictions(self):
         for file_tag, file_path in self.dataset.files.items():
-            if not file_tag.startswith("PRED/"):
+            if not file_tag.startswith(f"{DatasetFileType.Prediction}/"):
                 continue
 
             pred_name = file_tag.split("/", 1)[-1]

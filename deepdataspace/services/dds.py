@@ -66,10 +66,11 @@ class DDS(metaclass=SingletonMeta):
                 for key, val in config_data.items():
                     if val is not None:
                         self.config_data[key] = val
+                        print(f"reading config, {key} = {val}")
 
         self.data_dir = self.argument_or_config("data_dir", data_dir, None)
-        self.quickstart = self.argument_or_config("quickstart", quickstart, False)
-        self.verbose = self.argument_or_config("verbose", verbose, False)
+        self.quickstart = self.argument_or_config("quick_start", quickstart, False)
+        self.verbose = self.argument_or_config("verbose_log", verbose, False)
         self.public = public or False
         if host is None and public:
             host = get_output_ip_address()
@@ -79,7 +80,7 @@ class DDS(metaclass=SingletonMeta):
 
         home_dir = os.path.expanduser("~")
         runtime_dir = os.path.join(home_dir, ".deepdataspace")
-        self.runtime_dir = self.argument_or_config("runtime_dir", runtime_dir, None)
+        self.runtime_dir = self.argument_or_config("runtime_dir", None, runtime_dir)
 
         self.configfile = configfile
         self.from_cmdline = from_cmdline
@@ -97,11 +98,11 @@ class DDS(metaclass=SingletonMeta):
         self.dl_prefix = "https://deepdataspace.oss-accelerate.aliyuncs.com/install_files"
         self.distro = PLATFORM if PLATFORM != Platforms.Linux else f"ubuntu{get_ubuntu_version()}"
 
-    def argument_or_config(self, key, value, default):
-        if value is not None:
-            return value
+    def argument_or_config(self, config_key, arg_value, default):
+        if arg_value is not None:
+            return arg_value
         else:
-            return self.config_data.get(key, default)
+            return self.config_data.get(config_key, default)
 
     def exit_or_raise(self, msg: str):
         if self.from_cmdline is True:

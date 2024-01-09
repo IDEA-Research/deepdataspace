@@ -4,6 +4,8 @@ deepdataspace.utils.function
 Convenient functions about python function.
 """
 
+import cProfile
+import pstats
 import time
 from contextlib import contextmanager
 
@@ -30,6 +32,27 @@ def count_block_time(block_id: str, logger=print):
     finally:
         end = int(time.time() * 1000)
         logger(f"time cost of block[{block_id}]: {end - start}ms")
+
+
+@contextmanager
+def profile_perf(report_file: str, turn_on: bool = True):
+    """
+    Profile the performance of a code block, and save the result to report_file.
+    :param report_file: the target path where the performance data is saved to.
+    :param turn_on: only run the profile this is True or evaluates to True.
+    """
+    profile = cProfile.Profile()
+
+    if turn_on:
+        profile.enable()
+
+    try:
+        yield
+    finally:
+        if turn_on is True:
+            profile.disable()
+            stats = pstats.Stats(profile).sort_stats("cumulative")
+            stats.dump_stats(report_file)
 
 
 def retry(times: int, sleep: int = 0, exceptions: tuple = (Exception,)):

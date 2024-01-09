@@ -1,11 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AnnotationType,
-  DisplayOption,
-  EElementType,
-  MAX_SCALE,
-  MIN_SCALE,
-} from './constants';
+import { DisplayOption, EElementType, MAX_SCALE, MIN_SCALE } from './constants';
 import { useImmer } from 'use-immer';
 import TopTools from './components/TopTools';
 import PopoverMenu from './components/PopoverMenu';
@@ -19,7 +13,6 @@ import {
 import useHistory from './hooks/useHistory';
 import useObjects from './hooks/useObjects';
 import useCanvasContainer from './hooks/useCanvasContainer';
-import usePreviousState from './hooks/usePreviousState';
 import { cloneDeep, isEmpty } from 'lodash';
 import {
   BaseObject,
@@ -27,18 +20,17 @@ import {
   DEFAULT_DRAW_DATA,
   DEFAULT_EDIT_STATE,
   DrawData,
-  DrawImageData,
+  AnnoItem,
   DrawObject,
   EditState,
   EditorMode,
-  IAnnotationObject,
 } from './type';
 import useColor from './hooks/useColor';
 import useMouseCursor from './hooks/useMouseCursor';
 import useMouseEvents from './hooks/useMouseEvents';
 import useCanvasRender from './hooks/useCanvasRender';
 import useDataEffect from './hooks/useDataEffect';
-import { RenderStyles, useToolInstances } from './tools/base';
+import { useToolInstances } from './tools/base';
 import classNames from 'classnames';
 import { ReactComponent as DoubleRightIcon } from './assets/doubleRight.svg';
 import { ReactComponent as DownloadIcon } from './assets/download.svg';
@@ -47,26 +39,24 @@ import { EDITOR_SHORTCUTS, EShortcuts } from './constants/shortcuts';
 import { message } from 'antd';
 import { ImageView } from './components/ImageView';
 import './index.less';
+import useTranslate from './hooks/useTranslate';
 
 export interface PreviewProps {
+  isOldMode?: boolean; // is old dataset design mode
   visible: boolean;
   categories: Category[];
-  list: DrawImageData[];
+  list: AnnoItem[];
   current: number;
   objectsFilter?: (imageData: any) => BaseObject[];
-  getCustomObjectStyles?: (
-    object: IAnnotationObject,
-    color: string,
-  ) => Partial<RenderStyles>;
   onCancel?: () => void;
   onPrev?: () => Promise<void>;
   onNext?: () => Promise<void>;
-  displayAnnotationType?: AnnotationType;
   displayOptionsResult: { [key in DisplayOption]?: boolean };
 }
 
 const Preview: React.FC<PreviewProps> = (props) => {
   const {
+    isOldMode,
     visible,
     categories,
     list,
@@ -75,8 +65,6 @@ const Preview: React.FC<PreviewProps> = (props) => {
     onNext,
     onCancel,
     objectsFilter,
-    getCustomObjectStyles,
-    displayAnnotationType,
     displayOptionsResult,
   } = props;
 
@@ -107,6 +95,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     CanvasContainer,
   } = useCanvasContainer({
     visible,
+    drawData,
     allowMove: editState.allowMove,
     isRequiring: editState.isRequiring,
     minPadding: {
@@ -114,13 +103,27 @@ const Preview: React.FC<PreviewProps> = (props) => {
       left: 300,
     },
     cursorSize: drawData.brushSize,
-    showReferenceLine: false,
-    isCustomCursorActive: false,
     onClickMaskBg: onCancel,
   });
 
-  const [preClientSize, clearPreClientSize] =
-    usePreviousState<ISize>(clientSize);
+  const { getAnnotColor } = useColor({
+    categories,
+    editState,
+  });
+
+  const { updateMouseCursor } = useMouseCursor({
+    topCanvas: activeCanvasRef.current,
+    editState,
+    drawData,
+  });
+
+  const { translateToObject } = useTranslate({
+    isOldMode,
+    clientSize,
+    naturalSize,
+    categories,
+    getAnnotColor,
+  });
 
   const { clearHistory, updateHistory, setDrawDataWithHistory } = useHistory({
     clientSize,
@@ -131,26 +134,13 @@ const Preview: React.FC<PreviewProps> = (props) => {
   const { addObject, initObjectList, updateObject } = useObjects({
     annotations,
     setAnnotations,
-    clientSize,
-    naturalSize,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
-    editState,
     setEditState,
     mode: EditorMode.View,
-    displayAnnotationType,
-  });
-
-  const { labelColors, getAnnotColor } = useColor({
-    categories,
-    editState,
-  });
-
-  const { updateMouseCursor } = useMouseCursor({
-    topCanvas: activeCanvasRef.current,
-    editState,
-    drawData,
+    translateToObject,
+    updateHistory,
   });
 
   const { objectHooksMap } = useToolInstances({
@@ -173,6 +163,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     updateMouseCursor,
     displayOptionsResult,
     getAnnotColor,
+    categories,
   });
 
   const { updateRender } = useCanvasRender({
@@ -186,7 +177,6 @@ const Preview: React.FC<PreviewProps> = (props) => {
     activeCanvasRef,
     imgRef,
     objectHooksMap,
-    getCustomObjectStyles,
   });
 
   useMouseEvents({
@@ -217,15 +207,12 @@ const Preview: React.FC<PreviewProps> = (props) => {
     document.body.style.overflow = visible ? 'hidden' : 'overlay';
   }, [visible]);
 
-  const { resetDataWithImageData, rebuildDrawData } = useDataEffect({
+  const { resetDataWithImageData } = useDataEffect({
     imagePos,
     clientSize,
-    preClientSize,
-    clearPreClientSize,
     naturalSize,
     annotations,
     setAnnotations,
-    labelColors,
     drawData,
     setDrawData,
     editState,
@@ -234,6 +221,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     updateRender,
     clearHistory,
     objectsFilter,
+    labelOptions: categories,
   });
 
   /** Reset data when hiding the editor or switching images */
@@ -243,8 +231,8 @@ const Preview: React.FC<PreviewProps> = (props) => {
 
   /** Custom options changed */
   useEffect(() => {
-    rebuildDrawData(true);
-  }, [displayAnnotationType, displayOptionsResult, getCustomObjectStyles]);
+    updateRender();
+  }, [displayOptionsResult]);
 
   // =================================================================================================================
   // Preview
@@ -323,12 +311,12 @@ const Preview: React.FC<PreviewProps> = (props) => {
     if (
       editState.focusObjectIndex > -1 &&
       drawData.objectList[editState.focusObjectIndex] &&
-      !drawData.objectList[editState.focusObjectIndex].hidden &&
+      !drawData.objectList[editState.focusObjectIndex]?.hidden &&
       editState.focusEleIndex > -1 &&
       editState.focusEleType === EElementType.Circle
     ) {
       const target =
-        drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
+        drawData.objectList[editState.focusObjectIndex]?.keypoints?.points?.[
           editState.focusEleIndex
         ];
       if (target) {
@@ -386,7 +374,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
         children: (
           <>
             <ImageView
-              url={list[current]?.urlFullRes}
+              url={list[current]?.url}
               imgRef={imgRef}
               canvasRef={canvasRef}
               activeCanvasRef={activeCanvasRef}
@@ -430,15 +418,6 @@ const Preview: React.FC<PreviewProps> = (props) => {
                   : metadata[key]}
               </div>
             ))}
-            {
-              list[current]?.caption ? (
-                <div className="item">
-                  {'caption'}
-                  <br />
-                  {list[current].caption}
-                </div>
-              ) : null
-            }
           </div>
           <div className="bottom-mask" />
           <div className="hide-info-btn" onClick={changeShowInfo}>

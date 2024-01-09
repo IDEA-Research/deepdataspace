@@ -1,5 +1,5 @@
-import React from 'react';
-import { Select } from 'antd';
+import React, { useMemo } from 'react';
+import { Select, SelectProps } from 'antd';
 import { useLocale } from 'dds-utils/locale';
 import styles from './index.less';
 import { Category } from '@/types';
@@ -14,30 +14,26 @@ const CategoryFilter: React.FC<IProps> = (props) => {
   const { localeText } = useLocale();
   const { categoryId, categories, onCategoryChange } = props;
 
+  const options: SelectProps['options'] = useMemo(() => {
+    return categories.map((item) => ({
+      label: item.name,
+      value: item.id,
+    }));
+  }, [categories]);
+
   return (
     <div className={styles.wrapper}>
       {localeText('dataset.detail.category')}:
       <Select
         showSearch
         style={{ width: '160px', marginLeft: '10px' }}
-        dropdownMatchSelectWidth={false}
         placeholder="Select a category"
-        optionFilterProp="children"
+        options={options}
+        optionFilterProp="label"
         value={categoryId}
         onChange={onCategoryChange}
-        filterOption={(input, option) =>
-          (option!.children as unknown as string)
-            .toLowerCase()
-            .includes(input.toLowerCase())
-        }
         getPopupContainer={() => document.getElementById('filterWrap')!}
-      >
-        {categories.map((item) => (
-          <Select.Option key={item.id} value={item.id}>
-            {item.name}
-          </Select.Option>
-        ))}
-      </Select>
+      />
     </div>
   );
 };

@@ -2,21 +2,14 @@
 import { request } from '@umijs/max';
 import { Modal } from 'antd';
 import { globalLocaleText } from 'dds-utils/locale';
-import { EnumTaskStatus } from '../constants';
+import { EnumModelType, EnumTaskStatus } from '../constants';
 
 export namespace NsApiAnnotator {
-  export enum EnumModelType {
-    Detection = 'ai_detection',
-    SegmentByPolygon = 'ai_segmentation',
-    SegmentByMask = 'ai_segmentation_mask',
-    Pose = 'ai_pose',
-    MaskEdgeStitching = 'ai_mask_edge_stitching',
-    SegmentEverything = 'ai_segment_everything',
-  }
-
   export type ModelParam<T extends EnumModelType> =
     T extends EnumModelType.Detection
       ? FetchAIDetectionReq
+      : T extends EnumModelType.IVP
+      ? FetchIVPReq
       : T extends EnumModelType.SegmentByPolygon
       ? FetchAIPolygonSegmentReq
       : T extends EnumModelType.SegmentByMask
@@ -32,6 +25,8 @@ export namespace NsApiAnnotator {
   export type ModelResult<T extends EnumModelType> =
     T extends EnumModelType.Detection
       ? FetchAIDetectionRsp
+      : T extends EnumModelType.IVP
+      ? FetchIVPRsp
       : T extends EnumModelType.SegmentByPolygon
       ? FetchAIPolygonSegmentRsp
       : T extends EnumModelType.SegmentByMask
@@ -49,15 +44,32 @@ export namespace NsApiAnnotator {
     text: string;
   }
 
-  export interface FetchAIPolygonSegmentReq {
-    image: string;
-    mask: string;
-    polygons: number[][];
-    clicks: {
+  export interface FetchIVPReq {
+    promptImage: string;
+    inferImage: string;
+    prompts: {
+      type: string; // 'rect' | 'point'
       isPositive: boolean;
-      position: number[];
+      rect?: number[]; // [xmin, ymin, xmax, ymax];
+      point?: number[]; // [x, y]
     }[];
-    rect?: number[];
+    labelTypes: string[]; // ["bbox", "mask"]
+  }
+
+  export interface FetchAIPolygonSegmentReq {
+    image: string; // image_id://  | base64://  | http://  | https://
+    density: number; // (0, 1) default 0.2
+    area: number[]; // [xmin, ymin, xmax, ymax];
+    prompts: {
+      type: string; // 'rect' | 'point' | 'stroke' | 'modify';
+      isPositive: boolean; //
+      rect?: number[]; // [xmin, ymin, xmax, ymax];
+      point?: number[]; // [x, y]
+      stroke?: number[]; // [x1, y1, x2, y2, ...];
+      radius?: number; // brush size while using stroke prompt
+      polygons?: number[][]; // [[x1, y1, x2, y2, ...], [xn, yn, xn+1, yn+1, ...], ....];
+    }[];
+    sessionId?: string;
   }
 
   export interface FetchAIMaskSegmentReq {
@@ -123,9 +135,18 @@ export namespace NsApiAnnotator {
     suggestThreshold: number;
   }
 
+  export interface FetchIVPRsp {
+    objects: Array<{
+      bbox?: number[];
+      mask?: number[];
+      score: number;
+    }>;
+  }
+
   export interface FetchAIPolygonSegmentRsp {
-    polygon: number[][];
-    mask: string;
+    image: string; // image_id://
+    sessionId: string;
+    polygons: number[][]; // [[x1, y1, x2, y2, ...], [xn, yn, xn+1, yn+1, ...], ....]
   }
 
   export interface FetchAIMaskSegmentRsp {
@@ -164,10 +185,22 @@ export namespace NsApiAnnotator {
     uuid: string;
     result: ModelResult<T>;
   }
+  export interface FetchUploadSignatureRsp {
+    downloadUrl: string;
+    uploadUrl: string;
+  }
+
+  export interface FetchBetchUploadSignatureRsp {
+    fileUrls: {
+      fileName: string;
+      downloadUrl: string;
+      uploadUrl: string;
+    }[];
+  }
 }
 
 async function fetchTaskUuid(
-  type: NsApiAnnotator.EnumModelType,
+  type: EnumModelType,
   params: any,
   options?: { [key: string]: any },
 ) {
@@ -185,7 +218,7 @@ async function fetchTaskUuid(
   );
 }
 
-function fetchTaskResults<T extends NsApiAnnotator.EnumModelType>(
+function fetchTaskResults<T extends EnumModelType>(
   taskUuid: string,
   options?: { [key: string]: any },
 ) {
@@ -198,7 +231,7 @@ function fetchTaskResults<T extends NsApiAnnotator.EnumModelType>(
   );
 }
 
-function fetchMaskTaskResults<T extends NsApiAnnotator.EnumModelType>(
+function fetchMaskTaskResults<T extends EnumModelType>(
   taskUuid: string,
   options?: { [key: string]: any },
 ) {
@@ -211,8 +244,8 @@ function fetchMaskTaskResults<T extends NsApiAnnotator.EnumModelType>(
   );
 }
 
-export async function pollTaskResults<T extends NsApiAnnotator.EnumModelType>(
-  type: NsApiAnnotator.EnumModelType,
+export async function pollTaskResults<T extends EnumModelType>(
+  type: EnumModelType,
   taskUuid: string,
   maxAttempts = 5000,
   interval = 1000,
@@ -221,9 +254,9 @@ export async function pollTaskResults<T extends NsApiAnnotator.EnumModelType>(
 
   while (attempts < maxAttempts) {
     const fetchTaskResultsRequest = [
-      NsApiAnnotator.EnumModelType.SegmentByMask,
-      NsApiAnnotator.EnumModelType.MaskEdgeStitching,
-      NsApiAnnotator.EnumModelType.SegmentEverything,
+      EnumModelType.SegmentByMask,
+      EnumModelType.MaskEdgeStitching,
+      EnumModelType.SegmentEverything,
     ].includes(type)
       ? fetchMaskTaskResults
       : fetchTaskResults;
@@ -246,8 +279,8 @@ export async function pollTaskResults<T extends NsApiAnnotator.EnumModelType>(
   throw new Error('Max attempts exceeded');
 }
 
-export async function fetchModelResults<T extends NsApiAnnotator.EnumModelType>(
-  type: NsApiAnnotator.EnumModelType,
+export async function fetchModelResults<T extends EnumModelType>(
+  type: EnumModelType,
   params: NsApiAnnotator.ModelParam<T>,
 ) {
   try {
@@ -267,5 +300,88 @@ export async function fetchModelResults<T extends NsApiAnnotator.EnumModelType>(
     } else {
       throw new Error(error.message);
     }
+  }
+}
+
+export async function fetchUploadSignature(
+  params: {
+    fileName: string;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<NsApiAnnotator.FetchUploadSignatureRsp>(
+    `${process.env.MODEL_API_PATH}/upload_signature`,
+    {
+      method: 'POST',
+      data: {
+        ...params,
+      },
+      ...(options || {}),
+    },
+  );
+}
+
+export async function fetchBatchUploadSignature(
+  params: {
+    fileNames: string[];
+  },
+  options?: { [key: string]: any },
+) {
+  return request<NsApiAnnotator.FetchBetchUploadSignatureRsp>(
+    `${process.env.MODEL_API_PATH}/batch_upload_signatures`,
+    {
+      method: 'POST',
+      data: {
+        ...params,
+      },
+      ...(options || {}),
+    },
+  );
+}
+
+export const putFile = async (
+  uploadUrl: string,
+  file?: File,
+  contentType?: string,
+): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    if (!file) reject(null);
+    fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType || '',
+      },
+      body: file,
+    })
+      .then((response) => {
+        if (response.status === 200) {
+          resolve(response);
+        } else {
+          console.error('Upload file error: ', uploadUrl, response);
+          reject(null);
+        }
+      })
+      .catch((error) => {
+        console.error('Upload file error: ', uploadUrl, error);
+        reject(null);
+      });
+  });
+};
+
+export async function getOssUrlByBlobUrl(
+  fileName: string,
+  blobUrl: string,
+): Promise<string> {
+  try {
+    const { downloadUrl, uploadUrl } = await fetchUploadSignature({ fileName });
+    const response = await fetch(blobUrl);
+    if (!response.ok) {
+      throw new Error('Failed to fetch file');
+    }
+    const blobData = await response.blob();
+    await putFile(uploadUrl, blobData as File);
+    return downloadUrl;
+  } catch (error: any) {
+    throw new Error('Failed to get oss url', error.message);
   }
 }

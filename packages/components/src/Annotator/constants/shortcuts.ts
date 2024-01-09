@@ -96,7 +96,7 @@ export const EDITOR_SHORTCUTS: Record<EShortcuts, TShortcutItem> = {
   [EShortcuts.RepeatPrevious]: {
     name: 'RepeatPrevious',
     type: EShortcutType.GeneralAction,
-    shortcut: ['r'],
+    shortcut: ['ctrl.r', 'meta.r'],
     descTextKey: 'DDSAnnotator.shortcuts.general.repeatPrevious',
   },
   [EShortcuts.DeleteAll]: {

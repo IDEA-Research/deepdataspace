@@ -27,7 +27,6 @@ const Page: React.FC = () => {
     onPreviewIndexChange,
     exitPreview,
     displayObjectsFilter,
-    getCustomObjectStyles,
   } = useModel('dataset.common');
   const {
     onPageDidMount,
@@ -111,17 +110,14 @@ const Page: React.FC = () => {
                     }}
                   >
                     <AnnotateView
+                      isOldMode
                       categories={pageData.filters.categories}
                       data={item}
                       wrapWidth={itemWidth}
                       wrapHeight={flagTools ? (itemWidth * 3) / 4 : undefined}
                       minHeight={(itemWidth * 3) / 4}
                       objectsFilter={displayObjectsFilter}
-                      getCustomObjectStyles={getCustomObjectStyles}
                       displayOptionsResult={displayOptionsResult}
-                      displayAnnotationType={
-                        pageState.filterValues.displayAnnotationType
-                      }
                     />
                   </div>
                   {item.flag > 0 && (
@@ -157,6 +153,7 @@ const Page: React.FC = () => {
       )}
       {/* Preview */}
       <AnnotatePreview
+        isOldMode
         visible={pageState.previewIndex >= 0 && !isSingleAnnotation}
         categories={pageData.filters.categories}
         list={imgList}
@@ -171,9 +168,7 @@ const Page: React.FC = () => {
             onPreviewIndexChange(pageState.previewIndex - 1);
         }}
         objectsFilter={displayObjectsFilter}
-        getCustomObjectStyles={getCustomObjectStyles}
         displayOptionsResult={displayOptionsResult}
-        displayAnnotationType={pageState.filterValues.displayAnnotationType}
       />
       {/* Screen loading */}
       {pageData.screenLoading ? (

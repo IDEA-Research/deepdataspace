@@ -16,16 +16,21 @@ export default {
 
   /** DDSAnnotator */
   'DDSAnnotator.save': 'Save',
+  'DDSAnnotator.commit': 'Commit',
   'DDSAnnotator.cancel': 'Cancel',
   'DDSAnnotator.delete': 'Delete',
+  'DDSAnnotator.modify': 'Modify',
   'DDSAnnotator.reject': 'Reject',
   'DDSAnnotator.approve': 'Approve',
   'DDSAnnotator.prev': 'Previous Image',
   'DDSAnnotator.next': 'Next Image',
   'DDSAnnotator.exit': 'Exit',
+  'DDSAnnotator.docs': 'Docs',
   'DDSAnnotator.shortcuts': 'Shortcuts',
   'DDSAnnotator.confidence': 'Confidence',
   'DDSAnnotator.annotsList.categories': 'Categories',
+  'DDSAnnotator.annotsList.labels': 'Labels',
+  'DDSAnnotator.annotsList.classification': 'Classification',
   'DDSAnnotator.annotsList.objects': 'Objects',
   'DDSAnnotator.annotsList.hideAll': 'Hide All',
   'DDSAnnotator.annotsList.showAll': 'Show All',
@@ -60,6 +65,9 @@ export default {
   'DDSAnnotator.subtoolbar.mask.sam.notAllow':
     'Unavailable when any instance exists',
   'DDSAnnotator.subtoolbar.mask.edgeStitch': 'Edge Stitching Brush',
+  'DDSAnnotator.subtoolbar.visualprompt.positive': 'Positive Visual Prompt',
+  'DDSAnnotator.subtoolbar.visualprompt.negative': 'Negative Visual Prompt',
+  'DDSAnnotator.subtoolbar.polygon.pointResolution': 'Point Resolution',
   'DDSAnnotator.zoomTool.reset': 'Reset Zoom',
   'DDSAnnotator.zoomIn': 'Zoom In',
   'DDSAnnotator.zoomOut': 'Zoom Out',
@@ -148,11 +156,14 @@ export default {
   'DDSAnnotator.smart.infoModal.action': 'Visit Our Website',
   'DDSAnnotator.smart.detection.name': 'Intelligent Object Detection',
   'DDSAnnotator.smart.detection.input': 'Select or enter categories',
+  'DDSAnnotator.smart.ivp.name': 'Interactive Visual Prompt (iVP)',
   'DDSAnnotator.smart.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'DDSAnnotator.smart.pose.name': 'Intelligent Pose Estimation',
   'DDSAnnotator.smart.mask.name': 'Intelligent Panoramic Segmentation',
   'DDSAnnotator.smart.pose.input': 'Select template',
   'DDSAnnotator.smart.pose.apply': 'Apply Results',
+  'DDSAnnotator.smart.ivp.desc': 'Detect the objects with visual prompt',
+  'DDSAnnotator.smart.gdino.desc': 'Detect the objects with text prompt',
   'DDSAnnotator.smart.annotate': 'Auto-Annotate',
   'DDSAnnotator.smart.retry': 'Retry',
   'DDSAnnotator.smart.modelTyle': 'Model Type',
@@ -169,6 +180,8 @@ export default {
   'DDSAnnotator.smart.msg.confResults': '{count} matching annotations shown',
   'DDSAnnotator.smart.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
+  'DDSAnnotator.smart.msg.positivePrompt':
+    'At least one positive visual prompt is required.',
   'DDSAnnotator.smart.rateLimit.title': 'Tips',
   'DDSAnnotator.smart.rateLimit.content':
     'Sorry, our public server is currently under low capacity and unable to process your request. Please try again later.',
@@ -181,4 +194,97 @@ export default {
   'DDSAnnotator.smart.tip.recover': 'Recover unselected annotations',
   'DDSAnnotator.smart.tip.overlayobject': 'View overlapping annotation objects',
   'DDSAnnotator.smart.tip.annotationApplied': '{count} annotations applied.',
+  'DDSAnnotator.smart.tip.visualPrompt':
+    'Add more visual prompts or accept current objects',
+  'DDSAnnotator.seg.tool': 'Segmentation tool',
+  'DDSAnnotator.seg.tool.content': 'Accept the segmentation result.',
+  'DDSAnnotator.confirm': 'Confirm',
+  'DDSAnnotator.points.editor': 'Points Attributes',
+  'DDSAnnotator.attribute.add': 'Add label attributes',
+  'DDSAnnotator.attribute.edit': 'Edit label attributes',
+  'DDSAnnotator.attribute.input': 'Please input',
+  'DDSAnnotator.attribute.required': 'Please fill in all required fields.',
+  'DDSAnnotator.attribute.newOperation.limit':
+    'Please make sure to add the required label attribute before proceeding with other operations.',
+  'DDSAnnotator.classification.required':
+    'You have not filled in all classification questions.',
+  'DDSAnnotator.label.attributes.required':
+    'You have not filled in all required label attributes.',
+  'DDSAnnotator.label.select': 'Select a label',
+  'DDSAnnotator.model.select': 'Select a model',
+  'DDSAnnotator.status.labeling': 'Labeling',
+  'DDSAnnotator.status.reviewing': 'Reviewing',
+  'DDSAnnotator.save.check.error': 'Pre Check Error',
+  'DDSAnnotator.save.check.classification':
+    'Classification #{idx} is required to have answer.',
+  'DDSAnnotator.save.check.label':
+    'Label ({labelName}) #{idx} is required to have manual attributes.',
+  'DDSAnnotator.save.check.tip': 'Please modify first.',
+
+  'DDSAnnotator.video.track': 'Tracking',
+  'DDSAnnotator.video.track.setting': 'Tracking settings',
+  'DDSAnnotator.video.frame': 'Frames',
+  'DDSAnnotator.video.track.backward': 'Backward inference frames',
+
+  /** dds-upload */
+  'dds-upload.title': 'Drag or Click to upload your data',
+  'dds-upload.limit.type.image': 'Image files (.jpg/.jpeg/.png) are supported.',
+  'dds-upload.limit.type.video':
+    'Video files (.mp4/.mov & duration < 60s) are supported.',
+  'dds-upload.upload': 'Add',
+  'dds-upload.tip.successLoad': 'Had added {count} files',
+  'dds-upload.tip.fileCountLimitMsg': 'File count should not exceed {count}.',
+  'dds-upload.videoFrame.title': 'Adjust Frame Count',
+  'dds-upload.videoFrame.tip': 'Attn',
+  'dds-upload.videoFrame.tip.content':
+    'Choose how many frames you want to annotate. A high frequency will create more, similarframes. A low one will create less frames but more varied imagery.',
+  'dds-upload.videoFrame.adjust': 'Frame rate adjustment range',
+  'dds-upload.videoFrame.fps': 'frames per second',
+  'dds-upload.videoFrame.matchNative': 'Match native frame rate',
+  'dds-upload.videoFrame.total': 'Total of {count} Frames',
+  'dds-upload.videoFrame.batch.all': 'Apply to all videos in this upload',
+  'dds-upload.videoFrame.batch.rest': 'Apply to rest videos in this upload',
+  'dds-upload.videoFrame.confirmbtn': 'Upload {count} Video',
+
+  /** dds-upload-pre-anno */
+  'dds-upload-pre-anno': 'Upload Pre-annotate Data',
+  'dds-upload-pre-anno.tip':
+    'Only annotations in DDS format are supported. File size should not exceed {maxSize} MB.',
+
+  /** QuickLabel */
+  'quicklabel.formModal.attn': 'Attn',
+  'quicklabel.formModal.tip':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
+  'quicklabel.formModal.start': 'Start',
+  'quicklabel.formModal.confirm': 'Confirm',
+  'quicklabel.title': 'Quick Label',
+  'quicklabel.setting': 'Setting',
+  'quicklabel.imageFilter': 'Image Filter',
+  'quicklabel.clearFilter': 'Clear Filter',
+  'quicklabel.allCategories': 'All Categories',
+  'quicklabel.export': 'Export Annotation',
+  'quicklabel.notice':
+    'The quick mode will not upload images or save annotation results. We recommend clicking the "Export Annotations" button located in the upper right corner of the workspace before leaving, which allows you to save the annotation results locally.',
+  'quicklabel.formModal.title': 'Before you start',
+  'quicklabel.formModal.importImages': 'Import Images',
+  'quicklabel.formModal.importVideos': 'Import Videos',
+  'quicklabel.formModal.importPreAnnots': 'Import Annotations',
+  'quicklabel.formModal.imageTips':
+    'Tips: Import a maximum of {count} images, with each image not exceeding {size}MB.',
+  'quicklabel.formModal.categories': 'Categories',
+  'quicklabel.formModal.addCategory': 'Add',
+  'quicklabel.formModal.categoryPlaceholder':
+    'Please enter the category names. You can input multiple categories by separating them with a new line. E.g.: \n person \n dog \n car',
+  'quicklabel.formModal.categoriesCount': 'Categories Count',
+  'quicklabel.formModal.fileRequiredMsg': 'At least one image is required.',
+  'quicklabel.formModal.fileSizeLimitMsg':
+    'The size of each individual image cannot exceed {size} MB.',
+  'quicklabel.formModal.categoryRequiredMsg':
+    'At least one category is required.',
+  'quicklabel.formModal.deleteCategory.title': 'Info',
+  'quicklabel.formModal.deleteCategory.desc':
+    'This category is used by current annotations. Please manually remove these annotations or revise their category first.',
+  'quicklabel.formModal.deleteImage.title': 'Info',
+  'quicklabel.formModal.deleteImage.desc':
+    'This image contains annotations. Please manually remove these annotations first.',
 };

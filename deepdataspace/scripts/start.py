@@ -44,7 +44,7 @@ from deepdataspace.services import DDS
               help="Set the http service port, default 8765.")
 @click.option("--reload", is_flag=True, default=None,
               help="Auto reload service on code change, for development only.")
-@click.option("--configfile",
+@click.option("--configfile", "-C",
               help="Load the target yaml file to initialize more configurations. "
                    "The command line options take precedence of the config file.")
 def start_dds(data_dir, quickstart, verbose, public, host, port, reload, configfile):
