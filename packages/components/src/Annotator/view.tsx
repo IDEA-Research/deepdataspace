@@ -1,9 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { DisplayOption } from './constants';
-import { useImmer } from 'use-immer';
+import { CursorState } from 'ahooks/lib/useMouse';
 import { cloneDeep } from 'lodash';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useImmer } from 'use-immer';
+
+import { ImageView } from './components/ImageView';
+import { DisplayOption } from './constants';
+import useCanvasRender from './hooks/useCanvasRender';
+import useColor from './hooks/useColor';
+import useDataEffect from './hooks/useDataEffect';
 import useHistory from './hooks/useHistory';
+import useMouseCursor from './hooks/useMouseCursor';
 import useObjects from './hooks/useObjects';
+import useTranslate from './hooks/useTranslate';
+import { useToolInstances } from './tools/base';
 import {
   BaseObject,
   Category,
@@ -15,16 +24,9 @@ import {
   AnnoItem,
   DrawObject,
 } from './type';
-import useColor from './hooks/useColor';
-import useMouseCursor from './hooks/useMouseCursor';
-import useCanvasRender from './hooks/useCanvasRender';
-import useDataEffect from './hooks/useDataEffect';
-import { useToolInstances } from './tools/base';
 import { zoomImgSize } from './utils/compute';
-import { CursorState } from 'ahooks/lib/useMouse';
-import { ImageView } from './components/ImageView';
+
 import './index.less';
-import useTranslate from './hooks/useTranslate';
 
 export interface ViewProps {
   isOldMode?: boolean; // is old dataset design mode

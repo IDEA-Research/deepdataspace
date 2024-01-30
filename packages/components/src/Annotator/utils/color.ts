@@ -43,12 +43,7 @@ export const hexToRgba = (hex: string, opacity = 1) => {
   )},${op})`;
 };
 
-/**
- * Generate a color list based on the number of categories.
- * max random 1000
- * @param count 
- * @returns 
- */
+/** Generate a color list based on the number of categories. */
 export const createColorList = (count: number) => {
   const colors = [
     '#FFFF00',
@@ -80,7 +75,7 @@ export const createColorList = (count: number) => {
         .padStart(2, '0')}${rgb[2]
         .toString(16)
         .padStart(2, '0')}`.toUpperCase();
-      if (count > 1000 || !colors.includes(hexColor)) {
+      if (!colors.includes(hexColor)) {
         colors.push(hexColor);
       }
     }
@@ -92,10 +87,10 @@ export const getCategoryColors = (list: string[]) => {
   if (!list.length) return {};
 
   const sortList = [...list];
-  const colors = createColorList(sortList.length) ;
+  const colors = createColorList(sortList.length);
   const result: Record<string, string> = {};
   sortList.forEach((item, index) => {
-    result[item] = colors[index] || '#fff';
+    result[item] = colors[index];
   });
   return result;
 };

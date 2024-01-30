@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import { Category } from 'dds-components/Annotator';
+import { BODY_TEMPLATE } from 'dds-components/Annotator/constants';
 import { rleToCanvas } from 'dds-components/Annotator/tools/useMask';
 import {
   calculatePolygonArea,
@@ -8,9 +9,11 @@ import {
   translateBoundingBoxToRect,
   translateRectToBoundingBox,
 } from 'dds-components/Annotator/utils/compute';
-import { idConverter } from './idConverter';
 import { getImageDimensions } from 'dds-utils/file';
+
 import { COCO, QsAnnotatorFile } from '../type';
+
+import { idConverter } from './idConverter';
 
 interface IAnnotatorStates {
   info: COCO.Info;
@@ -21,28 +24,6 @@ interface IAnnotatorStates {
 const IMPORT_CATEGORYID_PRIFIX = 'user_import_category';
 const IMPORT_IMAGE_PRIFIX = 'user_import_image';
 const IMPORT_ANNOT_PRIFIX = 'user_import_annot';
-
-export const ddsRleToCocoRle = (ddsRle: number[], imageSize: ISize) => {
-  const { width, height } = imageSize;
-  const counts: number[] = [];
-
-  let pos: number = 0;
-
-  for (let i = 0; i < Math.floor(ddsRle.length / 2); i++) {
-    counts.push(ddsRle[2 * i] - pos);
-    counts.push(ddsRle[2 * i + 1]);
-    pos = ddsRle[2 * i] + ddsRle[2 * i + 1];
-  }
-
-  if (pos < width * height) {
-    counts.push(width * height - pos);
-  }
-
-  return {
-    size: [imageSize.height, imageSize.width],
-    counts: counts,
-  };
-};
 
 export const convertToCocoDateset = async ({
   info,
@@ -84,6 +65,14 @@ export const convertToCocoDateset = async ({
     IMPORT_IMAGE_PRIFIX,
     images,
   );
+
+  // const allAnnots = images.reduce((prev: BaseObject[], curr) => {
+  //   return prev.concat(curr.objects)
+  // }, []);
+
+  // const {
+  //   getIntItemId: getIntAnnotId
+  // } = idConverter(IMPORT_ANNOT_PRIFIX, allAnnots);
 
   for (const image of images) {
     const imageId = getIntImageId(image.id);
@@ -142,18 +131,35 @@ export const convertToCocoDateset = async ({
           return sum + area;
         }, 0);
 
+        // const points: number[] = segmentation.flat();
+        // const pointObjs: IPoint[] = [];
+        // for (let i = 0; i < points.length; i += 2) {
+        //   const [x, y] = points.slice(i, i + 2);
+        //   pointObjs.push({ x, y });
+        // }
+        // const { x, y, width, height } = getLimitRectFromPoints(pointObjs);
+        // const bbox = [x, y, width, height];
+
         Object.assign(newAnnotation, { segmentation, area });
       }
 
-      if (annotation.mask && annotation.mask.length > 0) {
-        const ddsRle = annotation.mask;
-        const canvas = rleToCanvas(ddsRle, imageSize, '#fff');
-        const segmentation = ddsRleToCocoRle(ddsRle, imageSize);
+      if (annotation.mask) {
+        const canvas = rleToCanvas(
+          annotation.mask.counts || '',
+          imageSize,
+          '#fff',
+        );
+        const segmentation = annotation.mask;
         if (canvas) {
           const { area } = getMaskInfoByCanvas(canvas);
+          // const { x, y, width, height } = translateBoundingBoxToRect(bbox, {
+          //   width: 1,
+          //   height: 1,
+          // });
           Object.assign(newAnnotation, {
             segmentation,
             area,
+            // bbox: [x, y, width, height],
           });
         } else {
           Object.assign(newAnnotation, { segmentation });
@@ -172,6 +178,14 @@ export const convertToCocoDateset = async ({
           keypoints,
           num_keypoints,
         });
+
+        // const targetCategory = cocoDataset.categories.find(
+        //   (item) => item.name === categoryName,
+        // );
+        // if (targetCategory) {
+        //   targetCategory.skeleton = convertToVerticesArray(lines!);
+        //   targetCategory.keypoints = pointNames;
+        // }
       }
 
       cocoDataset.annotations.push(newAnnotation);
@@ -251,7 +265,10 @@ export const convertCocoDatasetToAnnotStates = (
         id: cocoAnnotId,
         image_id: cocoImageId,
         category_id: cocoCategoryId,
-        bbox: cocoBbox,
+        bbox,
+        segmentation,
+        keypoints,
+        num_keypoints,
       } = cocoAnnot;
 
       const cocoImageData = cocoImageMap.get(cocoImageId);
@@ -259,18 +276,58 @@ export const convertCocoDatasetToAnnotStates = (
 
       if (cocoImageData && targetImageData) {
         const { width: imgWidth, height: imgHeight } = cocoImageData;
-        const [x, y, width, height] = cocoBbox!;
         const newObject = {
           id: getStringAnnotID(cocoAnnotId),
           categoryId: getStringCategoryID(cocoCategoryId!),
           categoryName: cocoCategories?.find(
             (item) => item.id === cocoCategoryId,
           )?.name,
-          boundingBox: translateRectToBoundingBox(
-            { x, y, width, height },
-            { width: imgWidth, height: imgHeight },
-          ),
         };
+        if (bbox) {
+          const [x, y, width, height] = bbox;
+          Object.assign(newObject, {
+            boundingBox: translateRectToBoundingBox(
+              { x, y, width, height },
+              { width: imgWidth, height: imgHeight },
+            ),
+          });
+        }
+        if (segmentation) {
+          if (Array.isArray(segmentation)) {
+            // polygon type
+            Object.assign(newObject, {
+              segmentation: (segmentation as number[][])
+                ?.map((group) => group.map((pos) => pos.toString())?.join(','))
+                .join('/'),
+            });
+          } else if (typeof segmentation.counts === 'string') {
+            // rle type
+            Object.assign(newObject, {
+              mask: segmentation,
+            });
+          }
+        }
+
+        // TODO: adapt to more keypoints type
+        if (keypoints && num_keypoints === BODY_TEMPLATE.pointNames.length) {
+          const points: number[] = [];
+          for (let i = 0; i * 3 < keypoints.length; i++) {
+            points.push(
+              keypoints[i * 3],
+              keypoints[i * 3 + 1],
+              0,
+              0,
+              keypoints[i * 3 + 2],
+              1,
+            );
+          }
+          Object.assign(newObject, {
+            points,
+            lines: BODY_TEMPLATE.lines,
+            pointColors: BODY_TEMPLATE.pointColors,
+            pointNames: BODY_TEMPLATE.pointNames,
+          });
+        }
 
         if (!targetImageData.objects) {
           targetImageData.objects = [];

@@ -1,12 +1,16 @@
-import { useCallback } from 'react';
-import { Updater } from 'use-immer';
 import { Modal, message } from 'antd';
+import { useLocale } from 'dds-utils/locale';
+import { cloneDeep } from 'lodash';
+import { useCallback, useEffect } from 'react';
+import { Updater } from 'use-immer';
+
 import {
   EBasicToolItem,
   EnumModelType,
   EObjectType,
   ESubToolItem,
 } from '../constants';
+import { objectToRle, rleToCanvas } from '../tools/useMask';
 import {
   DrawData,
   EditState,
@@ -16,9 +20,7 @@ import {
   IImageDisplayOptions,
   IAnnotsDisplayOptions,
 } from '../type';
-import { objectToRle, rleToCanvas } from '../tools/useMask';
-import { useLocale } from 'dds-utils/locale';
-import { cloneDeep } from 'lodash';
+
 import { OnAiAnnotationFunc } from './useActions';
 
 interface IProps {
@@ -244,26 +246,16 @@ const useToolActions = ({
 
   const selectTool = useCallback(
     (tool: EBasicToolItem) => {
+      console.log(drawData.selectedTool, drawData.AIAnnotation, tool);
       if (
         mode !== EditorMode.Edit ||
-        (tool === drawData.selectedTool && drawData.AIAnnotation) ||
+        (tool === drawData.selectedTool && !drawData.AIAnnotation) ||
         drawData.isBatchEditing
       )
         return;
+
       setDrawData((s) => {
         s.selectedTool = tool;
-        if (tool === EBasicToolItem.Mask) {
-          s.selectedSubTool = s.AIAnnotation
-            ? ESubToolItem.AutoSegmentByBox
-            : ESubToolItem.PenAdd;
-        } else if (tool === EBasicToolItem.Polygon) {
-          s.selectedSubTool = ESubToolItem.AutoSegmentByBox;
-        } else if (
-          tool === EBasicToolItem.Rectangle &&
-          s.selectedModel === EnumModelType.IVP
-        ) {
-          s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
-        }
         s.AIAnnotation = false;
         s.activeObjectIndex = -1;
         s.creatingObject = undefined;
@@ -275,19 +267,22 @@ const useToolActions = ({
       mode,
       drawData.selectedTool,
       drawData.isBatchEditing,
-      drawData.selectedModel,
+      drawData.AIAnnotation,
     ],
   );
 
   const selectSubTool = useCallback(
     (tool: ESubToolItem) => {
+      if (mode !== EditorMode.Edit || tool === drawData.selectedSubTool) return;
+
       if (
-        mode !== EditorMode.Edit ||
-        tool === drawData.selectedSubTool ||
-        (drawData.selectedTool === EBasicToolItem.Mask &&
-          drawData.isBatchEditing)
-      )
+        drawData.selectedTool === EBasicToolItem.Mask &&
+        drawData.selectedModel[drawData.selectedTool] ===
+          EnumModelType.SegmentEverything &&
+        drawData.isBatchEditing
+      ) {
         return;
+      }
 
       setDrawData((s) => {
         s.selectedSubTool = tool;
@@ -485,17 +480,51 @@ const useToolActions = ({
     updateAllObject(newObjectList);
   }, [drawData.objectList, getAnnotColor]);
 
-  const onSelectModel = useCallback((type: EnumModelType) => {
+  const onSelectModel = useCallback((modelKey: EnumModelType) => {
     setDrawData((s) => {
-      s.selectedModel = type;
-      if (type === EnumModelType.IVP) {
-        s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
+      s.selectedModel[s.selectedTool] = modelKey;
+    });
+  }, []);
+
+  useEffect(() => {
+    setDrawData((s) => {
+      if (s.AIAnnotation) {
+        const model = s.selectedModel[s.selectedTool];
+        switch (s.selectedTool) {
+          case EBasicToolItem.Rectangle:
+            if (model === EnumModelType.IVP) {
+              s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
+            } else {
+              s.selectedSubTool = ESubToolItem.PenAdd; // TODO
+            }
+            break;
+          case EBasicToolItem.Mask:
+            if (model === EnumModelType.IVP) {
+              s.selectedSubTool = ESubToolItem.PositiveVisualPrompt;
+            } else if (model === EnumModelType.SegmentEverything) {
+              const isAvailbale =
+                (s.objectList.length === 0 && !s.creatingObject) ||
+                s.isBatchEditing;
+              s.selectedSubTool = isAvailbale
+                ? ESubToolItem.AutoSegmentEverything
+                : ESubToolItem.PenAdd;
+            } else {
+              s.selectedSubTool = ESubToolItem.AutoSegmentByBox;
+            }
+            break;
+          case EBasicToolItem.Polygon:
+            s.selectedSubTool = ESubToolItem.AutoSegmentByBox;
+            break;
+          case EBasicToolItem.Skeleton:
+          case EBasicToolItem.Drag:
+            s.selectedSubTool = ESubToolItem.PenAdd;
+            break;
+        }
       } else {
-        // TODO
         s.selectedSubTool = ESubToolItem.PenAdd;
       }
     });
-  }, []);
+  }, [drawData.selectedTool, drawData.AIAnnotation, drawData.selectedModel]);
 
   return {
     onChangeObjectLabel,

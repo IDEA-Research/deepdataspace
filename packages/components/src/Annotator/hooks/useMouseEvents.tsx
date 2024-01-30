@@ -1,5 +1,17 @@
-import { useCallback, useRef, useState } from 'react';
+import { useEventListener, useRafInterval } from 'ahooks';
 import { CursorState } from 'ahooks/lib/useMouse';
+import { fixedFloatNum } from 'dds-utils/digit';
+import { useCallback, useRef, useState } from 'react';
+import { Updater } from 'use-immer';
+
+import {
+  EBasicToolItem,
+  EBasicToolTypeMap,
+  EElementType,
+  EnumModelType,
+  EObjectType,
+} from '../constants';
+import { ToolInstanceHookReturn } from '../tools/base';
 import {
   Category,
   DrawData,
@@ -15,17 +27,6 @@ import {
   judgeFocusOnObject,
   judgeFocusOnPointAllObject,
 } from '../utils/compute';
-import {
-  EBasicToolItem,
-  EBasicToolTypeMap,
-  EElementType,
-  EnumModelType,
-  EObjectType,
-} from '../constants';
-import { Updater } from 'use-immer';
-import { ToolInstanceHookReturn } from '../tools/base';
-import { useEventListener, useRafInterval } from 'ahooks';
-import { fixedFloatNum } from 'dds-utils/digit';
 
 interface IProps {
   visible: boolean;
@@ -382,7 +383,8 @@ const useMouseEvents = ({
     // 2. Create object
     if (
       drawData.selectedTool !== EBasicToolItem.Drag &&
-      (!drawData.isBatchEditing || drawData.selectedModel === EnumModelType.IVP)
+      (!drawData.isBatchEditing ||
+        drawData.selectedModel[drawData.selectedTool] === EnumModelType.IVP)
     ) {
       setDrawData((s) => {
         s.editingAttribute = undefined;

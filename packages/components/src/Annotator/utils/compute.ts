@@ -1,12 +1,16 @@
+import { CursorState } from 'ahooks/lib/useMouse';
+import { cloneDeep, isEqual, isNumber } from 'lodash';
+
 import {
   EElementType,
   EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
 } from '../constants';
+import { LINE_COLOR } from '../constants/render';
+import { rleToCanvas } from '../tools/useMask';
 import { DrawData, IAnnotationObject, PromptItem } from '../type';
-import { CursorState } from 'ahooks/lib/useMouse';
+
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
-import { cloneDeep, isEqual, isNumber } from 'lodash';
 
 /**
  * Calculate the scaled width and height.
@@ -1210,6 +1214,9 @@ export const getObjectType = (obj: IAnnotationObject): EObjectType => {
   if (obj.rect && isValidRect(obj.rect)) {
     return EObjectType.Rectangle;
   }
+  if (obj.polyline) {
+    return EObjectType.Polyline;
+  }
   return EObjectType.Custom;
 };
 
@@ -1416,7 +1423,7 @@ export const translateAnnotCoord = (
   annoObj: IAnnotationObject,
   newCoordOrigin: IPoint,
 ): IAnnotationObject => {
-  const { rect, polygon, keypoints, point } = annoObj;
+  const { rect, polygon, keypoints, point, polyline } = annoObj;
   const newAnnoObj = { ...annoObj };
 
   if (rect) {
@@ -1453,6 +1460,16 @@ export const translateAnnotCoord = (
     newAnnoObj.point = {
       ...point,
       ...translatePointCoord(point, newCoordOrigin),
+    };
+  }
+
+  if (polyline) {
+    const newGroup = polyline.group.map((lineItem) => {
+      return translatePolygonCoord(lineItem, newCoordOrigin);
+    });
+    newAnnoObj.polyline = {
+      ...polyline,
+      group: newGroup,
     };
   }
 
@@ -1496,6 +1513,14 @@ export const scaleObject = (
   if (newObj.point) {
     const newPoint = translatePointZoom(newObj.point, preSize, curSize);
     newObj.point = { ...newObj.point, ...newPoint };
+  }
+  if (newObj.polyline) {
+    const newGroups = newObj.polyline.group.map((polyline) => {
+      return polyline.map((point) => {
+        return translatePointZoom(point, preSize, curSize);
+      });
+    });
+    newObj.polyline = { ...newObj.polyline, group: newGroups };
   }
   return newObj;
 };
@@ -1656,6 +1681,7 @@ export const convertFrameObjectsIntoFramesObjects = (
   framesObjects: IAnnotationObject[][],
   frameCount: number,
   activeIndex: number,
+  naturalSize: ISize,
 ) => {
   const tempObjects = [...framesObjects];
   currFrameObjects.forEach((item, objectIdx) => {
@@ -1665,11 +1691,25 @@ export const convertFrameObjectsIntoFramesObjects = (
       if (frameIdx === activeIndex) {
         return item;
       }
+      const frameEmpty = obj?.frameEmpty || Boolean(!obj);
       let resultObject = obj;
-      if (frameIdx > activeIndex) {
-        // frame change to after active frame
-        resultObject = isEqual(obj, objectframes[activeIndex]) ? item : obj;
+      if (frameIdx > activeIndex && isEqual(obj, objectframes[activeIndex])) {
+        // [active frame, later changed frame] -> same change
+        resultObject = item;
+      } else if (
+        !frameEmpty &&
+        item.type === EObjectType.Mask &&
+        resultObject.maskRle &&
+        item.labelId !== obj.labelId
+      ) {
+        // mask label changed => re compute maskCanvas
+        resultObject.maskCanvasElement = rleToCanvas(
+          resultObject.maskRle,
+          naturalSize,
+          item.color,
+        );
       }
+
       return {
         ...resultObject,
         type: item.type,
@@ -1684,6 +1724,23 @@ export const convertFrameObjectsIntoFramesObjects = (
     });
   });
   return tempObjects;
+};
+
+export const updateDrawDataFrameCreateObject = (newDrawData: DrawData) => {
+  // TODO: creating object should reset alone
+  if (
+    newDrawData.activeObjectIndex >= 0 &&
+    newDrawData.objectList?.[newDrawData.activeObjectIndex] &&
+    !newDrawData.objectList?.[newDrawData.activeObjectIndex].frameEmpty
+  ) {
+    newDrawData.creatingObject = {
+      ...newDrawData.creatingObject,
+      ...newDrawData.objectList?.[newDrawData.activeObjectIndex],
+    };
+    return;
+  }
+  newDrawData.prompt = {};
+  newDrawData.creatingObject = undefined;
 };
 
 export const getVisibleAreaForImage = (
@@ -1778,4 +1835,34 @@ export const getMaskInfoByCanvas = (
     area,
     bbox,
   };
+};
+
+export const translateUVtoPolylinePoints = (
+  uv: [number[], number[]],
+): IPolyline => {
+  if (!uv || uv.length < 2 || uv[0]?.length !== uv[1]?.length) {
+    return [];
+  }
+
+  const [xCoords, yCoords] = uv;
+  const polyline: IPolyline = [];
+
+  for (let i = 0; i < xCoords.length; i++) {
+    polyline.push({
+      x: xCoords[i],
+      y: yCoords[i],
+    });
+  }
+
+  return polyline;
+};
+
+export const convertLaneLineColorToHex = (lineColor: string): string => {
+  if (lineColor === 'yellow') {
+    return LINE_COLOR.Yellow;
+  } else if (lineColor === 'white') {
+    return LINE_COLOR.White;
+  } else {
+    return LINE_COLOR.Other;
+  }
 };

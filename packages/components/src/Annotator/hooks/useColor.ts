@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { getCategoryColors, hsvToRgb, rgbArrayToHex } from '../utils/color';
+
 import { Category, EditState } from '../type';
+import { getCategoryColors, hsvToRgb, rgbArrayToHex } from '../utils/color';
 
 interface IProps {
   categories: Category[];

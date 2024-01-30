@@ -1,14 +1,16 @@
 import { Select } from 'antd';
 import { useLocale } from 'dds-utils/locale';
 import { memo, useMemo } from 'react';
-import { Category, DrawData } from '../../type';
-import CategoryCreator from '../CategoryCreator';
+
 import {
   EBasicToolItem,
   EBasicToolTypeMap,
   LABEL_TOOL_MAP,
   OBJECT_ICON,
 } from '../../constants';
+import { Category, DrawData } from '../../type';
+import CategoryCreator from '../CategoryCreator';
+
 import './index.less';
 
 interface IProps {

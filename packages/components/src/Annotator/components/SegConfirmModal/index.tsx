@@ -1,12 +1,14 @@
+import { useKeyPress } from 'ahooks';
 import { Button, Card } from 'antd';
 import classNames from 'classnames';
-import { FloatWrapper } from '../FloatWrapper';
-import { memo, useMemo } from 'react';
-import { useKeyPress } from 'ahooks';
-import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import { useLocale } from 'dds-utils/locale';
-import { EditorMode, IAnnotationObject } from '../../type';
+import { memo, useMemo } from 'react';
+
 import { EObjectType } from '../../constants';
+import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
+import { EditorMode, IAnnotationObject } from '../../type';
+import { FloatWrapper } from '../FloatWrapper';
+
 import './index.less';
 
 interface IProps {

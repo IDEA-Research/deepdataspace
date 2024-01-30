@@ -1,15 +1,23 @@
+import { EnumModelType, EObjectType, ESubToolItem } from '../constants';
+import {
+  ANNO_FILL_ALPHA,
+  PROMPT_FILL_COLOR,
+  PROMPT_STROKE_COLOR,
+} from '../constants/render';
+import { EObjectStatus, EPromptType, PromptItem } from '../type';
+import { hexToRgba } from '../utils/color';
+import {
+  getRectFromPoints,
+  translatePointCoord,
+  translateRectCoord,
+} from '../utils/compute';
 import {
   drawCircleWithFill,
   drawRect,
   drawText,
   shadeEverythingButRect,
 } from '../utils/draw';
-import { EnumModelType, EObjectType, ESubToolItem } from '../constants';
-import {
-  getRectFromPoints,
-  translatePointCoord,
-  translateRectCoord,
-} from '../utils/compute';
+
 import {
   ToolInstanceHook,
   ToolHooksFunc,
@@ -17,13 +25,6 @@ import {
   editBaseElementWhenMouseDown,
   updateEditingRectWhenMouseMove,
 } from './base';
-import { EObjectStatus, EPromptType, PromptItem } from '../type';
-import { hexToRgba } from '../utils/color';
-import {
-  ANNO_FILL_ALPHA,
-  PROMPT_FILL_COLOR,
-  PROMPT_STROKE_COLOR,
-} from '../constants/render';
 
 const useRectangle: ToolInstanceHook = ({
   contentMouse,
@@ -54,17 +55,14 @@ const useRectangle: ToolInstanceHook = ({
       let strokeColor = styles.strokeColor;
       let fillColor = styles.fillColor;
       let thickness = styles.thickness;
+      const model = drawData.selectedModel[drawData.selectedTool];
       if (drawData.isBatchEditing) {
         if (
           object.status === EObjectStatus.Unchecked &&
-          (!editState.isCtrlPressed ||
-            drawData.selectedModel === EnumModelType.IVP)
+          (!editState.isCtrlPressed || model === EnumModelType.IVP)
         )
           return;
-        if (
-          editState.isCtrlPressed &&
-          drawData.selectedModel === EnumModelType.Detection
-        ) {
+        if (editState.isCtrlPressed && model === EnumModelType.Detection) {
           if (object.status !== EObjectStatus.Unchecked) {
             strokeColor = hexToRgba(color, 0.8);
             strokeDash = [2];
@@ -92,15 +90,15 @@ const useRectangle: ToolInstanceHook = ({
           categories.find((c) => c.id === object.labelId)?.name || '';
         const label =
           object?.conf && object.conf > 0 && object.conf < 1
-            ? `${labelName}(${object.conf.toFixed(3)})`
+            ? `${labelName} (${object.conf.toFixed(3)})`
             : labelName;
         drawText(
           canvasRef.current!,
           label || '',
           13,
-          { x: rect.x + 2, y: rect.y + 2 },
+          { x: rect.x + 6, y: rect.y + 6 },
           color,
-          false,
+          true,
           'left',
         );
       }
@@ -292,7 +290,8 @@ const useRectangle: ToolInstanceHook = ({
   const startCreatingWhenMouseDown: ToolHooksFunc.StartCreatingWhenMouseDown =
     ({ point, basic }) => {
       setDrawData((s) => {
-        if (s.AIAnnotation && s.selectedModel === EnumModelType.IVP) {
+        const model = s.selectedModel[s.selectedTool];
+        if (s.AIAnnotation && model === EnumModelType.IVP) {
           s.prompt.creatingPrompt = {
             type: EPromptType.Rect,
             startPoint: point,
@@ -352,7 +351,7 @@ const useRectangle: ToolInstanceHook = ({
     };
     if (
       drawData.AIAnnotation &&
-      drawData.selectedModel === EnumModelType.IVP &&
+      drawData.selectedModel[drawData.selectedTool] === EnumModelType.IVP &&
       drawData.prompt.creatingPrompt?.startPoint
     ) {
       const { startPoint } = drawData.prompt.creatingPrompt;
@@ -379,14 +378,10 @@ const useRectangle: ToolInstanceHook = ({
         // });
         // return true;
       } else {
-        const rect = getRectFromPoints(
-          drawData.prompt.creatingPrompt.startPoint as IPoint,
-          mouse,
-          {
-            width: contentMouse.elementW,
-            height: contentMouse.elementH,
-          },
-        );
+        const rect = getRectFromPoints(startPoint, mouse, {
+          width: contentMouse.elementW,
+          height: contentMouse.elementH,
+        });
         const promptItem: PromptItem = {
           type: EPromptType.Rect,
           isPositive: drawData.prompt.creatingPrompt.isPositive,

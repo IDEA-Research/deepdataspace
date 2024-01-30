@@ -1,3 +1,14 @@
+import { CloseOutlined } from '@ant-design/icons';
+import Icon from '@ant-design/icons/lib/components/Icon';
+import { Button, Card, Select, Slider, Space } from 'antd';
+import classNames from 'classnames';
+import { useLocale } from 'dds-utils/locale';
+import { useMemo, memo, useState } from 'react';
+import { useImmer } from 'use-immer';
+
+import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
+import { ReactComponent as MouseLeftIcon } from '../../assets/mouse-left.svg';
+import { ReactComponent as MouseRightIcon } from '../../assets/mouse-right.svg';
 import {
   OBJECT_ICON,
   EBasicToolItem,
@@ -8,19 +19,10 @@ import {
   EToolType,
   EnumModelType,
 } from '../../constants';
-import { CloseOutlined } from '@ant-design/icons';
-import Icon from '@ant-design/icons/lib/components/Icon';
-import { Button, Card, Select, Slider, Space } from 'antd';
-import classNames from 'classnames';
-import { useMemo, memo, useState } from 'react';
-import { FloatWrapper } from '../FloatWrapper';
-import { useLocale } from 'dds-utils/locale';
 import { OnAiAnnotationFunc } from '../../hooks/useActions';
-import { useImmer } from 'use-immer';
-import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
-import { ReactComponent as MouseLeftIcon } from '../../assets/mouse-left.svg';
-import { ReactComponent as MouseRightIcon } from '../../assets/mouse-right.svg';
 import { Category } from '../../type';
+import { FloatWrapper } from '../FloatWrapper';
+
 import './index.less';
 
 interface IProps {
@@ -97,7 +99,12 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
         icon: OBJECT_ICON[EObjectType.Skeleton],
       },
       [EBasicToolItem.Mask]: {
-        name: localeText('DDSAnnotator.smart.mask.name'),
+        name:
+          selectedModel === EnumModelType.SegmentByMask
+            ? localeText('DDSAnnotator.smart.isg.name')
+            : selectedModel === EnumModelType.SegmentEverything
+            ? localeText('DDSAnnotator.smart.sam.name')
+            : localeText('DDSAnnotator.smart.ivp.name'),
         icon: OBJECT_ICON[EObjectType.Mask],
       },
     };
@@ -143,12 +150,18 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     const isVisible = useMemo(() => {
       if (!AIAnnotation || selectedTool === EBasicToolItem.Drag) return false;
 
-      if (
-        (selectedTool === EBasicToolItem.Mask &&
-          selectedSubTool !== ESubToolItem.AutoSegmentEverything) ||
-        selectedTool === EBasicToolItem.Polygon
-      )
+      if (selectedTool === EBasicToolItem.Mask) {
+        if (selectedModel === EnumModelType.SegmentEverything) {
+          return selectedSubTool === ESubToolItem.AutoSegmentEverything;
+        } else if (selectedModel === EnumModelType.SegmentByMask) {
+          return false;
+        } else if (selectedModel === EnumModelType.IVP) {
+          return isBatchEditing;
+        }
         return false;
+      }
+
+      if (selectedTool === EBasicToolItem.Polygon) return false;
 
       if (selectedTool === EBasicToolItem.Rectangle) {
         if (selectedModel === EnumModelType.Detection) {
@@ -312,26 +325,28 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                   </Button>
                 </div>
               ))}
-            {selectedTool === EBasicToolItem.Rectangle &&
-              selectedModel === EnumModelType.IVP && (
-                <div className="dds-annotator-smart-container-content-column-item">
-                  <div className="dds-annotator-smart-container-content-tip-text">
-                    <span>{localeText('DDSAnnotator.smart.tip')}: </span>
-                    {localeText('DDSAnnotator.smart.tip.visualPrompt')}
-                  </div>
-                  <div style={{ alignSelf: 'flex-end' }}>
-                    <Button
-                      style={{ marginRight: '10px' }}
-                      onClick={onCancelBatchEdit}
-                    >
-                      {localeText('DDSAnnotator.smart.back')}
-                    </Button>
-                    <Button type="primary" onClick={onAcceptValidObjects}>
-                      {localeText('DDSAnnotator.save')}
-                    </Button>
-                  </div>
+            {((selectedTool === EBasicToolItem.Rectangle &&
+              selectedModel === EnumModelType.IVP) ||
+              (selectedTool === EBasicToolItem.Mask &&
+                selectedModel === EnumModelType.IVP)) && (
+              <div className="dds-annotator-smart-container-content-column-item">
+                <div className="dds-annotator-smart-container-content-tip-text">
+                  <span>{localeText('DDSAnnotator.smart.tip')}: </span>
+                  {localeText('DDSAnnotator.smart.tip.visualPrompt')}
                 </div>
-              )}
+                <div style={{ alignSelf: 'flex-end' }}>
+                  <Button
+                    style={{ marginRight: '10px' }}
+                    onClick={onCancelBatchEdit}
+                  >
+                    {localeText('DDSAnnotator.smart.back')}
+                  </Button>
+                  <Button type="primary" onClick={onAcceptValidObjects}>
+                    {localeText('DDSAnnotator.save')}
+                  </Button>
+                </div>
+              </div>
+            )}
             {selectedTool === EBasicToolItem.Skeleton &&
               (isBatchEditing ? (
                 <>
@@ -409,6 +424,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                 </>
               ))}
             {selectedTool === EBasicToolItem.Mask &&
+              selectedModel === EnumModelType.SegmentEverything &&
               selectedSubTool === ESubToolItem.AutoSegmentEverything && (
                 <>
                   <div

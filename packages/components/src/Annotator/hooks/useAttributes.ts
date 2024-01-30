@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
+import { Updater } from 'use-immer';
+
 import {
   Category,
   DrawData,
   IAnnotationObject,
   IAttributeValue,
 } from '../type';
-import { Updater } from 'use-immer';
 
 interface IProps {
   setDrawDataWithHistory: Updater<DrawData>;

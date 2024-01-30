@@ -1,7 +1,9 @@
-import { Button, Spin } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
-import ImgBroken from '../../assets/img-broken.svg';
+import { Button, Spin } from 'antd';
 import React, { useState } from 'react';
+
+import ImgBroken from '../../assets/img-broken.svg';
+
 import './index.less';
 
 interface IProps {

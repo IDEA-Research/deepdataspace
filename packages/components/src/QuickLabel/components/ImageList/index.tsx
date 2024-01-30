@@ -1,6 +1,8 @@
 import VirtualList from 'rc-virtual-list';
 import { useCallback, useEffect, useState } from 'react';
+
 import { QsAnnotatorFile } from '../../type';
+
 import './index.less';
 
 interface IProps {

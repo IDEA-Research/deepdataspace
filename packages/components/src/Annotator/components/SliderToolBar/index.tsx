@@ -1,6 +1,12 @@
-import { Button, Popover } from 'antd';
 import Icon, { ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
+import { useKeyPress } from 'ahooks';
+import { Button, Popover } from 'antd';
 import classNames from 'classnames';
+import { useLocale } from 'dds-utils/locale';
+import { memo, useMemo } from 'react';
+
+import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
+import { ReactComponent as ZoomResize } from '../../assets/zoomResize.svg';
 import {
   EBasicToolItem,
   EObjectType,
@@ -14,17 +20,13 @@ import {
   TOOL_MODELS_MAP,
   EnumModelType,
 } from '../../constants';
-import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
-import { useKeyPress } from 'ahooks';
 import {
   EDITOR_SHORTCUTS,
   EShortcuts,
   TShortcutItem,
 } from '../../constants/shortcuts';
-import { memo, useMemo } from 'react';
 import { getIconFromShortcut } from '../ShortcutsInfo';
-import { useLocale } from 'dds-utils/locale';
-import { ReactComponent as ZoomResize } from '../../assets/zoomResize.svg';
+
 import './index.less';
 
 type TToolItem<T> = {

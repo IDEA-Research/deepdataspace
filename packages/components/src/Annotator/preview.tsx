@@ -1,8 +1,3 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { DisplayOption, EElementType, MAX_SCALE, MIN_SCALE } from './constants';
-import { useImmer } from 'use-immer';
-import TopTools from './components/TopTools';
-import PopoverMenu from './components/PopoverMenu';
 import {
   CloseOutlined,
   LeftOutlined,
@@ -10,10 +5,30 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
 } from '@ant-design/icons';
-import useHistory from './hooks/useHistory';
-import useObjects from './hooks/useObjects';
-import useCanvasContainer from './hooks/useCanvasContainer';
+import { useKeyPress } from 'ahooks';
+import { message } from 'antd';
+import classNames from 'classnames';
 import { cloneDeep, isEmpty } from 'lodash';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useImmer } from 'use-immer';
+
+import { ReactComponent as DoubleRightIcon } from './assets/doubleRight.svg';
+import { ReactComponent as DownloadIcon } from './assets/download.svg';
+import { ImageView } from './components/ImageView';
+import PopoverMenu from './components/PopoverMenu';
+import TopTools from './components/TopTools';
+import { DisplayOption, EElementType, MAX_SCALE, MIN_SCALE } from './constants';
+import { EDITOR_SHORTCUTS, EShortcuts } from './constants/shortcuts';
+import useCanvasContainer from './hooks/useCanvasContainer';
+import useCanvasRender from './hooks/useCanvasRender';
+import useColor from './hooks/useColor';
+import useDataEffect from './hooks/useDataEffect';
+import useHistory from './hooks/useHistory';
+import useMouseCursor from './hooks/useMouseCursor';
+import useMouseEvents from './hooks/useMouseEvents';
+import useObjects from './hooks/useObjects';
+import useTranslate from './hooks/useTranslate';
+import { useToolInstances } from './tools/base';
 import {
   BaseObject,
   Category,
@@ -25,21 +40,8 @@ import {
   EditState,
   EditorMode,
 } from './type';
-import useColor from './hooks/useColor';
-import useMouseCursor from './hooks/useMouseCursor';
-import useMouseEvents from './hooks/useMouseEvents';
-import useCanvasRender from './hooks/useCanvasRender';
-import useDataEffect from './hooks/useDataEffect';
-import { useToolInstances } from './tools/base';
-import classNames from 'classnames';
-import { ReactComponent as DoubleRightIcon } from './assets/doubleRight.svg';
-import { ReactComponent as DownloadIcon } from './assets/download.svg';
-import { useKeyPress } from 'ahooks';
-import { EDITOR_SHORTCUTS, EShortcuts } from './constants/shortcuts';
-import { message } from 'antd';
-import { ImageView } from './components/ImageView';
+
 import './index.less';
-import useTranslate from './hooks/useTranslate';
 
 export interface PreviewProps {
   isOldMode?: boolean; // is old dataset design mode
