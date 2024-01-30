@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkapp=self.webpackChunkapp||[]).push([[734],{25970:function(l,e,_){_.r(e);var a=_(63900),n=_.n(a),m=_(58757),s=_(28638),u=_(97375),o=_(35667),d=function(){var t=(0,u.useModel)("Annotator.model");return(0,o.jsx)(s.Z,n()({},t))};e.default=d}}]);
