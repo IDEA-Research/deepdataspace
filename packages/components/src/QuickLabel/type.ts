@@ -1,5 +1,5 @@
-import { UploadFile } from 'dds-components/Upload';
 import { BaseObject } from 'dds-components/Annotator';
+import { UploadFile } from 'dds-components/Upload';
 
 export interface QsAnnotatorFile extends UploadFile {
   urlFullRes: string;

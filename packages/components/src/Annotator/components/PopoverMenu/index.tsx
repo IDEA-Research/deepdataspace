@@ -1,4 +1,5 @@
 import { FloatWrapper } from '../FloatWrapper';
+
 import './index.less';
 
 interface IPopoverMenu {

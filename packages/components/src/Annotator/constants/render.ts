@@ -1,3 +1,5 @@
+import { LineType } from '../type';
+
 export const ANNO_FILL_ALPHA = {
   DEFAULT: 0,
   CREATING: 0,
@@ -41,4 +43,55 @@ export const PROMPT_STROKE_COLOR = {
 export const PROMPT_FILL_COLOR = {
   POSITIVE: 'rgba(1, 128, 0, 0.6)',
   NEGATIVE: 'rgba(255, 3, 0, 0.6)',
+};
+
+export const LINE_STYLE_MAP: Record<
+  LineType,
+  {
+    lineDash: number[];
+    thickness: number;
+  }
+> = {
+  [LineType.Solid]: {
+    lineDash: [],
+    thickness: 2,
+  },
+  [LineType.DoubleSolid]: {
+    lineDash: [],
+    thickness: 4,
+  },
+  [LineType.LCurbside]: {
+    lineDash: [],
+    thickness: 2,
+  },
+  [LineType.RCurbside]: {
+    lineDash: [],
+    thickness: 2,
+  },
+  [LineType.Unknown]: {
+    lineDash: [],
+    thickness: 2,
+  },
+  [LineType.Dashed]: {
+    lineDash: [4, 4],
+    thickness: 2,
+  },
+  [LineType.DoubleDashed]: {
+    lineDash: [4, 4],
+    thickness: 4,
+  },
+  [LineType.LDashedRSolid]: {
+    lineDash: [4, 8, 4, 8, 16, 4],
+    thickness: 4,
+  },
+  [LineType.LSolidRDashed]: {
+    lineDash: [4, 8, 16, 4],
+    thickness: 4,
+  },
+};
+
+export const LINE_COLOR = {
+  Yellow: '#d97945',
+  White: '#de1760',
+  Other: '#72af44',
 };

@@ -1,18 +1,18 @@
-import { ReactComponent as RectIcon } from '../assets/rectangle.svg';
-import { ReactComponent as RectAiIcon } from '../assets/rectangle-ai.svg';
-import { ReactComponent as PolygonIcon } from '../assets/polygon.svg';
-import { ReactComponent as PolygonAiIcon } from '../assets/polygon-ai.svg';
-import { ReactComponent as SkeletonIcon } from '../assets/skeleton.svg';
-import { ReactComponent as SkeletonAiIcon } from '../assets/skeleton-ai.svg';
-import { ReactComponent as MaskIcon } from '../assets/mask.svg';
-import { ReactComponent as MaskAiIcon } from '../assets/mask-ai.svg';
-import { ReactComponent as MagicIcon } from '../assets/magic.svg';
 import { ReactComponent as CustomIcon } from '../assets/custom.svg';
-import { ReactComponent as UndoIcon } from '../assets/undo.svg';
+import { ReactComponent as DeleteAllIcon } from '../assets/delete_all.svg';
+import { ReactComponent as MagicIcon } from '../assets/magic.svg';
+import { ReactComponent as MaskAiIcon } from '../assets/mask-ai.svg';
+import { ReactComponent as MaskIcon } from '../assets/mask.svg';
+import { ReactComponent as PolygonAiIcon } from '../assets/polygon-ai.svg';
+import { ReactComponent as PolygonIcon } from '../assets/polygon.svg';
+import { ReactComponent as RectAiIcon } from '../assets/rectangle-ai.svg';
+import { ReactComponent as RectIcon } from '../assets/rectangle.svg';
 import { ReactComponent as RedoIcon } from '../assets/redo.svg';
 import { ReactComponent as RepeatIcon } from '../assets/repeat.svg';
-import { ReactComponent as DeleteAllIcon } from '../assets/delete_all.svg';
+import { ReactComponent as SkeletonAiIcon } from '../assets/skeleton-ai.svg';
+import { ReactComponent as SkeletonIcon } from '../assets/skeleton.svg';
 import { ReactComponent as TextPromptIcon } from '../assets/text-prompt.svg';
+import { ReactComponent as UndoIcon } from '../assets/undo.svg';
 import { ReactComponent as VisualPromptIcon } from '../assets/visual-prompt.svg';
 
 export enum DisplayOption {
@@ -59,6 +59,7 @@ export enum EObjectType {
   Mask = 'Mask',
   Matting = 'Matting',
   Point = 'Point',
+  Polyline = 'Polyline',
 }
 
 export enum EElementType {
@@ -122,7 +123,11 @@ export const TOOL_MODELS_MAP: Record<EBasicToolItem, EnumModelType[]> = {
   [EBasicToolItem.Drag]: [],
   [EBasicToolItem.Rectangle]: [EnumModelType.Detection, EnumModelType.IVP],
   [EBasicToolItem.Polygon]: [EnumModelType.SegmentByPolygon],
-  [EBasicToolItem.Mask]: [EnumModelType.SegmentByMask],
+  [EBasicToolItem.Mask]: [
+    EnumModelType.SegmentEverything,
+    EnumModelType.SegmentByMask,
+    EnumModelType.IVP,
+  ],
   [EBasicToolItem.Skeleton]: [EnumModelType.Pose],
 };
 
@@ -138,16 +143,28 @@ export const MODEL_INTRO_MAP: Partial<
   >
 > = {
   [EnumModelType.Detection]: {
-    name: 'Grounding-DINO',
+    name: 'DDSAnnotator.smart.gdino.name',
     icon: TextPromptIcon,
     description: 'DDSAnnotator.smart.gdino.desc',
     hightlight: false,
   },
   [EnumModelType.IVP]: {
-    name: 'iVP',
+    name: 'DDSAnnotator.smart.ivp.name',
     icon: VisualPromptIcon,
     description: 'DDSAnnotator.smart.ivp.desc',
     hightlight: true,
+  },
+  [EnumModelType.SegmentEverything]: {
+    name: 'DDSAnnotator.smart.sam.name',
+    icon: VisualPromptIcon,
+    description: 'DDSAnnotator.smart.sam.desc',
+    hightlight: false,
+  },
+  [EnumModelType.SegmentByMask]: {
+    name: 'DDSAnnotator.smart.isg.name',
+    icon: VisualPromptIcon,
+    description: 'DDSAnnotator.smart.isg.desc',
+    hightlight: false,
   },
 };
 
@@ -168,11 +185,14 @@ export const OBJECT_ICON: Record<
   [EObjectType.Mask]: MaskIcon,
   [EObjectType.Matting]: MaskIcon,
   [EObjectType.Point]: CustomIcon,
+  [EObjectType.Polyline]: CustomIcon,
   [EObjectType.Custom]: CustomIcon,
   [EObjectType.Classification]: CustomIcon,
 };
 
-export const OBJECT_AI_ICON = {
+export const OBJECT_AI_ICON: Partial<
+  Record<EObjectType, React.FunctionComponent<React.SVGProps<SVGSVGElement>>>
+> = {
   [EObjectType.Rectangle]: RectAiIcon,
   [EObjectType.Skeleton]: SkeletonAiIcon,
   [EObjectType.Polygon]: PolygonAiIcon,

@@ -1,19 +1,16 @@
-import {
-  EBasicToolItem,
-  EnumModelType,
-  MODEL_INTRO_MAP,
-  TOOL_MODELS_MAP,
-} from '../../constants';
 import Icon from '@ant-design/icons';
 import { Modal, Tag } from 'antd';
-import { memo, useMemo } from 'react';
-import './index.less';
-import { useLocale } from 'dds-utils';
 import classNames from 'classnames';
+import { useLocale } from 'dds-utils';
+import { memo, useMemo } from 'react';
+
+import { EnumModelType, MODEL_INTRO_MAP } from '../../constants';
+
+import './index.less';
 
 interface IProps {
-  selectedTool: EBasicToolItem;
   AIAnnotation: boolean;
+  modelOptions: EnumModelType[];
   selectedModel?: EnumModelType;
   onSelectModel: (type: EnumModelType) => void;
   onCloseModal: () => void;
@@ -21,37 +18,41 @@ interface IProps {
 
 const ModelSelectModal: React.FC<IProps> = memo(
   ({
-    selectedTool,
     AIAnnotation,
+    modelOptions,
     selectedModel,
     onSelectModel,
     onCloseModal,
   }) => {
     const { localeText } = useLocale();
 
+    const modalWidth =
+      modelOptions.length * 220 + (modelOptions.length + 1) * 20;
+
     const autoOpen = useMemo(() => {
       if (
         AIAnnotation &&
-        TOOL_MODELS_MAP[selectedTool] &&
-        TOOL_MODELS_MAP[selectedTool]!.length > 1 &&
+        modelOptions &&
+        modelOptions.length > 1 &&
         !selectedModel
       ) {
         return true;
       }
       return false;
-    }, [AIAnnotation, selectedTool, selectedModel]);
+    }, [AIAnnotation, modelOptions, selectedModel]);
 
     return (
       <Modal
         open={autoOpen}
-        title={'Enable Intelligent Annotate'}
+        title={localeText('DDSAnnotator.smart.modelSelectModal.title')}
+        width={modalWidth}
         onCancel={onCloseModal}
         footer={null}
         centered
         destroyOnClose
       >
         <div className="dds-annotator-model-selector-modal">
-          {TOOL_MODELS_MAP[selectedTool]?.map((model, index) => {
+          {modelOptions.map((model, index) => {
             const intro = MODEL_INTRO_MAP[model];
             if (!intro) return <></>;
             return (
@@ -71,7 +72,7 @@ const ModelSelectModal: React.FC<IProps> = memo(
                   component={intro.icon}
                 />
                 <div className="dds-annotator-model-selector-modal-option-name">
-                  {intro.name}
+                  {localeText(intro.name)}
                 </div>
                 <div className="dds-annotator-model-selector-modal-option-description">
                   {localeText(intro.description)}

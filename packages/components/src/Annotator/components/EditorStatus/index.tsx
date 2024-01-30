@@ -1,9 +1,11 @@
-import { memo } from 'react';
 import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
-import { EditorMode } from '../../type';
+import { memo } from 'react';
+
 import { ReactComponent as LabelIcon } from '../../assets/label.svg';
 import { ReactComponent as ReviewIcon } from '../../assets/review.svg';
+import { EditorMode } from '../../type';
+
 import './index.less';
 
 interface IProps {

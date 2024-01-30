@@ -1,14 +1,16 @@
-import { Button, Popover, Slider, Tooltip } from 'antd';
 import Icon from '@ant-design/icons';
+import { Button, Popover, Slider, Tooltip } from 'antd';
 import { useLocale } from 'dds-utils/locale';
-import { ReactComponent as SettingIcon } from '../../assets/settings-sliders.svg';
-import { ReactComponent as DisplayReset } from '../../assets/displayReset.svg';
 import { memo, useMemo } from 'react';
+
+import { ReactComponent as DisplayReset } from '../../assets/displayReset.svg';
+import { ReactComponent as SettingIcon } from '../../assets/settings-sliders.svg';
 import {
   DEFAULT_IMG_DISPLAY_OPTIONS,
   IAnnotsDisplayOptions,
   IImageDisplayOptions,
 } from '../../type';
+
 import './index.less';
 
 interface IProps {

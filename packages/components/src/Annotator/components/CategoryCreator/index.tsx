@@ -1,7 +1,8 @@
-import { useLocale } from 'dds-utils/locale';
 import { PlusOutlined } from '@ant-design/icons';
 import { Button, Divider, Input, InputRef, Space } from 'antd';
+import { useLocale } from 'dds-utils/locale';
 import { memo, useRef, useState } from 'react';
+
 interface IProps {
   onAdd: (value: string) => void;
 }

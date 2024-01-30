@@ -150,20 +150,27 @@ export default {
   'DDSAnnotator.anno.mask.translateToRleError': 'Error converting Mask format.',
 
   /** DDSAnnotator.smart */
+  'DDSAnnotator.smart.modelSelectModal.title': 'Enable AI Annotate',
   'DDSAnnotator.smart.infoModal.title': 'Experience Intelligent Annotate',
   'DDSAnnotator.smart.infoModal.content':
     'Sorry, this feature is not available in the local version of DeepDataSpace currently. Please visit the official website for more information. You can contact us (deepdataspace_dm@idea.edu.cn) for a priority experience of intelligent annotate.',
   'DDSAnnotator.smart.infoModal.action': 'Visit Our Website',
   'DDSAnnotator.smart.detection.name': 'Intelligent Object Detection',
   'DDSAnnotator.smart.detection.input': 'Select or enter categories',
-  'DDSAnnotator.smart.ivp.name': 'Interactive Visual Prompt (iVP)',
   'DDSAnnotator.smart.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'DDSAnnotator.smart.pose.name': 'Intelligent Pose Estimation',
   'DDSAnnotator.smart.mask.name': 'Intelligent Panoramic Segmentation',
   'DDSAnnotator.smart.pose.input': 'Select template',
   'DDSAnnotator.smart.pose.apply': 'Apply Results',
-  'DDSAnnotator.smart.ivp.desc': 'Detect the objects with visual prompt',
+  'DDSAnnotator.smart.ivp.name': 'iVP',
+  'DDSAnnotator.smart.ivp.desc':
+    'Detect the objects with visual prompt (For dense scenes)',
+  'DDSAnnotator.smart.gdino.name': 'Grounding-Dino',
   'DDSAnnotator.smart.gdino.desc': 'Detect the objects with text prompt',
+  'DDSAnnotator.smart.isg.name': 'Interactive Segment',
+  'DDSAnnotator.smart.sam.name': 'SAM',
+  'DDSAnnotator.smart.sam.desc': 'Segment everything with SAM model',
+  'DDSAnnotator.smart.isg.desc': 'Segment objects by interactive actions',
   'DDSAnnotator.smart.annotate': 'Auto-Annotate',
   'DDSAnnotator.smart.retry': 'Retry',
   'DDSAnnotator.smart.modelTyle': 'Model Type',
@@ -225,19 +232,19 @@ export default {
   'DDSAnnotator.video.track.setting': 'Tracking settings',
   'DDSAnnotator.video.frame': 'Frames',
   'DDSAnnotator.video.track.backward': 'Backward inference frames',
+  'DDSAnnotator.video.limit.play': 'Please wait for all frames to be loaded.',
 
   /** dds-upload */
   'dds-upload.title': 'Drag or Click to upload your data',
   'dds-upload.limit.type.image': 'Image files (.jpg/.jpeg/.png) are supported.',
-  'dds-upload.limit.type.video':
-    'Video files (.mp4/.mov & duration < 60s) are supported.',
+  'dds-upload.limit.type.video': 'Video files (.mp4/.mov) are supported.',
   'dds-upload.upload': 'Add',
   'dds-upload.tip.successLoad': 'Had added {count} files',
   'dds-upload.tip.fileCountLimitMsg': 'File count should not exceed {count}.',
   'dds-upload.videoFrame.title': 'Adjust Frame Count',
   'dds-upload.videoFrame.tip': 'Attn',
   'dds-upload.videoFrame.tip.content':
-    'Choose how many frames you want to annotate. A high frequency will create more, similarframes. A low one will create less frames but more varied imagery.',
+    'Choose how many frames you want to annotate(<= 300). A high frequency will create more, similarframes. A low one will create less frames but more varied imagery.',
   'dds-upload.videoFrame.adjust': 'Frame rate adjustment range',
   'dds-upload.videoFrame.fps': 'frames per second',
   'dds-upload.videoFrame.matchNative': 'Match native frame rate',
@@ -249,7 +256,7 @@ export default {
   /** dds-upload-pre-anno */
   'dds-upload-pre-anno': 'Upload Pre-annotate Data',
   'dds-upload-pre-anno.tip':
-    'Only annotations in DDS format are supported. File size should not exceed {maxSize} MB.',
+    'Only annotations in COCO format are supported. File size should not exceed {maxSize} MB.',
 
   /** QuickLabel */
   'quicklabel.formModal.attn': 'Attn',

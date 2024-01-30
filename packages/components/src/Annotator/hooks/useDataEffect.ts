@@ -1,5 +1,7 @@
-import { useCallback, useEffect } from 'react';
 import { cloneDeep } from 'lodash';
+import { useCallback, useEffect } from 'react';
+import { Updater } from 'use-immer';
+
 import {
   BaseObject,
   Category,
@@ -12,7 +14,7 @@ import {
   VideoFramesData,
 } from '../type';
 import { scaleDrawData, scaleFramesObjects } from '../utils/compute';
-import { Updater } from 'use-immer';
+
 import usePreviousState from './usePreviousState';
 
 interface IProps {
@@ -135,15 +137,15 @@ const useDataEffect = ({
 
   const resetDataWithImageData = useCallback(
     (
-      imageData: AnnoItem,
-      visible: boolean,
+      imageData?: AnnoItem,
+      visible: boolean = false,
       clearHistoryQueue: boolean = true,
     ) => {
       setAnnotations([]);
       resetDrawData();
       resetEditData();
       if (clearHistoryQueue) clearHistory();
-      if (visible) {
+      if (visible && imageData) {
         applyImageAnnots(imageData);
       }
     },

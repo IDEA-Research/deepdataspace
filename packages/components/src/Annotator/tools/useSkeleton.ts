@@ -1,10 +1,10 @@
-import { drawCircleWithFill, drawLine, drawRect } from '../utils/draw';
 import {
   BODY_TEMPLATE,
   EElementType,
   EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
 } from '../constants';
+import { EObjectStatus } from '../type';
 import {
   getKeypointsFromRect,
   getRectFromPoints,
@@ -12,6 +12,8 @@ import {
   translatePointsToPointObjs,
   translateRectCoord,
 } from '../utils/compute';
+import { drawCircleWithFill, drawLine, drawRect } from '../utils/draw';
+
 import {
   ToolInstanceHook,
   ToolHooksFunc,
@@ -20,7 +22,6 @@ import {
   updateEditingRectWhenMouseMove,
   RenderStyles,
 } from './base';
-import { EObjectStatus } from '../type';
 
 const renderKeypoints = (
   canvas: HTMLCanvasElement,

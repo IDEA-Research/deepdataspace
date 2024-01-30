@@ -1,6 +1,7 @@
-import React from 'react';
-import classNames from 'classnames';
 import { Tooltip } from 'antd';
+import classNames from 'classnames';
+import React from 'react';
+
 import './index.less';
 
 export interface ITopToolItem {

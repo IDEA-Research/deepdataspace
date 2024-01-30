@@ -1,12 +1,14 @@
-import { Button, Card, message } from 'antd';
-import { useImmer } from 'use-immer';
-import { FloatWrapper } from '../FloatWrapper';
-import { memo, useEffect } from 'react';
-import { useLocale } from 'dds-utils/locale';
-import { IAttributeValue, IEditingAttribute } from '../../type';
-import './index.less';
-import AttributesForm from '../AttributesForm';
 import { CloseOutlined } from '@ant-design/icons';
+import { Button, Card, message } from 'antd';
+import { useLocale } from 'dds-utils/locale';
+import { memo, useEffect } from 'react';
+import { useImmer } from 'use-immer';
+
+import { IAttributeValue, IEditingAttribute } from '../../type';
+import AttributesForm from '../AttributesForm';
+import { FloatWrapper } from '../FloatWrapper';
+
+import './index.less';
 
 interface IProps {
   data: IEditingAttribute;

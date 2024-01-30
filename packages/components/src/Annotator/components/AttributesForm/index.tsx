@@ -1,11 +1,13 @@
-import React, { memo } from 'react';
-import classNames from 'classnames';
 import { Button, Checkbox, Form, Input, Radio, Tooltip } from 'antd';
-import { EActionType, IAttribute, IAttributeValue } from '../../type';
-import { isEqual } from 'lodash';
-import './index.less';
-import { ReactComponent as Attribute } from '../../assets/attribute.svg';
+import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
+import { isEqual } from 'lodash';
+import React, { memo } from 'react';
+
+import { ReactComponent as Attribute } from '../../assets/attribute.svg';
+import { EActionType, IAttribute, IAttributeValue } from '../../type';
+
+import './index.less';
 
 export interface IProps {
   isDarkTheme?: boolean;

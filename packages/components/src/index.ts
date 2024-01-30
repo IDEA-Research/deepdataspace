@@ -9,3 +9,4 @@ export { default as MobileAlert } from './MobileAlert';
 export { default as DynamicPagination } from './DynamicPagination';
 export { default as QuickLabel } from './QuickLabel';
 export { AnnotateEditor, AnnotatePreview, AnnotateView } from './Annotator';
+export { default as UploadPreAnno } from './UploadPreAnno';

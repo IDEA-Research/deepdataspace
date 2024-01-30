@@ -1,6 +1,18 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { drawRect } from '../utils/draw';
+import { CursorState } from 'ahooks/lib/useMouse';
+import { Updater } from 'use-immer';
+
 import { DisplayOption, EElementType, EObjectType } from '../constants';
+import { OnAiAnnotationFunc } from '../hooks/useActions';
+import {
+  Category,
+  DrawData,
+  EditState,
+  EObjectStatus,
+  IAnnotationObject,
+  ICreatingObject,
+  IPrompt,
+} from '../type';
 import {
   Direction,
   getAnchorFixRectPoint,
@@ -14,24 +26,15 @@ import {
   resizeRect,
   setRectBetweenPixels,
 } from '../utils/compute';
-import {
-  Category,
-  DrawData,
-  EditState,
-  EObjectStatus,
-  IAnnotationObject,
-  ICreatingObject,
-  IPrompt,
-} from '../type';
-import { CursorState } from 'ahooks/lib/useMouse';
-import { Updater } from 'use-immer';
-import { OnAiAnnotationFunc } from '../hooks/useActions';
-import useRectangle from './useRectangle';
-import usePolygon from './usePolygon';
-import useSkeleton from './useSkeleton';
+import { drawRect } from '../utils/draw';
+
 import useMask from './useMask';
 import useMatting from './useMatting';
 import usePoint from './usePoint';
+import usePolygon from './usePolygon';
+import usePolyline from './usePolyline';
+import useRectangle from './useRectangle';
+import useSkeleton from './useSkeleton';
 
 export type RenderStyles = {
   strokeColor: string;
@@ -151,6 +154,7 @@ export const useToolInstances = (props: ToolInstanceHookProps) => {
   const maskHooks = useMask(props);
   const mattingHooks = useMatting(props);
   const pointHooks = usePoint(props);
+  const polylineHooks = usePolyline(props);
 
   const objectHooksMap: Record<EObjectType, ToolInstanceHookReturn> = {
     [EObjectType.Rectangle]: rectangleHooks,
@@ -159,7 +163,9 @@ export const useToolInstances = (props: ToolInstanceHookProps) => {
     [EObjectType.Mask]: maskHooks,
     [EObjectType.Matting]: mattingHooks,
     [EObjectType.Point]: pointHooks,
+    [EObjectType.Polyline]: polylineHooks,
     [EObjectType.Custom]: rectangleHooks, // todo
+    [EObjectType.Classification]: rectangleHooks, // todo
   };
 
   return {

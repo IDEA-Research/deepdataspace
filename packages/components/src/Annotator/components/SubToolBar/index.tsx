@@ -1,10 +1,13 @@
+import { useKeyPress } from 'ahooks';
 import { Button, Popover, Slider } from 'antd';
 import classNames from 'classnames';
+import { memo, useMemo } from 'react';
+
 import { ESubToolItem } from '../../constants';
 import { FloatWrapper } from '../FloatWrapper';
-import { memo, useMemo } from 'react';
-import { useKeyPress } from 'ahooks';
+
 import { TSubtoolOptions, TToolItem } from '@/Annotator/hooks/useSubtools';
+
 import './index.less';
 
 interface IProps {
@@ -129,9 +132,10 @@ const SubToolBar: React.FC<IProps> = memo(
           {toolOptions.basicTools.map((item) => ToolItemBtn(item))}
           {isAIAnnotationActive && (
             <>
-              {toolOptions.basicTools.length > 0 && (
-                <div className="dds-annotator-subtoolbar-divider"></div>
-              )}
+              {toolOptions.basicTools.length > 0 &&
+                toolOptions.smartTools.length > 0 && (
+                  <div className="dds-annotator-subtoolbar-divider"></div>
+                )}
               {toolOptions.smartTools.map((item) => ToolItemBtn(item))}
             </>
           )}

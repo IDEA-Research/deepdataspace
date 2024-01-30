@@ -1,3 +1,15 @@
+import Icon, {
+  DeleteOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+} from '@ant-design/icons';
+import { useKeyPress } from 'ahooks';
+import { Button, Collapse, List, Tabs, Tooltip } from 'antd';
+import classNames from 'classnames';
+import { useWindowResize } from 'dds-hooks';
+import { useLocale } from 'dds-utils/locale';
+import { isEqual } from 'lodash';
+import VirtualList, { ListRef } from 'rc-virtual-list';
 import React, {
   memo,
   useCallback,
@@ -6,32 +18,22 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Button, Collapse, List, Tabs, Tooltip } from 'antd';
-import { OBJECT_ICON } from '../../constants';
-import { ReactComponent as DownArrorIcon } from '../../assets/downArror.svg';
-import { ReactComponent as Palette } from '../../assets/palette.svg';
+import { Updater } from 'use-immer';
+
 import { ReactComponent as Attribute } from '../../assets/attribute.svg';
+import { ReactComponent as DownArrorIcon } from '../../assets/downArror.svg';
 import { ReactComponent as Layer } from '../../assets/layer.svg';
-import classNames from 'classnames';
-import Icon, {
-  DeleteOutlined,
-  EyeInvisibleOutlined,
-  EyeOutlined,
-} from '@ant-design/icons';
+import { ReactComponent as Palette } from '../../assets/palette.svg';
+import { OBJECT_ICON } from '../../constants';
+import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
 import {
   Category,
   DrawData,
   IAnnotationObject,
   IAnnotsDisplayOptions,
 } from '../../type';
-import { useKeyPress } from 'ahooks';
-import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
-import { useLocale } from 'dds-utils/locale';
-import VirtualList, { ListRef } from 'rc-virtual-list';
-import { useWindowResize } from 'dds-hooks';
-import { isEqual } from 'lodash';
+
 import './index.less';
-import { Updater } from 'use-immer';
 
 export interface IProps {
   objects: IAnnotationObject[];

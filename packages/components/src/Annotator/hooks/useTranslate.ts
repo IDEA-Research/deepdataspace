@@ -1,9 +1,19 @@
+import { cloneDeep } from 'lodash';
+
 import {
   BODY_TEMPLATE,
   ELabelType,
   EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
 } from '../constants';
+import { rleToCanvas } from '../tools/useMask';
+import {
+  IAnnotationObject,
+  EObjectStatus,
+  DrawObject,
+  Category,
+  BaseObject,
+} from '../type';
 import {
   getObjectType,
   translateBoundingBoxToRect,
@@ -20,16 +30,9 @@ import {
   newTranslatePointObjsToPointAttrs,
   getCanvasPoint,
   getNaturalPoint,
+  translateUVtoPolylinePoints,
+  convertLaneLineColorToHex,
 } from '../utils/compute';
-import {
-  IAnnotationObject,
-  EObjectStatus,
-  DrawObject,
-  Category,
-  BaseObject,
-} from '../type';
-import { rleToCanvas } from '../tools/useMask';
-import { cloneDeep } from 'lodash';
 
 interface IProps {
   isOldMode?: boolean;
@@ -65,6 +68,9 @@ const useTranslate = ({
       mask,
       alpha,
       point,
+      polyline: polylineUv,
+      lineColor,
+      lineType,
     } = annotation;
 
     const color = getAnnotColor(categoryId || '');
@@ -118,10 +124,11 @@ const useTranslate = ({
       Object.assign(newObj, { polygon });
     }
 
-    if (mask && mask.length) {
+    if (mask) {
+      const maskRleStr = mask.counts || '';
       Object.assign(newObj, {
-        maskRle: mask,
-        maskCanvasElement: rleToCanvas(mask, naturalSize, color),
+        maskRle: maskRleStr,
+        maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, color),
       });
     }
 
@@ -142,6 +149,19 @@ const useTranslate = ({
           visible: KEYPOINTS_VISIBLE_TYPE.labeledVisible,
         },
       });
+    }
+
+    if (polylineUv && lineType && lineColor) {
+      const line = translateUVtoPolylinePoints(polylineUv).map((point) =>
+        getCanvasPoint([point.x, point.y], naturalSize, clientSize),
+      );
+      const polyline: IElement<IPolylineGroup> = {
+        group: [line],
+        visible: true,
+        lineType,
+        color: convertLaneLineColorToHex(lineColor),
+      };
+      Object.assign(newObj, { polyline });
     }
 
     newObj.type = getObjectType(newObj);
@@ -188,7 +208,10 @@ const useTranslate = ({
     }
     if (maskRle) {
       Object.assign(annoObj, {
-        mask: maskRle,
+        mask: {
+          counts: maskRle,
+          size: [naturalSize.height, naturalSize.width],
+        },
       });
     }
     if (point) {
@@ -282,9 +305,10 @@ const useTranslate = ({
           break;
         }
         case ELabelType.Mask: {
+          const maskRleStr = labelValue.counts || '';
           Object.assign(newObj, {
-            maskRle: labelValue,
-            maskCanvasElement: rleToCanvas(labelValue, naturalSize, color),
+            maskRle: maskRleStr,
+            maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, color),
             type: EObjectType.Mask,
           });
           break;
@@ -378,7 +402,10 @@ const useTranslate = ({
       }
       case ELabelType.Mask: {
         if (maskRle) {
-          annoObj.labelValue = maskRle;
+          annoObj.labelValue = {
+            counts: maskRle,
+            size: [naturalSize.height, naturalSize.width],
+          };
         }
         break;
       }

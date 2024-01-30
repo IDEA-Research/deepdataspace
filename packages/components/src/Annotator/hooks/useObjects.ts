@@ -1,5 +1,8 @@
-import { EElementType, EObjectType } from '../constants';
+import { cloneDeep } from 'lodash';
+import { useCallback, useMemo } from 'react';
 import { Updater } from 'use-immer';
+
+import { EElementType, EObjectType } from '../constants';
 import {
   BaseObject,
   DrawData,
@@ -11,8 +14,6 @@ import {
   EObjectStatus,
   VideoFramesData,
 } from '../type';
-import { useCallback, useMemo } from 'react';
-import { cloneDeep } from 'lodash';
 
 interface IProps {
   mode: EditorMode;
@@ -153,7 +154,7 @@ const useObjects = ({
     newDrawData.editingAttribute = undefined;
     setDrawData(newDrawData);
     updateHistory(cloneDeep(newDrawData), cloneDeep(newFramesData));
-  }, [mode]);
+  }, [mode, framesData, drawData]);
 
   const updateObject = (object: IAnnotationObject, index: number) => {
     if (mode !== EditorMode.Edit || !drawData.objectList[index]) return;

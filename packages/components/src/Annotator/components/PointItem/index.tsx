@@ -1,6 +1,8 @@
-import { KEYPOINTS_VISIBLE_TYPE } from '../../constants';
-import { useLocale } from 'dds-utils/locale';
 import { Select } from 'antd';
+import { useLocale } from 'dds-utils/locale';
+
+import { KEYPOINTS_VISIBLE_TYPE } from '../../constants';
+
 import styles from './index.less';
 
 interface IProps {

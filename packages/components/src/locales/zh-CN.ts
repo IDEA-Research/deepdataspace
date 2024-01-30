@@ -137,12 +137,12 @@ export default {
   'DDSAnnotator.anno.mask.translateToRleError': '转换 Mask 格式错误',
 
   /** Annotator.smart */
+  'DDSAnnotator.smart.modelSelectModal.title': '开启智能标注',
   'DDSAnnotator.smart.infoModal.title': '体验智能标注',
   'DDSAnnotator.smart.infoModal.content':
     '抱歉, DeepDataSpace的本地版本暂时不支持智能标注功能, 您可以前往官网了解更多信息或联系我们（deepdataspace_dm@idea.edu.cn）获取智能标注的体验通道。',
   'DDSAnnotator.smart.infoModal.action': '前往官网',
   'DDSAnnotator.smart.detection.name': '智能目标检测',
-  'DDSAnnotator.smart.ivp.name': '交互式视觉提示 (iVP)',
   'DDSAnnotator.smart.segmentation.name': '智能图像分割(多边形)',
   'DDSAnnotator.smart.pose.name': '智能姿态估计',
   'DDSAnnotator.smart.mask.name': '智能全景分割',
@@ -152,8 +152,14 @@ export default {
   'DDSAnnotator.smart.detection.input': '选择或输入类别',
   'DDSAnnotator.smart.pose.input': '选择模版',
   'DDSAnnotator.smart.pose.apply': '保留当前结果',
-  'DDSAnnotator.smart.ivp.desc': '根据视觉提示检测任意目标',
+  'DDSAnnotator.smart.ivp.name': '交互式视觉提示 (iVP)',
+  'DDSAnnotator.smart.ivp.desc': '适用于密集场景',
+  'DDSAnnotator.smart.gdino.name': '文本提示检测一切',
   'DDSAnnotator.smart.gdino.desc': '输入任意描述词检测目标',
+  'DDSAnnotator.smart.sam.name': '分割一切 (SAM)',
+  'DDSAnnotator.smart.sam.desc': '使用 SAM 模型分割全图所有目标',
+  'DDSAnnotator.smart.isg.name': '交互式分割',
+  'DDSAnnotator.smart.isg.desc': '使用多种交互式操作进行实例分割',
   'DDSAnnotator.smart.minArea': '最小分割面积',
   'DDSAnnotator.smart.iouThres': 'IoU阈值',
   'DDSAnnotator.smart.segmentation.tipsInitial':
@@ -205,18 +211,19 @@ export default {
   'DDSAnnotator.video.track.setting': '推理设置',
   'DDSAnnotator.video.frame': '帧',
   'DDSAnnotator.video.track.backward': '向后推理帧数',
+  'DDSAnnotator.video.limit.play': '请等待所有帧加载完毕',
 
   /** dds-upload */
   'dds-upload.title': '将文件拖动到这里或点击进行上传',
   'dds-upload.limit.type.image': '图片格式支持: .jpg/.jpeg/.png',
-  'dds-upload.limit.type.video': '视频格式支持: .mp4/.mov、时长 <= 60s',
+  'dds-upload.limit.type.video': '视频格式支持: .mp4/.mov',
   'dds-upload.upload': '添加',
   'dds-upload.tip.successLoad': '成功加载{count}个文件',
   'dds-upload.tip.fileCountLimitMsg': '文件数量不能超过{count}',
   'dds-upload.videoFrame.title': '调整帧率',
   'dds-upload.videoFrame.tip': '注意',
   'dds-upload.videoFrame.tip.content':
-    '选择您想要标注的帧数。高帧率将创建更多相似的帧。低帧率将创建较少的帧，但图像更多样化。',
+    '选择您想要标注的帧数(<= 300)。高帧率将创建更多相似的帧。低帧率将创建较少的帧，但图像更多样化。',
   'dds-upload.videoFrame.adjust': '帧数调整范围',
   'dds-upload.videoFrame.fps': '帧/秒',
   'dds-upload.videoFrame.matchNative': '与原始帧率匹配',
@@ -228,7 +235,7 @@ export default {
   /** dds-upload-pre-anno */
   'dds-upload-pre-anno': '上传预标注数据',
   'dds-upload-pre-anno.tip':
-    '目前仅支持DDS格式的标注。文件大小不得超过{maxSize} MB。',
+    '目前仅支持COCO格式的标注。文件大小不得超过{maxSize} MB。',
 
   /** QuickLabel */
   'quicklabel.formModal.attn': '注意',

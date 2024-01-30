@@ -1,12 +1,15 @@
-import {
-  drawCircleWithFill,
-  drawLine,
-  drawPolygonWithFill,
-  drawQuadraticPath,
-  drawRect,
-  shadeEverythingButRect,
-} from '../utils/draw';
+import { cloneDeep } from 'lodash';
+
 import { EElementType, EObjectType, ESubToolItem } from '../constants';
+import {
+  ANNO_FILL_ALPHA,
+  ANNO_FILL_COLOR,
+  ANNO_STROKE_ALPHA,
+  ANNO_STROKE_COLOR,
+  PROMPT_FILL_COLOR,
+} from '../constants/render';
+import { EPromptType, PromptItem } from '../type';
+import { hexToRgba } from '../utils/color';
 import {
   getClosestPointOnLineSegment,
   getLinesFromPolygon,
@@ -21,21 +24,20 @@ import {
   translateRectCoord,
 } from '../utils/compute';
 import {
+  drawCircleWithFill,
+  drawLine,
+  drawPolygonWithFill,
+  drawQuadraticPath,
+  drawRect,
+  shadeEverythingButRect,
+} from '../utils/draw';
+
+import {
   ToolInstanceHook,
   ToolHooksFunc,
   editBaseElementWhenMouseDown,
   getPromptBoolean,
 } from './base';
-import { hexToRgba } from '../utils/color';
-import {
-  ANNO_FILL_ALPHA,
-  ANNO_FILL_COLOR,
-  ANNO_STROKE_ALPHA,
-  ANNO_STROKE_COLOR,
-  PROMPT_FILL_COLOR,
-} from '../constants/render';
-import { cloneDeep } from 'lodash';
-import { EPromptType, PromptItem } from '../type';
 
 const usePolygon: ToolInstanceHook = ({
   editState,

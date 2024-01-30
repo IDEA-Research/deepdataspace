@@ -1,7 +1,10 @@
-import { Dropdown, Menu, MenuProps, Tooltip } from 'antd';
-import { ReactComponent as KeyboardIcon } from '../../assets/keyboard-down.svg';
 import Icon from '@ant-design/icons';
+import { Dropdown, Menu, MenuProps, Tooltip } from 'antd';
+import classNames from 'classnames';
+import { useLocale } from 'dds-utils/locale';
 import { memo, useMemo } from 'react';
+
+import { ReactComponent as KeyboardIcon } from '../../assets/keyboard-down.svg';
 import {
   convertAliasToSymbol,
   EDITOR_SHORTCUTS,
@@ -9,10 +12,9 @@ import {
   EShortcutType,
   TShortcutItem,
 } from '../../constants/shortcuts';
-import { useLocale } from 'dds-utils/locale';
-import './index.less';
-import classNames from 'classnames';
 import { EditorMode } from '../../type';
+
+import './index.less';
 
 interface IProps {
   mode: EditorMode;

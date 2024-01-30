@@ -1,11 +1,13 @@
-import { Button, Tooltip } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-import classNames from 'classnames';
-import { AnnoItem } from '../../type';
-import { memo, useState } from 'react';
 import { useKeyPress } from 'ahooks';
-import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
+import { Button, Tooltip } from 'antd';
+import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
+import { memo, useState } from 'react';
+
+import { EDITOR_SHORTCUTS, EShortcuts } from '../../constants/shortcuts';
+import { AnnoItem } from '../../type';
+
 import './index.less';
 
 interface IProps {

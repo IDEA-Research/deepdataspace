@@ -1,4 +1,5 @@
 import { drawCircleWithFill } from '../utils/draw';
+
 import { ToolInstanceHook, ToolHooksFunc } from './base';
 
 const usePoint: ToolInstanceHook = ({ canvasRef }) => {
