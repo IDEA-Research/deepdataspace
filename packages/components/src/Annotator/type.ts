@@ -24,6 +24,11 @@ export interface IAttribute {
 
 export type IAttributeValue = string | number | number[] | null;
 
+export interface IMask {
+  counts: string; // mask rle string
+  size: [number, number]; // [height, width]
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -58,9 +63,13 @@ export interface BaseObject {
   /** Keypoint connection. [start point index, end point index, ...] */
   lines?: number[];
   /** mask */
-  mask?: number[];
+  mask?: IMask;
   /** point */
   point?: number[];
+  /** polyline */
+  polyline?: [number[], number[]]; // [[x1, x2, x3, ...], [y1, y2, y3, ...]]
+  lineColor?: string;
+  lineType?: string;
 }
 
 export interface DrawObject extends BaseObject {
@@ -104,7 +113,8 @@ export interface IAnnotationObject {
     lines: number[];
   };
   point?: IElement<IPoint>;
-  maskRle?: number[];
+  polyline?: IElement<IPolylineGroup>;
+  maskRle?: string;
   maskCanvasElement?: any;
   alpha?: string;
   alphaImageElement?: any;
@@ -142,7 +152,7 @@ export enum EPromptType {
   Modify = 'modify',
 }
 
-export type PromptItem = {
+export interface PromptItem {
   type: EPromptType;
   isPositive: boolean;
   /** Rect */
@@ -155,7 +165,17 @@ export type PromptItem = {
   radius?: number;
   /** Modify */
   polygons?: number[][];
-};
+}
+
+export interface ReqPromptItem {
+  type: string;
+  isPositive?: boolean;
+  point?: number[];
+  rect?: number[];
+  stroke?: number[];
+  radius?: number;
+  polygons?: number[][];
+}
 
 export interface IPrompt {
   creatingPrompt?: PromptItem;
@@ -181,7 +201,7 @@ export interface DrawData {
   selectedTool: EToolType;
   selectedSubTool: ESubToolItem;
   AIAnnotation: boolean;
-  selectedModel?: EnumModelType;
+  selectedModel: Record<EToolType, EnumModelType | undefined>;
   brushSize: number;
   pointResolution: number;
 
@@ -257,7 +277,13 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   /** Selected tool */
   selectedTool: EBasicToolItem.Drag,
   selectedSubTool: ESubToolItem.PenAdd,
-  selectedModel: undefined,
+  selectedModel: {
+    [EBasicToolItem.Drag]: undefined,
+    [EBasicToolItem.Rectangle]: undefined,
+    [EBasicToolItem.Mask]: undefined,
+    [EBasicToolItem.Skeleton]: EnumModelType.Pose,
+    [EBasicToolItem.Polygon]: EnumModelType.SegmentByPolygon,
+  },
   AIAnnotation: false,
 
   /** drawed */
@@ -306,3 +332,15 @@ export const DEFAULT_EDIT_STATE: EditState = {
   imageDisplayOptions: DEFAULT_IMG_DISPLAY_OPTIONS,
   annotsDisplayOptions: DEFAULT_ANNOTS_DISPLAY_OPTIONS,
 };
+
+export enum LineType {
+  Solid = 'solid',
+  Dashed = 'dash',
+  DoubleSolid = 'double_solid',
+  DoubleDashed = 'double_dash',
+  LDashedRSolid = 'left_dash-right_solid',
+  LSolidRDashed = 'left_solid-right_dash',
+  LCurbside = 'left_curbside',
+  RCurbside = 'right_curbside',
+  Unknown = 'none',
+}

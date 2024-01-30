@@ -1,4 +1,5 @@
 import { clearCanvas, drawImage, drawRectWithFill } from '../utils/draw';
+
 import { ToolInstanceHook, ToolHooksFunc } from './base';
 
 const useMatting: ToolInstanceHook = ({

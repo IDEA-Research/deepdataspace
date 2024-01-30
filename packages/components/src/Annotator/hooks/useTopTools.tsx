@@ -1,8 +1,17 @@
-import { useMemo } from 'react';
-import { Button, Tooltip } from 'antd';
 import Icon, { ArrowLeftOutlined } from '@ant-design/icons';
-import { ReactComponent as LogoIcon } from '../assets/logo.svg';
+import { Button, Tooltip } from 'antd';
+import { useLocale } from 'dds-utils/locale';
+import { useMemo } from 'react';
+
 import { ReactComponent as DocsIcon } from '../assets/docs.svg';
+import { ReactComponent as LogoIcon } from '../assets/logo.svg';
+import DisplaySettings from '../components/DisplaySettings';
+import EditorStatus from '../components/EditorStatus';
+import LabelSelector from '../components/LabelSelector';
+import ModelSelector from '../components/ModelSelector';
+import { ShortcutsInfo } from '../components/ShortcutsInfo';
+import SubToolBar from '../components/SubToolBar';
+import TopTools from '../components/TopTools';
 import {
   EBasicToolItem,
   EnumModelType,
@@ -17,14 +26,7 @@ import {
   IAnnotsDisplayOptions,
   Category,
 } from '../type';
-import { useLocale } from 'dds-utils/locale';
-import DisplaySettings from '../components/DisplaySettings';
-import { ShortcutsInfo } from '../components/ShortcutsInfo';
-import EditorStatus from '../components/EditorStatus';
-import TopTools from '../components/TopTools';
-import LabelSelector from '../components/LabelSelector';
-import ModelSelector from '../components/ModelSelector';
-import SubToolBar from '../components/SubToolBar';
+
 import { TSubtoolOptions } from './useSubtools';
 
 interface IProps {
@@ -221,7 +223,8 @@ const useTopTools = ({
       actions.push({
         customElement: (
           <ModelSelector
-            drawData={drawData}
+            selectedTool={drawData.selectedTool}
+            selectedModel={drawData.selectedModel[drawData.selectedTool]}
             modelOptions={TOOL_MODELS_MAP[drawData.selectedTool]}
             onSelectModel={onSelectModel}
           />

@@ -1,13 +1,3 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Updater, useImmer } from 'use-immer';
-import { genFileNameByTimestamp, saveObejctToJsonFile } from 'dds-utils/file';
-import {
-  convertToCocoDateset,
-  convertCocoDatasetToAnnotStates,
-  validateCocoData,
-} from '../utils/adapter';
-import { COCO, QsAnnotatorFile } from '../type';
-import { Category } from 'dds-components/Annotator';
 import { history } from '@umijs/max';
 import {
   message,
@@ -15,9 +5,20 @@ import {
   UploadFile as AntdUploadFile,
   UploadProps,
 } from 'antd';
-import { globalLocaleText } from 'dds-utils/locale';
-import { UploadFile } from 'dds-components/Upload';
 import { UploadChangeParam } from 'antd/es/upload';
+import { Category } from 'dds-components/Annotator';
+import { UploadFile } from 'dds-components/Upload';
+import { genFileNameByTimestamp, saveObejctToJsonFile } from 'dds-utils/file';
+import { globalLocaleText } from 'dds-utils/locale';
+import { useCallback, useMemo, useState } from 'react';
+import { Updater, useImmer } from 'use-immer';
+
+import { COCO, QsAnnotatorFile } from '../type';
+import {
+  convertToCocoDateset,
+  convertCocoDatasetToAnnotStates,
+  validateCocoData,
+} from '../utils/adapter';
 
 const INIT_PRE_ANNOT = {
   info: {},

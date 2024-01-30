@@ -1,12 +1,7 @@
+import { cloneDeep } from 'lodash';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Updater } from 'use-immer';
-import {
-  Category,
-  DrawData,
-  EditState,
-  EditorMode,
-  IAnnotationObject,
-} from '../type';
+
 import {
   EBasicToolItem,
   EBasicToolTypeMap,
@@ -15,7 +10,13 @@ import {
   KEYPOINTS_VISIBLE_TYPE,
   LABEL_TOOL_MAP,
 } from '../constants';
-import { cloneDeep } from 'lodash';
+import {
+  Category,
+  DrawData,
+  EditState,
+  EditorMode,
+  IAnnotationObject,
+} from '../type';
 
 interface IProps {
   isOldMode?: boolean;

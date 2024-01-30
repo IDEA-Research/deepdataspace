@@ -1,18 +1,20 @@
-import React, { memo, useMemo, useState } from 'react';
+import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Button, Tabs, Tooltip } from 'antd';
 import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
+import { isEqual } from 'lodash';
+import React, { memo, useMemo, useState } from 'react';
+import { Updater } from 'use-immer';
+
 import {
   Category,
   DrawData,
   IAttributeValue,
   IEditingAttribute,
 } from '../../type';
-import { isEqual } from 'lodash';
-import './index.less';
-import { Updater } from 'use-immer';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import AttributesForm from '../AttributesForm';
+
+import './index.less';
 
 export interface IProps {
   className?: string;

@@ -1,3 +1,30 @@
+import { cloneDeep } from 'lodash';
+
+import { EnumModelType, EObjectType, ESubToolItem } from '../constants';
+import {
+  ANNO_FILL_COLOR,
+  ANNO_MASK_ALPHA,
+  ANNO_STROKE_ALPHA,
+  ANNO_STROKE_COLOR,
+  PROMPT_FILL_COLOR,
+  PROMPT_STROKE_COLOR,
+} from '../constants/render';
+import {
+  EPromptType,
+  ICreatingMaskStep,
+  ICreatingObject,
+  PromptItem,
+} from '../type';
+import { hexToRgbArray, hexToRgba } from '../utils/color';
+import {
+  getRectFromPoints,
+  isInCanvas,
+  isPointOnPoint,
+  translatePointCoord,
+  translatePointZoom,
+  translatePolygonCoord,
+  translateRectCoord,
+} from '../utils/compute';
 import {
   clearCanvas,
   drawBooleanBrush,
@@ -10,76 +37,119 @@ import {
   drawRect,
   shadeEverythingButRect,
 } from '../utils/draw';
-import { EObjectType, ESubToolItem } from '../constants';
-import {
-  getRectFromPoints,
-  isInCanvas,
-  isPointOnPoint,
-  translatePointCoord,
-  translatePointZoom,
-  translatePolygonCoord,
-  translateRectCoord,
-} from '../utils/compute';
+
 import { ToolInstanceHook, ToolHooksFunc, getPromptBoolean } from './base';
-import {
-  ANNO_FILL_COLOR,
-  ANNO_MASK_ALPHA,
-  ANNO_STROKE_ALPHA,
-  ANNO_STROKE_COLOR,
-  PROMPT_FILL_COLOR,
-} from '../constants/render';
-import {
-  EPromptType,
-  ICreatingMaskStep,
-  ICreatingObject,
-  PromptItem,
-} from '../type';
-import { hexToRgbArray, hexToRgba } from '../utils/color';
-import { cloneDeep } from 'lodash';
+
+export const encodeRleString = (rleArr: number[]): string => {
+  const m = rleArr.length;
+  let p = 0;
+  let x = 0;
+  let more = true;
+  const s = Array(m * 6);
+
+  for (let i = 0; i < m; i++) {
+    x = rleArr[i];
+    if (i > 2) {
+      x -= rleArr[i - 2];
+    }
+    more = true;
+
+    while (more) {
+      let c = x & 0x1f;
+      x >>= 5;
+      more = !!((x !== -1 && c & 0x10) || (x !== 0 && !(c & 0x10)));
+      if (more) {
+        c |= 0x20;
+      }
+      c += 48;
+      s[p] = String.fromCharCode(c);
+      p += 1;
+    }
+  }
+  return s.join('');
+};
+
+export const decodeRleString = (s: string): number[] => {
+  let p = 0;
+  const cnts = [];
+
+  while (p < s.length && s[p]) {
+    let x = 0;
+    let k = 0;
+    let more = 1;
+
+    while (more) {
+      const c = s.charCodeAt(p) - 48;
+      x |= (c & 0x1f) << (5 * k);
+      more = c & 0x20;
+      p += 1;
+      k += 1;
+
+      if (!more && c & 0x10) {
+        x |= -1 << (5 * k);
+      }
+    }
+
+    if (cnts.length > 2) {
+      x += cnts[cnts.length - 2];
+    }
+    cnts.push(x);
+  }
+  return cnts;
+};
 
 /**
  * only [0,1] array with rle decode
  * example:
- * [2,3,8,1,....] to [0,0,1,1,1,0,0,0,1,0,....]
+ * [2,3,4,1,....] to [0,0,1,1,1,0,0,0,0,1....]
  */
-const decodeRle = (arr: number[], length: number) => {
-  const result = new Array(length).fill(0);
-  for (let i = 0; i < arr.length; i += 2) {
-    const spliceLen = Math.min(arr[i + 1], length - arr[i]);
-    for (let j = 0; j < spliceLen; j++) {
-      result[arr[i] + j] = 1;
+export const decodeRleArray = (rle: number[], length: number) => {
+  let mask = new Array(length);
+  let pixel = 0;
+  let bit = 0;
+
+  for (let i = 0; i < rle.length; i++) {
+    const count = rle[i];
+    for (let j = 0; j < count; j++) {
+      mask[pixel] = bit;
+      pixel++;
     }
+    bit = 1 - bit;
   }
-  return result;
+  return mask;
 };
 
 /**
  * only [0,1] array with rle encode
  * example:
- * [0,0,1,1,1,0,0,0,1,0,....] to [2,3,8,1,....]
+ * [0,0,1,1,1,0,0,0,0,1....] to [2,3,4,1,....]
  */
-const encodeRle = (arr: number[]) => {
-  const result = [];
-  let curLen = 0;
-  let len = arr.length;
-  for (let i = 0; i < len; i++) {
-    const value = arr[i];
-    if (curLen !== 0) {
-      if (value === 1) {
-        curLen++;
-      } else {
-        result.push(curLen);
-        curLen = 0;
-      }
-    } else if (value === 1) {
-      result.push(i);
-      curLen = 1;
+export const encodeRleArray = (mask: number[]) => {
+  const rle: number[] = [];
+  let count = 0;
+  let prevBit = mask[0];
+
+  for (let i = 0; i < mask.length; i++) {
+    const bit = mask[i];
+    if (bit === prevBit) {
+      count++;
+    } else {
+      rle.push(count);
+      count = 1;
+      prevBit = bit;
     }
   }
-  if (curLen !== 0) {
-    result.push(curLen);
-  }
-  return result;
+  rle.push(count);
+
+  return rle;
+};
+
+const decodeRle = (rleStr: string, length: number) => {
+  return decodeRleArray(decodeRleString(rleStr), length);
+};
+
+const encodeRle = (mask: number[]) => {
+  return encodeRleString(encodeRleArray(mask));
 };
 
 export const renderMaskSteps = (
@@ -342,15 +412,10 @@ export const objectToRle = (
         maskAplha;
   }
 
-  // @thi.ng/rle-pack encode
-  // const arr = encode(maskData.data, maskData.data.length);
-  // return maskPixelCount > 0 ? Array.from(arr) : [];
-
-  // console.log('>>>> output', encodeRle(arr));
-  return maskPixelCount > 0 ? encodeRle(arr) : [];
+  return maskPixelCount > 0 ? encodeRle(arr) : '';
 };
 
-export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
+export const rleToCanvas = (rle: string, size: ISize, color: string) => {
   const { width, height } = size;
 
   const canvas = document.createElement('canvas');
@@ -363,18 +428,6 @@ export const rleToCanvas = (rle: number[], size: ISize, color: string) => {
 
   const newdata = ctx.createImageData(width, height);
   const rgb = hexToRgbArray(color);
-
-  // @thi.ng/rle-pack decode
-  // const decoded = decode(rle as unknown as Uint8Array);
-  // newdata.data.set(decoded, 0);
-  // for (let i = newdata.data.length / 4; i--; ) {
-  //   if (newdata.data[i * 4 + 3] > 0) {
-  //     newdata.data[i * 4] = rgb[0];
-  //     newdata.data[i * 4 + 1] = rgb[1];
-  //     newdata.data[i * 4 + 2] = rgb[2];
-  //     newdata.data[i * 4 + 3] = 255;
-  //   }
-  // }
 
   // custom rle decode
   const maskArr = decodeRle(rle, Math.ceil(width) * Math.ceil(height));
@@ -466,123 +519,229 @@ const useMask: ToolInstanceHook = ({
   };
 
   const renderPrompt: ToolHooksFunc.RenderPrompt = ({ prompt }) => {
+    const model = drawData.selectedModel[drawData.selectedTool];
+
     // draw creating prompt
     if (prompt.creatingPrompt) {
-      const strokeColor = ANNO_STROKE_COLOR.CREATING;
-      const fillColor = ANNO_FILL_COLOR.CREATING;
-      switch (prompt.creatingPrompt.type) {
-        case EPromptType.Rect: {
-          const { startPoint } = prompt.creatingPrompt;
-          const rect = getRectFromPoints(
-            startPoint!,
-            {
-              x: contentMouse.elementX,
-              y: contentMouse.elementY,
-            },
-            {
-              width: contentMouse.elementW,
-              height: contentMouse.elementH,
-            },
-          );
-          const canvasCoordRect = translateRectCoord(rect, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          drawRect(
-            activeCanvasRef.current,
-            canvasCoordRect,
-            strokeColor,
-            2,
-            [0],
-            fillColor,
-          );
-          break;
-        }
-        case EPromptType.Point: {
-          if (!prompt.creatingPrompt.point) break;
-          const canvasCoordPoint = translatePointCoord(
-            prompt.creatingPrompt.point,
-            {
-              x: -imagePos.current.x,
-              y: -imagePos.current.y,
-            },
-          );
-          drawCircleWithFill(
-            activeCanvasRef.current!,
-            canvasCoordPoint,
-            4,
-            prompt.creatingPrompt.isPositive
-              ? PROMPT_FILL_COLOR.POSITIVE
-              : PROMPT_FILL_COLOR.NEGATIVE,
-            2,
-            '#fff',
-          );
-        }
-        case EPromptType.EdgeStitch:
-        case EPromptType.Stroke: {
-          if (!prompt.creatingPrompt.stroke || !prompt.creatingPrompt.radius)
-            break;
-          const canvasCoordStroke = translatePolygonCoord(
-            prompt.creatingPrompt.stroke,
-            {
-              x: -imagePos.current.x,
-              y: -imagePos.current.y,
-            },
-          );
-          const radius =
-            (prompt.creatingPrompt.radius * clientSize.width) /
-            naturalSize.width;
-          const color =
-            prompt.creatingPrompt.type === EPromptType.EdgeStitch
-              ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
-              : prompt.creatingPrompt.isPositive
-              ? PROMPT_FILL_COLOR.POSITIVE
-              : PROMPT_FILL_COLOR.NEGATIVE;
-          drawQuadraticPath(
-            activeCanvasRef.current!,
-            canvasCoordStroke,
-            color,
-            radius,
-          );
-          break;
-        }
-        default:
-          break;
-      }
+      if (model === EnumModelType.IVP) {
+        const strokeColor = prompt.creatingPrompt.isPositive
+          ? PROMPT_STROKE_COLOR.POSITIVE
+          : PROMPT_STROKE_COLOR.NEGATIVE;
+        const fillColor = prompt.creatingPrompt.isPositive
+          ? PROMPT_FILL_COLOR.POSITIVE
+          : PROMPT_FILL_COLOR.NEGATIVE;
 
-      // draw active area while loading ai annotations
-      if (editState.isRequiring && prompt.activeRectWhileLoading) {
-        const canvasCoordRect = translateRectCoord(
-          prompt.activeRectWhileLoading,
-          {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          },
-        );
-        shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+        switch (prompt.creatingPrompt.type) {
+          case EPromptType.Rect: {
+            const { startPoint } = prompt.creatingPrompt;
+            const rect = getRectFromPoints(
+              startPoint!,
+              {
+                x: contentMouse.elementX,
+                y: contentMouse.elementY,
+              },
+              {
+                width: contentMouse.elementW,
+                height: contentMouse.elementH,
+              },
+            );
+            const canvasCoordRect = translateRectCoord(rect, {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            });
+            drawRect(
+              activeCanvasRef.current,
+              canvasCoordRect,
+              strokeColor,
+              2,
+              [0],
+              fillColor,
+            );
+            break;
+          }
+          case EPromptType.Point: {
+            if (!prompt.creatingPrompt.point) break;
+            const canvasCoordPoint = translatePointCoord(
+              prompt.creatingPrompt.point,
+              {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              },
+            );
+            drawCircleWithFill(
+              activeCanvasRef.current!,
+              canvasCoordPoint,
+              4,
+              prompt.creatingPrompt.isPositive
+                ? PROMPT_FILL_COLOR.POSITIVE
+                : PROMPT_FILL_COLOR.NEGATIVE,
+              2,
+              '#fff',
+            );
+          }
+          default:
+            break;
+        }
+      } else {
+        const strokeColor = ANNO_STROKE_COLOR.CREATING;
+        const fillColor = ANNO_FILL_COLOR.CREATING;
+        switch (prompt.creatingPrompt.type) {
+          case EPromptType.Rect: {
+            const { startPoint } = prompt.creatingPrompt;
+            const rect = getRectFromPoints(
+              startPoint!,
+              {
+                x: contentMouse.elementX,
+                y: contentMouse.elementY,
+              },
+              {
+                width: contentMouse.elementW,
+                height: contentMouse.elementH,
+              },
+            );
+            const canvasCoordRect = translateRectCoord(rect, {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            });
+            drawRect(
+              activeCanvasRef.current,
+              canvasCoordRect,
+              strokeColor,
+              2,
+              [0],
+              fillColor,
+            );
+            break;
+          }
+          case EPromptType.Point: {
+            if (!prompt.creatingPrompt.point) break;
+            const canvasCoordPoint = translatePointCoord(
+              prompt.creatingPrompt.point,
+              {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              },
+            );
+            drawCircleWithFill(
+              activeCanvasRef.current!,
+              canvasCoordPoint,
+              4,
+              prompt.creatingPrompt.isPositive
+                ? PROMPT_FILL_COLOR.POSITIVE
+                : PROMPT_FILL_COLOR.NEGATIVE,
+              2,
+              '#fff',
+            );
+          }
+          case EPromptType.EdgeStitch:
+          case EPromptType.Stroke: {
+            if (!prompt.creatingPrompt.stroke || !prompt.creatingPrompt.radius)
+              break;
+            const canvasCoordStroke = translatePolygonCoord(
+              prompt.creatingPrompt.stroke,
+              {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              },
+            );
+            const radius =
+              (prompt.creatingPrompt.radius * clientSize.width) /
+              naturalSize.width;
+            const color =
+              prompt.creatingPrompt.type === EPromptType.EdgeStitch
+                ? hexToRgba(strokeColor, ANNO_MASK_ALPHA.CREATING)
+                : prompt.creatingPrompt.isPositive
+                ? PROMPT_FILL_COLOR.POSITIVE
+                : PROMPT_FILL_COLOR.NEGATIVE;
+            drawQuadraticPath(
+              activeCanvasRef.current!,
+              canvasCoordStroke,
+              color,
+              radius,
+            );
+            break;
+          }
+          default:
+            break;
+        }
+
+        // draw active area while loading ai annotations
+        if (editState.isRequiring && prompt.activeRectWhileLoading) {
+          const canvasCoordRect = translateRectCoord(
+            prompt.activeRectWhileLoading,
+            {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            },
+          );
+          shadeEverythingButRect(activeCanvasRef.current!, canvasCoordRect);
+        }
       }
     }
 
     // draw existing prompts
     if (prompt.promptsQueue) {
-      prompt.promptsQueue.forEach((item) => {
-        if (item.type === EPromptType.Point) {
-          const canvasCoordPoint = translatePointCoord(item.point!, {
-            x: -imagePos.current.x,
-            y: -imagePos.current.y,
-          });
-          drawCircleWithFill(
-            activeCanvasRef.current!,
-            canvasCoordPoint,
-            4,
-            item.isPositive
-              ? PROMPT_FILL_COLOR.POSITIVE
-              : PROMPT_FILL_COLOR.NEGATIVE,
-            2,
-            '#fff',
-          );
-        }
-      });
+      if (model === EnumModelType.IVP) {
+        prompt.promptsQueue.forEach((item) => {
+          switch (item.type) {
+            case EPromptType.Rect: {
+              const canvasCoordRect = translateRectCoord(item.rect!, {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              });
+              drawRect(
+                activeCanvasRef.current,
+                canvasCoordRect,
+                item.isPositive
+                  ? PROMPT_STROKE_COLOR.POSITIVE
+                  : PROMPT_STROKE_COLOR.NEGATIVE,
+                2,
+                [0],
+                item.isPositive
+                  ? PROMPT_FILL_COLOR.POSITIVE
+                  : PROMPT_FILL_COLOR.NEGATIVE,
+              );
+              break;
+            }
+            case EPromptType.Point: {
+              const canvasCoordPoint = translatePointCoord(item.point!, {
+                x: -imagePos.current.x,
+                y: -imagePos.current.y,
+              });
+              drawCircleWithFill(
+                activeCanvasRef.current!,
+                canvasCoordPoint,
+                4,
+                item.isPositive
+                  ? PROMPT_FILL_COLOR.POSITIVE
+                  : PROMPT_FILL_COLOR.NEGATIVE,
+                2,
+                '#fff',
+              );
+              break;
+            }
+          }
+        });
+      } else {
+        prompt.promptsQueue.forEach((item) => {
+          if (item.type === EPromptType.Point) {
+            const canvasCoordPoint = translatePointCoord(item.point!, {
+              x: -imagePos.current.x,
+              y: -imagePos.current.y,
+            });
+            drawCircleWithFill(
+              activeCanvasRef.current!,
+              canvasCoordPoint,
+              4,
+              item.isPositive
+                ? PROMPT_FILL_COLOR.POSITIVE
+                : PROMPT_FILL_COLOR.NEGATIVE,
+              2,
+              '#fff',
+            );
+          }
+        });
+      }
     }
   };
 
@@ -740,6 +899,15 @@ const useMask: ToolInstanceHook = ({
                 isPositive: true,
               };
               break;
+            case ESubToolItem.PositiveVisualPrompt:
+            case ESubToolItem.NegativeVisualPrompt:
+              s.prompt.creatingPrompt = {
+                type: EPromptType.Rect,
+                startPoint: point,
+                point,
+                isPositive:
+                  s.selectedSubTool !== ESubToolItem.NegativeVisualPrompt,
+              };
             default:
               break;
           }
@@ -812,6 +980,7 @@ const useMask: ToolInstanceHook = ({
       x: contentMouse.elementX,
       y: contentMouse.elementY,
     };
+    const model = drawData.selectedModel[drawData.selectedTool];
     switch (drawData.selectedSubTool) {
       case ESubToolItem.BrushAdd:
       case ESubToolItem.BrushErase:
@@ -911,6 +1080,38 @@ const useMask: ToolInstanceHook = ({
         if (!drawData.prompt.creatingPrompt?.stroke) break;
         onAiAnnotation?.({ type: EObjectType.Mask, drawData });
         break;
+      }
+      case ESubToolItem.PositiveVisualPrompt:
+      case ESubToolItem.NegativeVisualPrompt: {
+        if (
+          model !== EnumModelType.IVP ||
+          !drawData.prompt.creatingPrompt?.startPoint
+        )
+          break;
+        const { startPoint } = drawData.prompt.creatingPrompt;
+        if (mouse.x === startPoint.x || mouse.y === startPoint.y) {
+          setDrawData((s) => (s.prompt.creatingPrompt = undefined));
+          break;
+        } else {
+          const rect = getRectFromPoints(startPoint, mouse, {
+            width: contentMouse.elementW,
+            height: contentMouse.elementH,
+          });
+          const promptItem: PromptItem = {
+            type: EPromptType.Rect,
+            isPositive: drawData.prompt.creatingPrompt.isPositive,
+            rect,
+          };
+          const promptsQueue = [
+            ...(drawData.prompt.promptsQueue || []),
+            promptItem,
+          ];
+          onAiAnnotation?.({
+            type: EObjectType.Mask,
+            drawData,
+            promptsQueue,
+          });
+        }
       }
     }
   };

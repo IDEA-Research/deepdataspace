@@ -1,7 +1,9 @@
 import { ClearOutlined } from '@ant-design/icons';
 import { Button, Select } from 'antd';
-import { Category } from '@/Annotator/type';
 import { globalLocaleText } from 'dds-utils/locale';
+
+import { Category } from '@/Annotator/type';
+
 import './index.less';
 
 interface IProps {

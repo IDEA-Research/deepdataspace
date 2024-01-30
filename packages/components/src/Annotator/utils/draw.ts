@@ -1,3 +1,6 @@
+import { LINE_STYLE_MAP } from '../constants/render';
+import { LineType } from '../type';
+
 import { hexToRgba } from './color';
 
 function deg2rad(angleDeg: number) {
@@ -266,6 +269,118 @@ export function drawPolygon(
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
+}
+
+// function calculateOffsetPoints(
+//   anchors: IPoint[],
+//   offset: IPoint,
+// ): [IPoint[], IPoint[]] {
+//   const calculateOffset = (point: IPoint, angle: number, side: number) => ({
+//     x: point.x + side * offset.x * Math.cos(angle),
+//     y: point.y + side * offset.y * Math.sin(angle),
+//   });
+
+//   let leftOffsetPoints: IPoint[] = [];
+//   let rightOffsetPoints: IPoint[] = [];
+
+//   for (let i = 0; i < anchors.length - 1; i++) {
+//     const angle =
+//       Math.atan2(
+//         anchors[i + 1].y - anchors[i].y,
+//         anchors[i + 1].x - anchors[i].x,
+//       ) +
+//       Math.PI / 2;
+//     leftOffsetPoints.push(calculateOffset(anchors[i], angle, 1));
+//     rightOffsetPoints.push(calculateOffset(anchors[i], angle, -1));
+//   }
+
+//   // 处理最后一个点
+//   const lastAngle =
+//     Math.atan2(
+//       anchors[anchors.length - 1].y - anchors[anchors.length - 2].y,
+//       anchors[anchors.length - 1].x - anchors[anchors.length - 2].x,
+//     ) +
+//     Math.PI / 2;
+//   leftOffsetPoints.push(
+//     calculateOffset(anchors[anchors.length - 1], lastAngle, 1),
+//   );
+//   rightOffsetPoints.push(
+//     calculateOffset(anchors[anchors.length - 1], lastAngle, -1),
+//   );
+
+//   return [leftOffsetPoints, rightOffsetPoints];
+// }
+
+export function drawPolyline(
+  canvas: HTMLCanvasElement | null,
+  offset: IPoint = { x: 0, y: 0 },
+  anchors: IPoint[],
+  color = '#fff',
+  thickness = 1,
+  lineDash?: number[],
+): void {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+  ctx.save();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness;
+  if (lineDash) {
+    ctx.setLineDash(lineDash);
+  }
+
+  ctx.beginPath();
+  const { x: offsetX, y: offsetY } = offset;
+  ctx.moveTo(anchors[0].x + offsetX, anchors[0].y + offsetY);
+  for (let i = 1; i < anchors.length; i++) {
+    ctx.lineTo(anchors[i].x + offsetX, anchors[i].y + offsetX);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// function drawOffsetDoubleLine(
+//   canvas: HTMLCanvasElement | null,
+//   offset: IPoint = { x: 0, y: 0 },
+//   anchors: IPoint[],
+//   color: string = '#fff',
+//   thickness: number = 1,
+//   lineDash: [number[], number[]] = [[], []],
+// ): void {
+//   if (!canvas || anchors.length < 2) return;
+//   const [leftOffsetPoints, rightOffsetPoints] = calculateOffsetPoints(
+//     anchors,
+//     offset,
+//   );
+//   const [leftLineDash, rightLineDash] = lineDash;
+
+//   drawPolyline(
+//     canvas,
+//     { x: 0, y: 0 },
+//     leftOffsetPoints,
+//     color,
+//     thickness,
+//     leftLineDash,
+//   );
+//   drawPolyline(
+//     canvas,
+//     { x: 0, y: 0 },
+//     rightOffsetPoints,
+//     color,
+//     thickness,
+//     rightLineDash,
+//   );
+// }
+
+export function drawPolylineByType(
+  canvas: HTMLCanvasElement | null,
+  anchors: IPoint[],
+  color: string,
+  lineType: LineType,
+): void {
+  if (!LINE_STYLE_MAP[lineType]) return;
+  const { lineDash, thickness } = LINE_STYLE_MAP[lineType];
+  drawPolyline(canvas, { x: 0, y: 0 }, anchors, color, thickness, lineDash);
 }
 
 export function drawPolygonWithFill(

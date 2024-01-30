@@ -1,16 +1,37 @@
-import React, { useEffect, useMemo, useRef } from 'react';
 import { Dropdown, Modal } from 'antd';
-import { EBasicToolItem } from './constants';
+import classNames from 'classnames';
+import { cloneDeep } from 'lodash';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Updater, useImmer } from 'use-immer';
-import useLabels from './hooks/useLabels';
-import useActions from './hooks/useActions';
+
+import AttributeEditor from './components/AttributeEditor';
+import ClassificationPanel from './components/Classification';
+import { ImageView } from './components/ImageView';
+import ModelSelectModal from './components/ModelSelectModal';
 import { ObjectList } from './components/ObjectList';
+import PointsEditModal from './components/PointsEditModal';
+import SegConfirmModal from './components/SegConfirmModal';
+import SliderToolBar from './components/SliderToolBar';
 import SmartAnnotationControl from './components/SmartAnnotationControl';
 import { TopPagination } from './components/TopPagination';
-import useHistory from './hooks/useHistory';
-import useObjects from './hooks/useObjects';
+import { DisplayOption, EBasicToolItem, TOOL_MODELS_MAP } from './constants';
+import useActions from './hooks/useActions';
+import useAttributes from './hooks/useAttributes';
 import useCanvasContainer from './hooks/useCanvasContainer';
-import { cloneDeep } from 'lodash';
+import useCanvasRender from './hooks/useCanvasRender';
+import useColor from './hooks/useColor';
+import useDataEffect from './hooks/useDataEffect';
+import useHistory from './hooks/useHistory';
+import useLabels from './hooks/useLabels';
+import useMouseCursor from './hooks/useMouseCursor';
+import useMouseEvents from './hooks/useMouseEvents';
+import useObjects from './hooks/useObjects';
+import useShortcuts from './hooks/useShortcuts';
+import useSubTools from './hooks/useSubtools';
+import useToolActions from './hooks/useToolActions';
+import useTopTools from './hooks/useTopTools';
+import useTranslate from './hooks/useTranslate';
+import { useToolInstances } from './tools/base';
 import {
   BaseObject,
   Category,
@@ -22,27 +43,8 @@ import {
   EditorMode,
   DrawObject,
 } from './type';
-import useMouseCursor from './hooks/useMouseCursor';
-import useShortcuts from './hooks/useShortcuts';
-import useToolActions from './hooks/useToolActions';
-import useMouseEvents from './hooks/useMouseEvents';
-import useCanvasRender from './hooks/useCanvasRender';
-import useDataEffect from './hooks/useDataEffect';
-import useSubTools from './hooks/useSubtools';
-import { useToolInstances } from './tools/base';
-import useColor from './hooks/useColor';
-import { ImageView } from './components/ImageView';
-import useTranslate from './hooks/useTranslate';
-import ClassificationPanel from './components/Classification';
-import AttributeEditor from './components/AttributeEditor';
-import SegConfirmModal from './components/SegConfirmModal';
-import useAttributes from './hooks/useAttributes';
-import SliderToolBar from './components/SliderToolBar';
-import useTopTools from './hooks/useTopTools';
+
 import './index.less';
-import classNames from 'classnames';
-import ModelSelectModal from './components/ModelSelectModal';
-import PointsEditModal from './components/PointsEditModal';
 
 export interface EditProps {
   isOldMode?: boolean; // is old dataset design mode
@@ -66,6 +68,7 @@ export interface EditProps {
   layoutOptions?: {
     wrapHeight?: string;
     hideRightList?: boolean;
+    hideMainToolBar?: boolean;
     hideTopBar?: boolean;
     hideTopBarActions?: boolean;
     hideUndoRedoActions?: boolean;
@@ -75,6 +78,7 @@ export interface EditProps {
       left: number;
     };
   };
+  displayOptionsResult?: { [key in DisplayOption]?: boolean };
   manualMode?: boolean;
   forceColorByObject?: boolean;
   limitActiveObject?: boolean;
@@ -114,6 +118,7 @@ const Edit: React.FC<EditProps> = (props) => {
     titleElements,
     actionElements,
     layoutOptions,
+    displayOptionsResult,
     manualMode,
     forceColorByObject,
     limitActiveObject,
@@ -198,6 +203,7 @@ const Edit: React.FC<EditProps> = (props) => {
     undo,
     redo,
     clearHistory,
+    flagSaved,
     hadChangeRecord,
     updateHistory,
     setDrawDataWithHistory,
@@ -283,11 +289,11 @@ const Edit: React.FC<EditProps> = (props) => {
     clientSize,
     imagePos,
     containerMouse,
-    updateAllObject,
     hadChangeRecord,
     getAnnotColor,
     categories,
     translateObject,
+    flagSaved,
     onCancel,
     onSave,
     onCommit,
@@ -366,6 +372,7 @@ const Edit: React.FC<EditProps> = (props) => {
     onAiAnnotation,
     getAnnotColor,
     categories,
+    displayOptionsResult,
   });
 
   const { updateRender, renderPopoverMenu } = useCanvasRender({
@@ -538,23 +545,25 @@ const Edit: React.FC<EditProps> = (props) => {
         className="editor-container"
         style={{ top: layoutOptions?.hideTopBar ? '0' : '' }}
       >
-        <SliderToolBar
-          onlySupportZoom={mode !== EditorMode.Edit}
-          selectedTool={drawData.selectedTool}
-          manualMode={!!manualMode}
-          limitToolTypes={limitToolTypes}
-          isAIAnnotationActive={drawData.AIAnnotation}
-          onChangeSelectedTool={selectTool}
-          onActiveAIAnnotation={activeAIAnnotation}
-          hideUndoRedoActions={layoutOptions?.hideUndoRedoActions}
-          undo={undo}
-          redo={redo}
-          deleteAll={removeAllObjects}
-          scale={scale}
-          onZoomIn={onZoomIn}
-          onZoomOut={onZoomOut}
-          onZoomReset={onReset}
-        />
+        {!layoutOptions?.hideMainToolBar && (
+          <SliderToolBar
+            onlySupportZoom={mode !== EditorMode.Edit}
+            selectedTool={drawData.selectedTool}
+            manualMode={!!manualMode}
+            limitToolTypes={limitToolTypes}
+            isAIAnnotationActive={drawData.AIAnnotation}
+            onChangeSelectedTool={selectTool}
+            onActiveAIAnnotation={activeAIAnnotation}
+            hideUndoRedoActions={layoutOptions?.hideUndoRedoActions}
+            undo={undo}
+            redo={redo}
+            deleteAll={removeAllObjects}
+            scale={scale}
+            onZoomIn={onZoomIn}
+            onZoomOut={onZoomOut}
+            onZoomReset={onReset}
+          />
+        )}
         <div className="center-content">
           {currImageItem && (
             <Dropdown
@@ -606,7 +615,7 @@ const Edit: React.FC<EditProps> = (props) => {
           <SmartAnnotationControl
             selectedTool={drawData.selectedTool}
             selectedSubTool={drawData.selectedSubTool}
-            selectedModel={drawData.selectedModel}
+            selectedModel={drawData.selectedModel[drawData.selectedTool]}
             isBatchEditing={drawData.isBatchEditing}
             AIAnnotation={drawData.AIAnnotation}
             hasPolygonPreds={!!drawData.creatingObject?.polygon}
@@ -625,9 +634,9 @@ const Edit: React.FC<EditProps> = (props) => {
             onCancelBatchEdit={onAbortBatchObjects}
           />
           <ModelSelectModal
-            selectedTool={drawData.selectedTool}
             AIAnnotation={drawData.AIAnnotation}
-            selectedModel={drawData.selectedModel}
+            modelOptions={TOOL_MODELS_MAP[drawData.selectedTool]}
+            selectedModel={drawData.selectedModel[drawData.selectedTool]}
             onSelectModel={onSelectModel}
             onCloseModal={() =>
               setDrawData((s) => {

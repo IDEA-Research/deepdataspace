@@ -1,5 +1,6 @@
-import { Updater } from 'use-immer';
 import { useKeyPress } from 'ahooks';
+import { Updater } from 'use-immer';
+
 import { EObjectType } from '../constants';
 import { EDITOR_SHORTCUTS, EShortcuts } from '../constants/shortcuts';
 import {
@@ -86,7 +87,7 @@ const useShortcuts = ({
     EDITOR_SHORTCUTS[EShortcuts.PanImage].shortcut,
     (event: KeyboardEvent) => {
       if (!visible) return;
-      event.preventDefault();
+      // event.preventDefault();
       if (event.type === 'keydown' && !isMousePress) {
         setEditState((s) => {
           s.allowMove = true;

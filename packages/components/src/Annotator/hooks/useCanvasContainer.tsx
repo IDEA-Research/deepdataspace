@@ -1,3 +1,5 @@
+import { useEventListener, useMouse, useSize } from 'ahooks';
+import { fixedFloatNum } from 'dds-utils/digit';
 import React, {
   useCallback,
   useEffect,
@@ -5,9 +7,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useEventListener, useMouse, useSize } from 'ahooks';
 import { useImmer } from 'use-immer';
-import { isInCanvas, zoomImgSize } from '../utils/compute';
+
 import {
   MIN_SCALE,
   MAX_SCALE,
@@ -17,8 +18,8 @@ import {
   EObjectType,
   EBasicToolItem,
 } from '../constants';
-import { fixedFloatNum } from 'dds-utils/digit';
 import { DrawData } from '../type';
+import { isInCanvas, zoomImgSize } from '../utils/compute';
 
 interface IProps {
   isRequiring: boolean;

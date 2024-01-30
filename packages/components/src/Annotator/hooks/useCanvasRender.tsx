@@ -1,26 +1,13 @@
-import React from 'react';
 import { CursorState } from 'ahooks/lib/useMouse';
-import {
-  DrawData,
-  EditState,
-  IAnnotationObject,
-  ICreatingObject,
-} from '../type';
-import { translateAnnotCoord } from '../utils/compute';
+import React from 'react';
+
+import PopoverMenu from '../components/PopoverMenu';
 import {
   EBasicToolItem,
   EElementType,
   EnumModelType,
   EObjectType,
 } from '../constants';
-import {
-  addFilter,
-  clearCanvas,
-  drawImage,
-  removeFilter,
-  resizeSmoothCanvas,
-  setCanvasGlobalAlpha,
-} from '../utils/draw';
 import {
   ANNO_FILL_ALPHA,
   ANNO_FILL_COLOR,
@@ -29,8 +16,22 @@ import {
   ANNO_STROKE_COLOR,
 } from '../constants/render';
 import { ToolInstanceHookReturn } from '../tools/base';
+import {
+  DrawData,
+  EditState,
+  IAnnotationObject,
+  ICreatingObject,
+} from '../type';
 import { hexToRgba } from '../utils/color';
-import PopoverMenu from '../components/PopoverMenu';
+import { translateAnnotCoord } from '../utils/compute';
+import {
+  addFilter,
+  clearCanvas,
+  drawImage,
+  removeFilter,
+  resizeSmoothCanvas,
+  setCanvasGlobalAlpha,
+} from '../utils/draw';
 
 interface IProps {
   visible: boolean;
@@ -43,6 +44,7 @@ interface IProps {
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
   imgRef: React.RefObject<HTMLImageElement>;
   objectHooksMap: Record<EObjectType, ToolInstanceHookReturn>;
+  videoLoading?: boolean;
 }
 
 const useCanvasRender = ({
@@ -56,6 +58,7 @@ const useCanvasRender = ({
   activeCanvasRef,
   imgRef,
   objectHooksMap,
+  videoLoading,
 }: IProps) => {
   // =================================================================================================================
   // Render
@@ -159,7 +162,8 @@ const useCanvasRender = ({
         });
       } else if (
         theDrawData.selectedTool === EBasicToolItem.Rectangle &&
-        theDrawData.selectedModel === EnumModelType.IVP
+        theDrawData.selectedModel[theDrawData.selectedTool] ===
+          EnumModelType.IVP
       ) {
         objectHooksMap[EObjectType.Rectangle].renderPrompt({
           prompt,
@@ -241,6 +245,12 @@ const useCanvasRender = ({
       !imgRef.current.complete
     )
       return;
+
+    // video load maybe use long time, should clearCanvas first
+    if (videoLoading) {
+      clearCanvas(canvasRef.current);
+      return;
+    }
 
     resizeSmoothCanvas(canvasRef.current, {
       width: containerMouse.elementW,

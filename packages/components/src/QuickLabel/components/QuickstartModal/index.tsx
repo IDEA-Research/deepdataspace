@@ -1,9 +1,10 @@
-import { Alert, Button, Modal, UploadFile as AntdUploadFile } from 'antd';
-import Upload, { UploadFile } from 'dds-components/Upload';
 import { UploadOutlined } from '@ant-design/icons';
+import { Alert, Button, Modal, UploadFile as AntdUploadFile } from 'antd';
 import { UploadChangeParam } from 'antd/es/upload';
-import UploadPreAnno from 'dds-components/UploadPreAnno';
+import { UploadPreAnno } from 'dds-components';
+import Upload, { UploadFile } from 'dds-components/Upload';
 import { globalLocaleText } from 'dds-utils/locale';
+
 import './index.less';
 
 const MAX_COUNT = 1000;

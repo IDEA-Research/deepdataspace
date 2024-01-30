@@ -1,26 +1,27 @@
-import { TShortcutItem } from '../constants/shortcuts';
+import Icon from '@ant-design/icons';
+import { Slider } from 'antd';
 import { useLocale } from 'dds-utils/locale';
+import { useMemo } from 'react';
+
+import { ReactComponent as AddPromptIcon } from '../assets/add-prompt.svg';
+import { ReactComponent as BrushAddIcon } from '../assets/brush-add.svg';
+import { ReactComponent as BrushEraseIcon } from '../assets/brush-erase.svg';
+import { ReactComponent as EdgeStitchIcon } from '../assets/edge-stitch.svg';
+import { ReactComponent as MagicBoxIcon } from '../assets/magic-box.svg';
+import { ReactComponent as StrokeIcon } from '../assets/magic-brush.svg';
+import { ReactComponent as ClickIcon } from '../assets/magic-click.svg';
+import { ReactComponent as PenAddIcon } from '../assets/pen-add.svg';
+import { ReactComponent as PenEraseIcon } from '../assets/pen-erase.svg';
+import { ReactComponent as RemovePromptIcon } from '../assets/remove-prompt.svg';
+import { ReactComponent as SegmentEverythingIcon } from '../assets/segment-everything.svg';
 import {
   EBasicToolItem,
   EnumModelType,
   EObjectType,
   ESubToolItem,
 } from '../constants';
-import Icon from '@ant-design/icons';
-import { ReactComponent as PenAddIcon } from '../assets/pen-add.svg';
-import { ReactComponent as PenEraseIcon } from '../assets/pen-erase.svg';
-import { ReactComponent as BrushAddIcon } from '../assets/brush-add.svg';
-import { ReactComponent as BrushEraseIcon } from '../assets/brush-erase.svg';
-import { ReactComponent as MagicBoxIcon } from '../assets/magic-box.svg';
-import { ReactComponent as ClickIcon } from '../assets/magic-click.svg';
-import { ReactComponent as EdgeStitchIcon } from '../assets/edge-stitch.svg';
-import { ReactComponent as SegmentEverythingIcon } from '../assets/segment-everything.svg';
-import { ReactComponent as StrokeIcon } from '../assets/magic-brush.svg';
-import { ReactComponent as AddPromptIcon } from '../assets/add-prompt.svg';
-import { ReactComponent as RemovePromptIcon } from '../assets/remove-prompt.svg';
-import { useMemo } from 'react';
+import { TShortcutItem } from '../constants/shortcuts';
 import { DrawData } from '../type';
-import { Slider } from 'antd';
 
 export type TToolItem<T> = {
   key: T;
@@ -96,7 +97,7 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     [isManualAvailable, drawData.creatingObject],
   );
 
-  const smartMaskTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+  const isgTools: TToolItem<ESubToolItem>[] = useMemo(() => {
     return [
       {
         key: ESubToolItem.AutoSegmentByBox,
@@ -117,24 +118,8 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
         icon: <Icon component={ClickIcon} />,
         available: true,
       },
-      {
-        key: ESubToolItem.AutoEdgeStitching,
-        name: localeText('DDSAnnotator.subtoolbar.mask.edgeStitch'),
-        icon: <Icon component={EdgeStitchIcon} />,
-        available: true,
-        withSize: true,
-      },
-      {
-        key: ESubToolItem.AutoSegmentEverything,
-        name: localeText('DDSAnnotator.subtoolbar.mask.sam'),
-        icon: <Icon component={SegmentEverythingIcon} />,
-        available: isSegEverythingAvailable,
-        description: isSegEverythingAvailable
-          ? localeText('DDSAnnotator.subtoolbar.mask.sam.desc')
-          : localeText('DDSAnnotator.subtoolbar.mask.sam.notAllow'),
-      },
     ];
-  }, [isSegEverythingAvailable]);
+  }, []);
 
   const smartPolygonTools: TToolItem<ESubToolItem>[] = useMemo(() => {
     return [
@@ -180,6 +165,27 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     ];
   }, []);
 
+  const samTools: TToolItem<ESubToolItem>[] = useMemo(() => {
+    return [
+      {
+        key: ESubToolItem.AutoSegmentEverything,
+        name: localeText('DDSAnnotator.subtoolbar.mask.sam'),
+        icon: <Icon component={SegmentEverythingIcon} />,
+        available: isSegEverythingAvailable,
+        description: isSegEverythingAvailable
+          ? localeText('DDSAnnotator.subtoolbar.mask.sam.desc')
+          : localeText('DDSAnnotator.subtoolbar.mask.sam.notAllow'),
+      },
+      {
+        key: ESubToolItem.AutoEdgeStitching,
+        name: localeText('DDSAnnotator.subtoolbar.mask.edgeStitch'),
+        icon: <Icon component={EdgeStitchIcon} />,
+        available: true,
+        withSize: true,
+      },
+    ];
+  }, [isSegEverythingAvailable]);
+
   const showSubTools = useMemo(() => {
     if (drawData.selectedTool === EBasicToolItem.Mask) return true;
 
@@ -192,7 +198,7 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     if (
       drawData.selectedTool === EBasicToolItem.Rectangle &&
       drawData.AIAnnotation &&
-      drawData.selectedModel === EnumModelType.IVP
+      drawData.selectedModel[drawData.selectedTool] === EnumModelType.IVP
     )
       return true;
 
@@ -217,9 +223,33 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
       drawData.selectedTool === EBasicToolItem.Mask ||
       drawData.creatingObject?.type === EObjectType.Mask
     ) {
+      if (!drawData.AIAnnotation) {
+        return {
+          basicTools: basicMaskTools,
+          smartTools: [],
+        };
+      }
+
+      const currModel = drawData.selectedModel[drawData.selectedTool];
+      if (currModel === EnumModelType.IVP) {
+        return {
+          basicTools: [],
+          smartTools: ivpTools,
+        };
+      } else if (currModel === EnumModelType.SegmentByMask) {
+        return {
+          basicTools: [],
+          smartTools: isgTools,
+        };
+      } else if (currModel === EnumModelType.SegmentEverything) {
+        return {
+          basicTools: [],
+          smartTools: samTools,
+        };
+      }
       return {
         basicTools: basicMaskTools,
-        smartTools: smartMaskTools,
+        smartTools: [],
       };
     } else if (
       drawData.selectedTool === EBasicToolItem.Polygon ||
@@ -249,7 +279,7 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     } else if (
       drawData.selectedTool === EBasicToolItem.Rectangle &&
       drawData.AIAnnotation &&
-      drawData.selectedModel === EnumModelType.IVP
+      drawData.selectedModel[drawData.selectedTool] === EnumModelType.IVP
     ) {
       return {
         basicTools: [],
@@ -265,9 +295,10 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     drawData.creatingObject,
     drawData.AIAnnotation,
     drawData.selectedModel,
-    basicMaskTools,
-    smartMaskTools,
     smartPolygonTools,
+    basicMaskTools,
+    isgTools,
+    samTools,
     ivpTools,
     drawData.pointResolution,
   ]);

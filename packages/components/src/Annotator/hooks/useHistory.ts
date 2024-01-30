@@ -1,8 +1,13 @@
-import { useCallback, useState } from 'react';
-import { DraftFunction, Updater, useImmer } from 'use-immer';
 import { cloneDeep, isEqual } from 'lodash';
-import { scaleDrawData, scaleFramesObjects } from '../utils/compute';
+import { useCallback, useRef, useState } from 'react';
+import { DraftFunction, Updater, useImmer } from 'use-immer';
+
 import { BaseObject, DrawData, VideoFramesData } from '../type';
+import {
+  convertFrameObjectsIntoFramesObjects,
+  scaleDrawData,
+  scaleFramesObjects,
+} from '../utils/compute';
 
 export interface HistoryItem {
   drawData: DrawData;
@@ -29,9 +34,14 @@ const useHistory = ({
   framesData,
   setFramesData,
 }: IProps) => {
+  const hadChangeRecordRef = useRef(false);
   const [historyQueue, setHistoryQueue] = useImmer<HistoryItem[]>([]);
   const [currentIndex, setCurrIndex] = useState(0);
   const maxCacheSize = 20;
+
+  const flagSaved = () => {
+    hadChangeRecordRef.current = false;
+  };
 
   const autoSave = (item: HistoryItem) => {
     if (onAutoSave) {
@@ -44,16 +54,18 @@ const useHistory = ({
 
   const updateCurrentRecord = useCallback(
     (record: HistoryItem) => {
-      if (record.framesData) {
-        setFramesData?.({
-          ...record.framesData,
-          objects: scaleFramesObjects(
+      // video
+      setFramesData?.((s) => {
+        if (record.framesData) {
+          s.activeIndex = record.framesData?.activeIndex;
+          s.objects = scaleFramesObjects(
             record.framesData.objects,
             record.clientSize,
             clientSize,
-          ),
-        });
-      }
+          );
+        }
+      });
+
       const updateDrawData = scaleDrawData(
         record.drawData,
         record.clientSize,
@@ -70,7 +82,12 @@ const useHistory = ({
    */
   const undo = useCallback(() => {
     if (currentIndex > 0) {
-      setCurrIndex((prevIndex) => prevIndex - 1);
+      setCurrIndex((prevIndex) => {
+        hadChangeRecordRef.current = Boolean(
+          historyQueue.length > 1 && prevIndex - 1 !== 0,
+        );
+        return prevIndex - 1;
+      });
       updateCurrentRecord(historyQueue[currentIndex - 1]);
     }
   }, [currentIndex, historyQueue, updateCurrentRecord]);
@@ -80,7 +97,12 @@ const useHistory = ({
    */
   const redo = useCallback(() => {
     if (currentIndex < historyQueue.length - 1) {
-      setCurrIndex((prevIndex) => prevIndex + 1);
+      setCurrIndex((prevIndex) => {
+        hadChangeRecordRef.current = Boolean(
+          historyQueue.length > 1 && prevIndex + 1 !== 0,
+        );
+        return prevIndex + 1;
+      });
       updateCurrentRecord(historyQueue[currentIndex + 1]);
     }
   }, [currentIndex, historyQueue, updateCurrentRecord]);
@@ -92,11 +114,11 @@ const useHistory = ({
     drawData: DrawData,
     theframesData?: VideoFramesData,
   ) => {
-    const item = {
+    const item = cloneDeep({
       drawData,
       clientSize,
       framesData: theframesData || framesData,
-    };
+    });
     setHistoryQueue((queue) => {
       if (queue[currentIndex] && isEqual(item, queue[currentIndex])) {
         return queue;
@@ -108,13 +130,40 @@ const useHistory = ({
         // fix to change image current render
         return queue;
       }
-      // console.log('>>> updata history', item.drawData, framesData);
+
+      if (
+        !theframesData &&
+        item.framesData &&
+        setFramesData &&
+        item.drawData.objectList.length &&
+        !isEqual(
+          item.drawData.objectList,
+          queue[currentIndex]?.drawData?.objectList,
+        )
+      ) {
+        // video && not update framesData && single frame objectList changed
+        // sync frame objectlist change to every frame
+        item.framesData.objects = convertFrameObjectsIntoFramesObjects(
+          item.drawData.objectList,
+          item.framesData.objects,
+          item.framesData.list.length,
+          item.framesData.activeIndex,
+          naturalSize,
+        );
+        setFramesData((s) => {
+          s.objects = cloneDeep(item.framesData!.objects);
+        });
+      }
       queue.splice(currentIndex + 1);
       queue.push(item);
       if (queue.length > maxCacheSize) {
         queue.shift();
       }
       setCurrIndex(queue.length - 1);
+
+      hadChangeRecordRef.current = Boolean(
+        queue.length > 1 && queue.length - 1 !== 0,
+      );
     });
     autoSave(item);
   };
@@ -143,7 +192,8 @@ const useHistory = ({
     redo,
     clearHistory,
     setDrawDataWithHistory,
-    hadChangeRecord: historyQueue.length > 1 && currentIndex !== 0,
+    flagSaved,
+    hadChangeRecord: hadChangeRecordRef.current,
   };
 };
 

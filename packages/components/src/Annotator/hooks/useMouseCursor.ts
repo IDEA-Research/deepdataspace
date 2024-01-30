@@ -1,7 +1,8 @@
 import { useCallback, useEffect } from 'react';
+
+import { EBasicToolItem } from '../constants';
 import { DrawData, EditState } from '../type';
 import { Direction } from '../utils/compute';
-import { EBasicToolItem } from '../constants';
 
 interface IProps {
   topCanvas: HTMLCanvasElement | null;

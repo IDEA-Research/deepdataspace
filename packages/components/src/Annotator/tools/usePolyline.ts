@@ -1,21 +1,30 @@
-import { drawCircleWithFill } from '../utils/draw';
+import { ANNO_STROKE_ALPHA } from '../constants/render';
+import { LineType } from '../type';
+import { hexToRgba } from '../utils/color';
+import { drawPolylineByType } from '../utils/draw';
 
 import { ToolInstanceHook, ToolHooksFunc } from './base';
 
-const usePoint: ToolInstanceHook = ({ canvasRef }) => {
-  const renderObject: ToolHooksFunc.RenderObject = ({ object, styles }) => {
-    const { point } = object;
-    if (point && point.visible) {
-      const { x, y } = point;
-      const { strokeColor, fillColor } = styles;
-      drawCircleWithFill(
-        canvasRef.current!,
-        { x, y },
-        4,
-        fillColor,
-        2,
-        strokeColor,
-      );
+const usePolyline: ToolInstanceHook = ({ canvasRef }) => {
+  const renderObject: ToolHooksFunc.RenderObject = ({
+    object,
+    color,
+    isFocus,
+  }) => {
+    const { polyline } = object;
+    if (polyline && polyline.visible && polyline.lineType) {
+      const lineType: LineType = polyline.lineType as unknown as LineType;
+
+      const baseColor = polyline.color || color;
+      const strokeColor = isFocus
+        ? hexToRgba(baseColor, ANNO_STROKE_ALPHA.FOCUS)
+        : hexToRgba(baseColor, ANNO_STROKE_ALPHA.DEFAULT);
+
+      polyline?.group.forEach((anchors) => {
+        drawPolylineByType(canvasRef.current, anchors, strokeColor, lineType);
+      });
+
+      // todo render point & text
     }
   };
 
@@ -75,4 +84,4 @@ const usePoint: ToolInstanceHook = ({ canvasRef }) => {
   };
 };
 
-export default usePoint;
+export default usePolyline;

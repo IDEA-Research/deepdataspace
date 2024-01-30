@@ -1,18 +1,20 @@
-import React, { useEffect } from 'react';
+import { SettingOutlined } from '@ant-design/icons';
 import { history } from '@umijs/max';
+import { useKeyPress } from 'ahooks';
+import { Button } from 'antd';
 import {
   AnnotateEditor,
   BaseObject,
   EditorMode,
 } from 'dds-components/Annotator';
-import { Button } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
-import { useKeyPress } from 'ahooks';
+import { globalLocaleText } from 'dds-utils/locale';
+import React, { useEffect } from 'react';
+
+import ImageFilter from './components/ImageFilter';
 import { ImageList } from './components/ImageList';
 import QuickstartModal from './components/QuickstartModal';
-import ImageFilter from './components/ImageFilter';
 import { QuickLabelModel } from './hooks/useQuickLabelModel';
-import { globalLocaleText } from 'dds-utils/locale';
+
 import './index.less';
 
 const QuickLabel: React.FC<QuickLabelModel> = (props) => {

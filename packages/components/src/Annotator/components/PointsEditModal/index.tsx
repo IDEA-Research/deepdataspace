@@ -1,18 +1,20 @@
+import { DownCircleOutlined, UpCircleOutlined } from '@ant-design/icons';
 import { Card } from 'antd';
 import classNames from 'classnames';
-import { FloatWrapper } from '../FloatWrapper';
-import { memo, useMemo, useState } from 'react';
 import { useLocale } from 'dds-utils/locale';
-import { EditState, EditorMode, IAnnotationObject } from '../../type';
+import { memo, useMemo, useState } from 'react';
+import { Updater } from 'use-immer';
+
 import {
   EElementType,
   EObjectType,
   KEYPOINTS_VISIBLE_TYPE,
 } from '../../constants';
-import './index.less';
+import { EditState, EditorMode, IAnnotationObject } from '../../type';
+import { FloatWrapper } from '../FloatWrapper';
 import PointItem from '../PointItem';
-import { DownCircleOutlined, UpCircleOutlined } from '@ant-design/icons';
-import { Updater } from 'use-immer';
+
+import './index.less';
 
 interface IProps {
   mode: EditorMode;

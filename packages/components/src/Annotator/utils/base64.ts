@@ -47,6 +47,13 @@ export const isHttpsUrl = (str: string) => {
   return httpsRegex.test(str);
 };
 
+export const getServerAddressableUrl = async (url: string) => {
+  if (isBlobUrl(url)) {
+    return await getImageBase64(url);
+  }
+  return url;
+};
+
 export const getImgBase64ByBlob = (blobUrl: Blob) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();

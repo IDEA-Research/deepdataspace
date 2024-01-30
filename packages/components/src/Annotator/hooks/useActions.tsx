@@ -1,19 +1,11 @@
-import {
-  getVisibleAreaForImage,
-  translateBoundingBoxToRect,
-  translatePointsToPointObjs,
-  translatePointZoom,
-  translateRectToAbsBbox,
-  getCanvasPoint,
-  getNaturalPoint,
-  translateRectToBoundingBox,
-  translatePointObjsToPointAttrs,
-  convertFrameObjectsIntoFramesObjects,
-  translateRectZoom,
-  translateAbsBBoxToRect,
-} from '../utils/compute';
+import { useModel } from '@umijs/max';
+import { CursorState } from 'ahooks/lib/useMouse';
 import { Modal, message } from 'antd';
+import { ModalStaticFunctions } from 'antd/es/modal/confirm';
+import { useLocale } from 'dds-utils/locale';
+import { useCallback } from 'react';
 import { Updater } from 'use-immer';
+
 import {
   BODY_TEMPLATE,
   EBasicToolItem,
@@ -22,14 +14,8 @@ import {
   EObjectType,
   ESubToolItem,
 } from '../constants';
-import {
-  getImageBase64,
-  isBase64,
-  isBlobUrl,
-  isHttpsUrl,
-} from '../utils/base64';
-import { useLocale } from 'dds-utils/locale';
-import { useModel } from '@umijs/max';
+import { NsApiAnnotator, fetchModelResults } from '../sevices';
+import { rleToCanvas } from '../tools/useMask';
 import {
   DrawData,
   AnnoItem,
@@ -40,16 +26,24 @@ import {
   EObjectStatus,
   Category,
   VideoFramesData,
+  EPromptType,
+  ReqPromptItem,
+  IMask,
 } from '../type';
-import { objectToRle, rleToCanvas } from '../tools/useMask';
-import { CursorState } from 'ahooks/lib/useMouse';
-import { ModalStaticFunctions } from 'antd/es/modal/confirm';
-import { useCallback } from 'react';
+import { getImageBase64, getServerAddressableUrl } from '../utils/base64';
 import {
-  NsApiAnnotator,
-  fetchModelResults,
-  getOssUrlByBlobUrl,
-} from '../sevices';
+  getVisibleAreaForImage,
+  translateBoundingBoxToRect,
+  translatePointsToPointObjs,
+  translatePointZoom,
+  translateRectToAbsBbox,
+  getCanvasPoint,
+  getNaturalPoint,
+  translateRectToBoundingBox,
+  translatePointObjsToPointAttrs,
+  translateRectZoom,
+  translateAbsBBoxToRect,
+} from '../utils/compute';
 
 interface IProps {
   mode: EditorMode;
@@ -65,17 +59,29 @@ interface IProps {
   clientSize: ISize;
   containerMouse: CursorState;
   imagePos: React.MutableRefObject<IPoint>;
-  updateAllObject: (objectList: IAnnotationObject[]) => void;
   hadChangeRecord: boolean;
   getAnnotColor: (category: string, forceColorByCategory?: boolean) => string;
   categories: Category[];
   translateObject?: (object: any) => any;
+  flagSaved?: () => void;
   onCancel?: () => void;
   onSave?: (id: string, labels: any[]) => Promise<void>;
   onCommit?: (id: string, labels: any[]) => Promise<void>;
-  onReviewModify?: (id: string, labels: any[]) => Promise<void>;
-  onReviewAccept?: (id: string, labels: any[]) => Promise<void>;
-  onReviewReject?: (id: string, labels: any[]) => Promise<void>;
+  onReviewModify?: (
+    id: string,
+    labels: any[],
+    frameIssues?: Record<number, object>,
+  ) => Promise<void>;
+  onReviewAccept?: (
+    id: string,
+    labels: any[],
+    frameIssues?: Record<number, object>,
+  ) => Promise<void>;
+  onReviewReject?: (
+    id: string,
+    labels: any[],
+    frameIssues?: Record<number, object>,
+  ) => Promise<void>;
   classificationOptions?: Category[];
 }
 
@@ -114,11 +120,11 @@ const useActions = ({
   clientSize,
   imagePos,
   containerMouse,
-  updateAllObject,
   hadChangeRecord,
   categories,
   getAnnotColor,
   translateObject,
+  flagSaved,
   onCancel,
   onSave,
   onCommit,
@@ -135,13 +141,15 @@ const useActions = ({
       s.isRequiring = requiring;
     });
 
-  const requestAiDetection = async (source: string, aiLabels: string) => {
+  const requestAiDetection = async (aiLabels: string) => {
+    if (!currImageItem) return;
+
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.Detection>(
+      const { result } = await fetchModelResults<EnumModelType.Detection>(
         EnumModelType.Detection,
         {
-          image: source,
+          image: await getImageBase64(currImageItem.url),
           text: aiLabels,
         },
       );
@@ -189,17 +197,7 @@ const useActions = ({
     }
   };
 
-  const convertPromptFormat = (
-    prompt: PromptItem[],
-  ): {
-    type: string;
-    isPositive: boolean;
-    point?: number[];
-    rect?: number[];
-    stroke?: number[];
-    radius?: number;
-    polygons?: number[][];
-  }[] => {
+  const convertPromptFormat = (prompt: PromptItem[]): ReqPromptItem[] => {
     const newPromptArr = prompt.map((item) => {
       const { type, isPositive, point, rect, stroke, radius, polygons } = item;
 
@@ -275,10 +273,10 @@ const useActions = ({
   };
 
   const requestIvpDetection = async (
-    base64Img: string,
+    drawData: DrawData,
     promptsQueue?: PromptItem[],
   ) => {
-    if (!promptsQueue || !currImageItem) return;
+    if (!currImageItem || !promptsQueue) return;
 
     if (promptsQueue.every((prompt) => !prompt.isPositive)) {
       message.error(localeText('DDSAnnotator.smart.msg.positivePrompt'));
@@ -290,25 +288,21 @@ const useActions = ({
 
     try {
       setLoading(true);
-
-      let url = base64Img;
-      if (isHttpsUrl(currImageItem.url)) {
-        url = currImageItem.url;
-      } else if (isBlobUrl(currImageItem.url)) {
-        url = await getOssUrlByBlobUrl(
-          currImageItem.fileName || 'image',
-          currImageItem.url,
-        );
-      }
-
       const reqParams = {
-        promptImage: url,
-        inferImage: url,
         prompts: convertPromptFormat(promptsQueue || []),
         labelTypes: ['bbox'],
       };
+      if (drawData.prompt.sessionId) {
+        Object.assign(reqParams, { sessionId: drawData.prompt.sessionId });
+      } else {
+        const url = await getServerAddressableUrl(currImageItem.url);
+        Object.assign(reqParams, {
+          promptImage: url,
+          inferImage: url,
+        });
+      }
 
-      const result = await fetchModelResults<EnumModelType.IVP>(
+      const { result, sessionId } = await fetchModelResults<EnumModelType.IVP>(
         EnumModelType.IVP,
         reqParams,
       );
@@ -353,6 +347,91 @@ const useActions = ({
             s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
           }
           s.prompt.promptsQueue = promptsQueue;
+          s.prompt.sessionId = sessionId;
+          s.prompt.creatingPrompt = undefined;
+        });
+        message.success(localeText('DDSAnnotator.smart.msg.success'));
+      }
+    } catch (error: any) {
+      message.error(localeText('DDSAnnotator.smart.msg.error'));
+      setDrawDataWithHistory((s) => {
+        s.prompt.creatingPrompt = undefined;
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const requestIvpMask = async (
+    drawData: DrawData,
+    promptsQueue?: PromptItem[],
+  ) => {
+    if (!currImageItem || !promptsQueue) return;
+
+    if (promptsQueue.every((prompt) => !prompt.isPositive)) {
+      message.error(localeText('DDSAnnotator.smart.msg.positivePrompt'));
+      setDrawDataWithHistory((s) => {
+        s.prompt.creatingPrompt = undefined;
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const reqParams = {
+        prompts: convertPromptFormat(promptsQueue || []),
+        labelTypes: ['mask'],
+      };
+      if (drawData.prompt.sessionId) {
+        Object.assign(reqParams, { sessionId: drawData.prompt.sessionId });
+      } else {
+        const url = await getServerAddressableUrl(currImageItem.url);
+        Object.assign(reqParams, {
+          promptImage: url,
+          inferImage: url,
+        });
+      }
+
+      const { result, sessionId } = await fetchModelResults<EnumModelType.IVP>(
+        EnumModelType.IVP,
+        reqParams,
+      );
+
+      if (result) {
+        // Display mask in different color
+        setEditState((s) => {
+          s.annotsDisplayOptions.colorByCategory = false;
+        });
+
+        const { objects } = result;
+        const newObjects: IAnnotationObject[] = objects
+          .filter((item) => !!item.mask)
+          .map((item) => {
+            const color = getAnnotColor(editState.latestLabelId);
+            const maskRleStr = item.mask?.counts || '';
+            return {
+              type: EObjectType.Mask,
+              hidden: false,
+              labelId: editState.latestLabelId,
+              maskRle: maskRleStr,
+              maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, color),
+              status: EObjectStatus.Checked,
+              conf: item.score,
+              color: getAnnotColor(editState.latestLabelId, true),
+            };
+          });
+
+        setDrawDataWithHistory((s) => {
+          s.isBatchEditing = true;
+          const commitedObjects = s.objectList.filter(
+            (obj) => obj.status === EObjectStatus.Commited,
+          );
+          s.objectList = [...commitedObjects, ...newObjects];
+          if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
+            s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
+          }
+          s.prompt.promptsQueue = promptsQueue;
+          s.prompt.sessionId = sessionId;
           s.prompt.creatingPrompt = undefined;
         });
         message.success(localeText('DDSAnnotator.smart.msg.success'));
@@ -399,15 +478,14 @@ const useActions = ({
 
   const requestAiSegmentByPolygon = async (
     drawData: DrawData,
-    source: string,
     promptsQueue?: PromptItem[],
   ) => {
-    if (!promptsQueue) return;
+    if (!currImageItem || !promptsQueue) return;
 
     const reqParams = {
       image: editState.imageCacheIdForPolygon
         ? `image_id://${editState.imageCacheIdForPolygon}`
-        : source,
+        : await getImageBase64(currImageItem.url),
       density: drawData.pointResolution,
       area: getCurrVisibleBbox(),
       prompts: convertPromptFormat(promptsQueue || []),
@@ -419,10 +497,11 @@ const useActions = ({
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.SegmentByPolygon>(
-        EnumModelType.SegmentByPolygon,
-        reqParams,
-      );
+      const { result } =
+        await fetchModelResults<EnumModelType.SegmentByPolygon>(
+          EnumModelType.SegmentByPolygon,
+          reqParams,
+        );
       if (result) {
         const { image, polygons, sessionId } = result;
 
@@ -485,63 +564,49 @@ const useActions = ({
 
   const requestAiSegmentByMask = async (
     drawData: DrawData,
-    source: string,
     promptsQueue?: PromptItem[],
   ) => {
-    if (!promptsQueue) return;
-    const currMask =
-      drawData.creatingObject?.maskCanvasElement ||
-      drawData.creatingObject?.tempMaskSteps
-        ? objectToRle(
-            clientSize,
-            naturalSize,
-            drawData.creatingObject?.tempMaskSteps || [],
-            drawData.creatingObject?.maskCanvasElement,
-          )
-        : [];
+    if (!promptsQueue || !currImageItem) return;
 
     const reqParams: NsApiAnnotator.FetchAIMaskSegmentReq = {
-      maskRle: currMask || [],
-      maskId: drawData.prompt.sessionId || '',
-      prompt: convertPromptFormat(promptsQueue || []),
-      area: getCurrVisibleBbox(),
+      prompts: convertPromptFormat(promptsQueue || []),
     };
-
-    if (editState.imageCacheId) {
-      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    if (drawData.prompt.sessionId) {
+      Object.assign(reqParams, { sessionId: drawData.prompt.sessionId });
     } else {
-      Object.assign(reqParams, { image: source });
+      Object.assign(reqParams, {
+        image: await getServerAddressableUrl(currImageItem.url),
+      });
     }
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.SegmentByMask>(
-        EnumModelType.SegmentByMask,
-        reqParams,
-      );
+      const { result, sessionId } =
+        await fetchModelResults<EnumModelType.SegmentByMask>(
+          EnumModelType.SegmentByMask,
+          reqParams,
+        );
       if (result) {
-        const { maskId, maskRle, imageId } = result;
+        const { mask } = result;
         const color =
           drawData.creatingObject?.color ||
           getAnnotColor(editState.latestLabelId);
+        const maskRleStr = mask.counts || '';
         const creatingObj = {
           type: EObjectType.Mask,
           hidden: false,
           labelId: editState.latestLabelId,
           currIndex: -1,
-          maskCanvasElement: rleToCanvas(maskRle, naturalSize, color),
-          maskRle,
+          maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, color),
+          maskRle: maskRleStr,
           status: EObjectStatus.Checked,
           color,
         };
         setDrawDataWithHistory((s) => {
           s.creatingObject = creatingObj;
           s.prompt.promptsQueue = promptsQueue;
-          s.prompt.sessionId = maskId;
+          s.prompt.sessionId = sessionId;
           s.prompt.creatingPrompt = undefined;
-        });
-        setEditState((s) => {
-          s.imageCacheId = imageId;
         });
         message.success(localeText('DDSAnnotator.smart.msg.success'));
       }
@@ -557,13 +622,14 @@ const useActions = ({
 
   const requestAiPoseEstimation = async (
     drawData: DrawData,
-    source: string,
     aiLabels: string,
   ) => {
+    if (!currImageItem) return;
+
     // TODO: Integrate custom templates
     const { lines, pointNames, pointColors } = BODY_TEMPLATE;
     const reqParams = {
-      image: source,
+      image: await getImageBase64(currImageItem.url),
       targets: aiLabels,
       template: {
         lines,
@@ -612,7 +678,7 @@ const useActions = ({
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.Pose>(
+      const { result } = await fetchModelResults<EnumModelType.Pose>(
         EnumModelType.Pose,
         reqParams,
       );
@@ -676,11 +742,9 @@ const useActions = ({
     }
   };
 
-  const requestEdgeStitchingForMask = async (
-    drawData: DrawData,
-    source: string,
-  ) => {
+  const requestEdgeStitchingForMask = async (drawData: DrawData) => {
     if (
+      !currImageItem ||
       !drawData.prompt.creatingPrompt?.stroke ||
       !drawData.prompt.creatingPrompt?.radius
     )
@@ -702,13 +766,10 @@ const useActions = ({
       return;
     }
 
-    const rleList = maskObjects.map((item) => {
-      const maskRle =
-        objectToRle(clientSize, naturalSize, [], item.maskCanvasElement) || [];
-      const categoryName =
-        categories.find((c) => c.id === item.labelId)?.name || '';
-      return { maskRle, categoryName };
-    });
+    const masks: IMask[] = maskObjects.map((item) => ({
+      counts: item.maskRle || '',
+      size: [naturalSize.height, naturalSize.width],
+    }));
 
     const points = stroke.reduce((acc: number[], point: IPoint) => {
       const { x, y } = point;
@@ -717,39 +778,37 @@ const useActions = ({
     }, []);
 
     const reqParams: NsApiAnnotator.FetchEdgeStitchingReq = {
-      rleList,
-      stroke: points,
-      radius,
+      masks,
+      prompts: [
+        {
+          type: EPromptType.Stroke,
+          stroke: points,
+          radius,
+        },
+      ],
     };
-
-    if (editState.imageCacheId) {
-      Object.assign(reqParams, { imageId: editState.imageCacheId });
+    if (drawData.prompt.sessionId) {
+      Object.assign(reqParams, { sessionId: drawData.prompt.sessionId });
     } else {
-      Object.assign(reqParams, { image: source });
+      Object.assign(reqParams, {
+        image: await getServerAddressableUrl(currImageItem.url),
+      });
     }
-
-    Object.assign(reqParams, { image: source });
 
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.MaskEdgeStitching>(
-        EnumModelType.MaskEdgeStitching,
-        reqParams,
-      );
-      if (result && result.rleList?.length > 0) {
-        const maskObjects = result.rleList.map((item) => {
-          const labelId =
-            categories.find((c) => c.name === item.categoryName)?.id || '';
-          const color = getAnnotColor(labelId);
+      const { result, sessionId } =
+        await fetchModelResults<EnumModelType.MaskEdgeStitching>(
+          EnumModelType.MaskEdgeStitching,
+          reqParams,
+        );
+      if (result && result.masks?.length > 0) {
+        const newMaskObjects = maskObjects.map((item, index) => {
+          const maskRleStr = result.masks?.[index]?.counts || '';
           return {
-            type: EObjectType.Mask,
-            hidden: false,
-            labelId: labelId,
-            maskRle: item.maskRle,
-            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
-            conf: 1,
-            status: EObjectStatus.Commited,
-            color,
+            ...item,
+            maskRle: maskRleStr,
+            maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, item.color),
           };
         });
 
@@ -758,54 +817,55 @@ const useActions = ({
           (obj) => obj.type !== EObjectType.Mask,
         );
 
-        const updatedObjects = [...leftObjs, ...maskObjects];
-        updateAllObject(updatedObjects);
+        setDrawDataWithHistory((s) => {
+          s.objectList = [...leftObjs, ...newMaskObjects];
+          s.prompt.creatingPrompt = undefined;
+          s.prompt.sessionId = sessionId;
+        });
 
         message.success(localeText('DDSAnnotator.smart.msg.success'));
       }
     } catch (error: any) {
       message.error(localeText('DDSAnnotator.smart.msg.error'));
-    } finally {
-      setLoading(false);
-      setDrawData((s) => {
+      setDrawDataWithHistory((s) => {
         s.prompt.creatingPrompt = undefined;
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const requestSegmentEverything = async (
-    source: string,
     params?: NsApiAnnotator.SegmentEverythingParams,
   ) => {
+    if (!currImageItem) return;
+
     const reqParams: NsApiAnnotator.FetchSegmentEverythingReq = {
+      image: await getServerAddressableUrl(currImageItem.url),
       ...params,
     };
 
-    if (editState.imageCacheId) {
-      Object.assign(reqParams, { imageId: editState.imageCacheId });
-    } else {
-      Object.assign(reqParams, { image: source });
-    }
-
     try {
       setLoading(true);
-      const result = await fetchModelResults<EnumModelType.SegmentEverything>(
-        EnumModelType.SegmentEverything,
-        reqParams,
-      );
-      if (result && result.rleList?.length > 0) {
+      const { result } =
+        await fetchModelResults<EnumModelType.SegmentEverything>(
+          EnumModelType.SegmentEverything,
+          reqParams,
+        );
+      if (result && result.masks?.length > 0) {
         // change to display different color
         setEditState((s) => {
           s.annotsDisplayOptions.colorByCategory = false;
         });
-        const maskObjects: IAnnotationObject[] = result.rleList.map((item) => {
+        const maskObjects: IAnnotationObject[] = result.masks.map((item) => {
           const color = getAnnotColor(editState.latestLabelId);
+          const maskRleStr = item?.counts || '';
           return {
             type: EObjectType.Mask,
             hidden: false,
             labelId: editState.latestLabelId,
-            maskRle: item.maskRle,
-            maskCanvasElement: rleToCanvas(item.maskRle, naturalSize, color),
+            maskRle: maskRleStr,
+            maskCanvasElement: rleToCanvas(maskRleStr, naturalSize, color),
             conf: 1,
             status: EObjectStatus.Checked,
             color,
@@ -840,7 +900,8 @@ const useActions = ({
         !aiLabels &&
         (drawData.selectedTool === EBasicToolItem.Skeleton ||
           (drawData.selectedTool === EBasicToolItem.Rectangle &&
-            drawData.selectedModel === EnumModelType.Detection))
+            drawData.selectedModel[drawData.selectedTool] ===
+              EnumModelType.Detection))
       ) {
         message.warning(localeText('DDSAnnotator.smart.msg.labelRequired'));
         return;
@@ -850,46 +911,43 @@ const useActions = ({
         localeText('DDSAnnotator.smart.msg.loading'),
         100000,
       );
-      let imgSrc = `${currImageItem?.url}`;
-
-      try {
-        setIsRequiring(true);
-        if (!isBase64(imgSrc)) {
-          imgSrc = await getImageBase64(imgSrc);
-        }
-      } catch (e: any) {
-        message.error('ImageToBase64 Error:', e);
-      }
-
       try {
         setIsRequiring(true);
         const aiType = type || EBasicToolTypeMap[drawData.selectedTool];
         switch (aiType) {
           case EObjectType.Rectangle: {
-            if (drawData.selectedModel === EnumModelType.Detection) {
-              await requestAiDetection(imgSrc, aiLabels || '');
+            if (
+              drawData.selectedModel[drawData.selectedTool] ===
+              EnumModelType.Detection
+            ) {
+              await requestAiDetection(aiLabels || '');
             } else {
-              await requestIvpDetection(imgSrc, promptsQueue);
+              await requestIvpDetection(drawData, promptsQueue);
             }
             break;
           }
           case EObjectType.Skeleton: {
-            await requestAiPoseEstimation(drawData, imgSrc, aiLabels || '');
+            await requestAiPoseEstimation(drawData, aiLabels || '');
             break;
           }
           case EObjectType.Polygon: {
-            await requestAiSegmentByPolygon(drawData, imgSrc, promptsQueue);
+            await requestAiSegmentByPolygon(drawData, promptsQueue);
             break;
           }
           case EObjectType.Mask: {
-            if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
-              await requestEdgeStitchingForMask(drawData, imgSrc);
-            } else if (
-              drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything
-            ) {
-              await requestSegmentEverything(imgSrc, segmentEverythingParams);
+            const model = drawData.selectedModel[drawData.selectedTool];
+            if (model === EnumModelType.SegmentEverything) {
+              if (drawData.selectedSubTool === ESubToolItem.AutoEdgeStitching) {
+                await requestEdgeStitchingForMask(drawData);
+              } else if (
+                drawData.selectedSubTool === ESubToolItem.AutoSegmentEverything
+              ) {
+                await requestSegmentEverything(segmentEverythingParams);
+              }
+            } else if (model === EnumModelType.IVP) {
+              await requestIvpMask(drawData, promptsQueue);
             } else {
-              await requestAiSegmentByMask(drawData, imgSrc, promptsQueue);
+              await requestAiSegmentByMask(drawData, promptsQueue);
             }
             break;
           }
@@ -911,15 +969,10 @@ const useActions = ({
   );
 
   const translateDrawData = useCallback(
-    (drawData: DrawData): [string, any[]] => {
+    (drawData: DrawData): [string, any[], any] => {
       let objectList = [];
       if (framesData) {
-        objectList = convertFrameObjectsIntoFramesObjects(
-          drawData.objectList,
-          framesData.objects,
-          framesData.list.length,
-          framesData.activeIndex,
-        ).map((objs) => {
+        objectList = framesData.objects.map((objs) => {
           const availObjs: any = {};
           objs.forEach((obj, frameIndex) => {
             if (obj && !obj.frameEmpty) {
@@ -950,6 +1003,7 @@ const useActions = ({
           }),
           ...objectList,
         ],
+        framesData ? { [framesData.activeIndex]: {} } : undefined,
       ];
     },
     [currImageItem, translateObject, framesData],
@@ -1019,6 +1073,7 @@ const useActions = ({
     setIsRequiring(true);
     try {
       await onSave(id, labels);
+      flagSaved?.();
     } catch (error) {
       console.error(error);
     }
