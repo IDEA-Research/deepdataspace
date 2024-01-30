@@ -13,6 +13,7 @@ from typing import List
 from typing import Tuple
 
 from pydantic import BaseModel as _Base
+from pymongo import WriteConcern
 from pymongo.collection import Collection
 from pymongo.operations import UpdateOne
 from pymongo.typings import _DocumentType
@@ -232,6 +233,8 @@ class BaseModel(_Base):
         co = cls.get_collection()
         if co is None:
             return None
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
 
         op = UpdateOne(filters, {"$set": set_data, "$unset": unset_data})
 
@@ -257,6 +260,8 @@ class BaseModel(_Base):
         op_lock = cls._get_batch_op_lock()
         with op_lock:
             co = cls.get_collection()
+            wc = WriteConcern(w=0)
+            co = co.with_options(write_concern=wc)
             queue = _batch_update_queue.setdefault(cls_id, [])
             if queue:
                 co.bulk_write(queue)
@@ -310,6 +315,8 @@ class BaseModel(_Base):
         co = cls.get_collection()
         if co is None:
             return None
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
 
         _id = self.__dict__.get("id", None)
         if _id is None:
@@ -348,6 +355,8 @@ class BaseModel(_Base):
         op_lock = _batch_lock[cls_id]
         with op_lock:
             co = cls.get_collection()
+            wc = WriteConcern(w=0)
+            co = co.with_options(write_concern=wc)
             queue = _batch_save_queue.setdefault(cls_id, [])
             if queue:
                 co.bulk_write(queue)
