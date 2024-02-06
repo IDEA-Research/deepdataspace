@@ -41,70 +41,53 @@ export namespace NsApiAnnotator {
       ? FetchAIPoseEstimationRsp
       : never;
 
-  export interface FetchAIDetectionReq {
-    image: string;
-    text: string;
+  export interface CommonReqParams {
+    image?: string;
+    sessionId?: string;
   }
 
-  export interface FetchIVPReq {
+  export interface FetchAIDetectionReq extends CommonReqParams {
+    prompts: ReqPromptItem[];
+  }
+
+  export interface FetchIVPReq extends CommonReqParams {
     promptImage?: string;
     inferImage?: string;
     labelTypes: string[]; // ["bbox", "mask"]
     prompts: ReqPromptItem[];
-    sessionId?: string;
   }
 
-  export interface FetchAIPolygonSegmentReq {
-    image: string; // image_id://  | base64://  | http://  | https://
+  export interface FetchAIPolygonSegmentReq extends CommonReqParams {
     density: number; // (0, 1) default 0.2
-    area: number[]; // [xmin, ymin, xmax, ymax];
-    prompts: ReqPromptItem[];
-    sessionId?: string;
-  }
-
-  export interface FetchAIMaskSegmentReq {
-    image?: string; // required when first request
-    sessionId?: string;
     prompts: ReqPromptItem[];
   }
 
-  export interface FetchEdgeStitchingReq {
-    image?: string;
+  export interface FetchAIMaskSegmentReq extends CommonReqParams {
+    prompts: ReqPromptItem[];
+  }
+
+  export interface FetchEdgeStitchingReq extends CommonReqParams {
     masks: IMask[];
     prompts: ReqPromptItem[];
   }
 
-  export interface SegmentEverythingParams {
+  export interface FetchSegmentEverythingReq extends CommonReqParams {
     pointsPerSide?: number; // default 32
     predIouThresh?: number; // default 0.89
     minMaskRegionArea?: number; // default 300
   }
 
-  export interface FetchSegmentEverythingReq extends SegmentEverythingParams {
-    image?: string;
-  }
-
-  export interface FetchAIPoseEstimationReq {
-    image: string;
-    targets: string;
-    template: {
-      lines: number[];
-      pointNames: string[];
-      pointColors: string[];
-    };
+  export interface FetchAIPoseEstimationReq extends CommonReqParams {
     objects?: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
-      points: number[];
+      bbox: [number, number, number, number];
+      keypoints: number[]; // [x, y, visible, conf, ...]
     }>;
   }
 
   export interface FetchAIDetectionRsp {
     objects: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
+      bbox: [number, number, number, number];
       score: number;
-      normalizedScore: number;
     }>;
     suggestThreshold: number;
   }
@@ -119,8 +102,6 @@ export namespace NsApiAnnotator {
   }
 
   export interface FetchAIPolygonSegmentRsp {
-    image: string; // image_id://
-    sessionId: string;
     polygons: number[][]; // [[x1, y1, x2, y2, ...], [xn, yn, xn+1, yn+1, ...], ....]
   }
 
@@ -132,10 +113,9 @@ export namespace NsApiAnnotator {
   }
   export interface FetchAIPoseEstimationRsp {
     objects: Array<{
-      categoryName: string;
-      boundingBox: IBoundingBox;
-      points: number[];
-      conf: number;
+      bbox: [number, number, number, number];
+      keypoints: number[]; // [x, y, visible, conf, ...]
+      score: number;
     }>;
   }
 
@@ -161,31 +141,31 @@ async function fetchTaskUuid(
   params: any,
   options?: { [key: string]: any },
 ) {
-  return request<NsApiAnnotator.fetchTaskUuid>(
-    `${process.env.MODEL_API_PATH}/tasks/${type}`,
-    {
-      method: 'POST',
-      data: {
-        ...params,
-      },
-      ...(options || {
-        hideCodeErrorMsg: true,
-      }),
+  const postUrl = process.env.MODEL_API_PATH
+    ? `${process.env.MODEL_API_PATH}/tasks/${type}`
+    : `/v1/algos/${type}`;
+  return request<NsApiAnnotator.fetchTaskUuid>(postUrl, {
+    method: 'POST',
+    data: {
+      ...params,
     },
-  );
+    ...(options || {
+      hideCodeErrorMsg: true,
+    }),
+  });
 }
 
 function fetchTaskResults<T extends EnumModelType>(
   taskUuid: string,
   options?: { [key: string]: any },
 ) {
-  return request<NsApiAnnotator.FetchModelRsp<T>>(
-    `${process.env.MODEL_API_PATH}/task_statuses/${taskUuid}`,
-    {
-      method: 'GET',
-      ...(options || {}),
-    },
-  );
+  const getUrl = process.env.MODEL_API_PATH
+    ? `${process.env.MODEL_API_PATH}/task_statuses/${taskUuid}`
+    : `/v1/algos/tasks/${taskUuid}`;
+  return request<NsApiAnnotator.FetchModelRsp<T>>(getUrl, {
+    method: 'GET',
+    ...(options || {}),
+  });
 }
 
 export async function pollTaskResults<T extends EnumModelType>(

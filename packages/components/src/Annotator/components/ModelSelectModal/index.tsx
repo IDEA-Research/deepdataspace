@@ -5,6 +5,7 @@ import { useLocale } from 'dds-utils';
 import { memo, useMemo } from 'react';
 
 import { EnumModelType, MODEL_INTRO_MAP } from '../../constants';
+import { FloatWrapper } from '../FloatWrapper';
 
 import './index.less';
 
@@ -42,54 +43,56 @@ const ModelSelectModal: React.FC<IProps> = memo(
     }, [AIAnnotation, modelOptions, selectedModel]);
 
     return (
-      <Modal
-        open={autoOpen}
-        title={localeText('DDSAnnotator.smart.modelSelectModal.title')}
-        width={modalWidth}
-        onCancel={onCloseModal}
-        footer={null}
-        centered
-        destroyOnClose
-      >
-        <div className="dds-annotator-model-selector-modal">
-          {modelOptions.map((model, index) => {
-            const intro = MODEL_INTRO_MAP[model];
-            if (!intro) return <></>;
-            return (
-              <div
-                className={classNames(
-                  'dds-annotator-model-selector-modal-option',
-                  {
-                    'dds-annotator-model-selector-modal-option-hightlight':
-                      intro.hightlight,
-                  },
-                )}
-                onClick={() => onSelectModel(model)}
-                key={index}
-              >
-                <Icon
-                  className="dds-annotator-model-selector-modal-option-icon"
-                  component={intro.icon}
-                />
-                <div className="dds-annotator-model-selector-modal-option-name">
-                  {localeText(intro.name)}
+      <FloatWrapper>
+        <Modal
+          open={autoOpen}
+          title={localeText('DDSAnnotator.smart.modelSelectModal.title')}
+          width={modalWidth}
+          onCancel={onCloseModal}
+          footer={null}
+          centered
+          destroyOnClose
+        >
+          <div className="dds-annotator-model-selector-modal">
+            {modelOptions.map((model, index) => {
+              const intro = MODEL_INTRO_MAP[model];
+              if (!intro) return <></>;
+              return (
+                <div
+                  className={classNames(
+                    'dds-annotator-model-selector-modal-option',
+                    {
+                      'dds-annotator-model-selector-modal-option-hightlight':
+                        intro.hightlight,
+                    },
+                  )}
+                  onClick={() => onSelectModel(model)}
+                  key={index}
+                >
+                  <Icon
+                    className="dds-annotator-model-selector-modal-option-icon"
+                    component={intro.icon}
+                  />
+                  <div className="dds-annotator-model-selector-modal-option-name">
+                    {localeText(intro.name)}
+                  </div>
+                  <div className="dds-annotator-model-selector-modal-option-description">
+                    {localeText(intro.description)}
+                  </div>
+                  {intro.hightlight && (
+                    <Tag
+                      color="geekblue"
+                      className="dds-annotator-model-selector-modal-option-tag"
+                    >
+                      {'New'}
+                    </Tag>
+                  )}
                 </div>
-                <div className="dds-annotator-model-selector-modal-option-description">
-                  {localeText(intro.description)}
-                </div>
-                {intro.hightlight && (
-                  <Tag
-                    color="geekblue"
-                    className="dds-annotator-model-selector-modal-option-tag"
-                  >
-                    {'New'}
-                  </Tag>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Modal>
+              );
+            })}
+          </div>
+        </Modal>
+      </FloatWrapper>
     );
   },
 );

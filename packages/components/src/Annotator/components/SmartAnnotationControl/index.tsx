@@ -1,9 +1,9 @@
 import { CloseOutlined } from '@ant-design/icons';
 import Icon from '@ant-design/icons/lib/components/Icon';
-import { Button, Card, Select, Slider, Space } from 'antd';
+import { Button, Card, Input, Slider, Space } from 'antd';
 import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
-import { useMemo, memo, useState } from 'react';
+import { useMemo, memo } from 'react';
 import { useImmer } from 'use-immer';
 
 import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
@@ -19,8 +19,7 @@ import {
   EToolType,
   EnumModelType,
 } from '../../constants';
-import { OnAiAnnotationFunc } from '../../hooks/useActions';
-import { Category } from '../../type';
+import { OnAiAnnotationFunc } from '../../hooks/useAiModels';
 import { FloatWrapper } from '../FloatWrapper';
 
 import './index.less';
@@ -36,7 +35,6 @@ interface IProps {
   naturalSize: ISize;
   aiLabels?: string;
   limitConf: number;
-  categories: Category[];
   setAiLabels: (labels?: string) => void;
   forceChangeTool: (tool: EBasicToolItem, subtool: ESubToolItem) => void;
   onExitAIAnnotation: () => void;
@@ -56,7 +54,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     isBatchEditing,
     isCtrlPressed,
     aiLabels,
-    categories,
     naturalSize,
     limitConf,
     setAiLabels,
@@ -69,7 +66,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     forceChangeTool,
   }) => {
     const { localeText } = useLocale();
-    const [inputText, setInputText] = useState('');
 
     /** Parameters for requesting segmemt everything API */
     const [samParams, setSamParams] = useImmer({
@@ -108,29 +104,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
         icon: OBJECT_ICON[EObjectType.Mask],
       },
     };
-
-    const labelOptions = useMemo(() => {
-      if (selectedTool === EBasicToolItem.Rectangle) {
-        let options = categories?.map((c) => c.name);
-        options =
-          inputText && !options.includes(inputText)
-            ? [inputText, ...options]
-            : options;
-        return options.map((text) => (
-          <Select.Option key={text} value={text}>
-            {text}
-          </Select.Option>
-        ));
-      } else if (selectedTool === EBasicToolItem.Polygon) {
-        return [];
-      } else if (selectedTool === EBasicToolItem.Skeleton) {
-        return ['person'].map((label) => (
-          <Select.Option key={label} value={label}>
-            {label}
-          </Select.Option>
-        ));
-      }
-    }, [selectedTool, categories, inputText]);
 
     const mouseEventHandler = (event: React.MouseEvent) => {
       if (
@@ -182,11 +155,6 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
       isBatchEditing,
       isCtrlPressed,
     ]);
-
-    const onApplyCurrMaskObjs = () => {
-      onAcceptValidObjects();
-      forceChangeTool(EBasicToolItem.Drag, ESubToolItem.PenAdd);
-    };
 
     const aiDetectionTip = useMemo(() => {
       if (
@@ -296,27 +264,16 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                 </div>
               ) : (
                 <div className="dds-annotator-smart-container-content-item">
-                  <Select
+                  <Input
                     style={{ width: 250 }}
                     placeholder={localeText(
                       'DDSAnnotator.smart.detection.input',
                     )}
-                    showSearch
                     value={aiLabels}
-                    onChange={(value) => setAiLabels(value)}
-                    onSearch={(value) => setInputText(value)}
-                    onInputKeyDown={(e) => {
-                      if (e.code !== 'Enter') {
-                        e.stopPropagation();
-                      }
-                    }}
-                    // @ts-ignore
-                    getPopupContainer={() =>
-                      document.getElementById('smart-annotation-editor')
-                    }
-                  >
-                    {labelOptions}
-                  </Select>
+                    onChange={(e) => setAiLabels(e.target.value)}
+                    onKeyUp={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  />
                   <Button
                     type="primary"
                     onClick={() => onAiAnnotation({ aiLabels })}
@@ -386,7 +343,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                 </>
               ) : (
                 <>
-                  <div className="dds-annotator-smart-container-content-param-controls">
+                  {/* <div className="dds-annotator-smart-container-content-param-controls">
                     <div className="dds-annotator-smart-container-content-param-item">
                       <div className="dds-annotator-smart-container-content-param-item-title">
                         {localeText('DDSAnnotator.smart.modelTyle')}
@@ -413,7 +370,7 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                         {labelOptions}
                       </Select>
                     </div>
-                  </div>
+                  </div> */}
                   <Button
                     style={{ alignSelf: 'flex-end' }}
                     type="primary"
@@ -494,7 +451,16 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                       >
                         {localeText('DDSAnnotator.smart.retry')}
                       </Button>
-                      <Button type="primary" onClick={onApplyCurrMaskObjs}>
+                      <Button
+                        type="primary"
+                        onClick={() => {
+                          onAcceptValidObjects();
+                          forceChangeTool(
+                            EBasicToolItem.Mask,
+                            ESubToolItem.AutoEdgeStitching,
+                          );
+                        }}
+                      >
                         {localeText('DDSAnnotator.annotsEditor.finish')}
                       </Button>
                     </Space>

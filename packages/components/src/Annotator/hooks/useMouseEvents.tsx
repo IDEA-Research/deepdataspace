@@ -162,7 +162,6 @@ const useMouseEvents = ({
     } else {
       setMoveVisibleAreaInterval(undefined);
     }
-    updateRender();
   };
 
   const getFocusFilter = () => {
@@ -273,9 +272,9 @@ const useMouseEvents = ({
           });
         } else {
           s.activeObjectIndex = index;
-          if (!drawData.objectList[index].frameEmpty) {
+          if (!s.objectList[index]?.frameEmpty) {
             s.creatingObject = {
-              ...drawData.objectList[index],
+              ...s.objectList[index],
               currIndex: undefined,
               startPoint: undefined,
               tempMaskSteps: [],
@@ -445,7 +444,13 @@ const useMouseEvents = ({
           },
         )
       ) {
-        checkContainerVisibleArea();
+        const noUnfinishedMaskStep =
+          drawData.creatingObject.type === EObjectType.Mask &&
+          !drawData.creatingObject?.maskStep;
+        if (!noUnfinishedMaskStep) {
+          checkContainerVisibleArea();
+        }
+        updateRender();
         return;
       }
     } else if (
@@ -461,7 +466,12 @@ const useMouseEvents = ({
           object: drawData.creatingObject,
         })
       ) {
-        checkContainerVisibleArea();
+        const noUnfinishedMaskStep =
+          objectType === EObjectType.Mask && !drawData.creatingObject?.maskStep;
+        if (!noUnfinishedMaskStep) {
+          checkContainerVisibleArea();
+        }
+        updateRender();
         return;
       }
     }

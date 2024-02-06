@@ -3,7 +3,7 @@ import { CursorState } from 'ahooks/lib/useMouse';
 import { Updater } from 'use-immer';
 
 import { DisplayOption, EElementType, EObjectType } from '../constants';
-import { OnAiAnnotationFunc } from '../hooks/useActions';
+import { OnAiAnnotationFunc } from '../hooks/useAiModels';
 import {
   Category,
   DrawData,
