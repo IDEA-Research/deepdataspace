@@ -16,6 +16,7 @@ import SmartAnnotationControl from './components/SmartAnnotationControl';
 import { TopPagination } from './components/TopPagination';
 import { DisplayOption, EBasicToolItem, TOOL_MODELS_MAP } from './constants';
 import useActions from './hooks/useActions';
+import useAiModels from './hooks/useAiModels';
 import useAttributes from './hooks/useAttributes';
 import useCanvasContainer from './hooks/useCanvasContainer';
 import useCanvasRender from './hooks/useCanvasRender';
@@ -268,8 +269,19 @@ const Edit: React.FC<EditProps> = (props) => {
     updateAllObjectWithoutHistory,
   });
 
+  const { onAiAnnotation } = useAiModels({
+    currImageItem,
+    drawData,
+    setDrawData,
+    setDrawDataWithHistory,
+    editState,
+    setEditState,
+    naturalSize,
+    clientSize,
+    getAnnotColor,
+  });
+
   const {
-    onAiAnnotation,
     onSaveAnnotations,
     onCommitAnnotations,
     onCancelAnnotations,
@@ -281,16 +293,9 @@ const Edit: React.FC<EditProps> = (props) => {
     currImageItem,
     modal,
     drawData,
-    setDrawData,
-    setDrawDataWithHistory,
     editState,
     setEditState,
-    naturalSize,
-    clientSize,
-    imagePos,
-    containerMouse,
     hadChangeRecord,
-    getAnnotColor,
     categories,
     translateObject,
     flagSaved,
@@ -623,7 +628,6 @@ const Edit: React.FC<EditProps> = (props) => {
             limitConf={drawData.limitConf}
             aiLabels={aiLabels}
             naturalSize={naturalSize}
-            categories={categories}
             setAiLabels={setAiLabels}
             forceChangeTool={forceChangeTool}
             onAiAnnotation={onAiAnnotation}

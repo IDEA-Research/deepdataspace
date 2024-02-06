@@ -1,5 +1,5 @@
 import { CursorState } from 'ahooks/lib/useMouse';
-import { cloneDeep, isEqual, isNumber } from 'lodash';
+import { cloneDeep, isEqual, isNumber, isUndefined, omitBy } from 'lodash';
 
 import {
   EElementType,
@@ -1693,7 +1693,13 @@ export const convertFrameObjectsIntoFramesObjects = (
       }
       const frameEmpty = obj?.frameEmpty || Boolean(!obj);
       let resultObject = obj;
-      if (frameIdx > activeIndex && isEqual(obj, objectframes[activeIndex])) {
+      if (
+        frameIdx > activeIndex &&
+        isEqual(
+          omitBy(obj, isUndefined),
+          omitBy(objectframes[activeIndex], isUndefined),
+        )
+      ) {
         // [active frame, later changed frame] -> same change
         resultObject = item;
       } else if (
@@ -1719,7 +1725,7 @@ export const convertFrameObjectsIntoFramesObjects = (
         customStyles: item.customStyles,
         attributes: item.attributes,
         status: item.status,
-        frameEmpty: obj?.frameEmpty || Boolean(!obj),
+        frameEmpty,
       };
     });
   });

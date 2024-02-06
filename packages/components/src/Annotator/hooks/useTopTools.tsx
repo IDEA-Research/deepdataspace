@@ -172,6 +172,9 @@ const useTopTools = ({
         </>
       ),
     });
+    if (mode === EditorMode.Edit && fileName) {
+      actions.unshift({ customElement: <>{fileName}</> });
+    }
     return actions;
   }, [
     mode,
