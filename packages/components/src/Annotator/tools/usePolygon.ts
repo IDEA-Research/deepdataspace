@@ -520,6 +520,11 @@ const usePolygon: ToolInstanceHook = ({
         });
         return true;
       }
+
+      if (drawData.creatingObject) {
+        return true;
+      }
+
       return false;
     };
 

@@ -55,46 +55,36 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
     );
   }, [drawData.objectList, drawData.creatingObject, drawData.isBatchEditing]);
 
-  const isManualAvailable = useMemo(() => {
-    return (
-      !drawData.prompt.sessionId &&
-      !(
-        drawData.prompt.promptsQueue && drawData.prompt.promptsQueue.length > 0
-      ) &&
-      !drawData.isBatchEditing
-    );
-  }, [drawData.prompt, drawData.isBatchEditing]);
-
   const basicMaskTools: TToolItem<ESubToolItem>[] = useMemo(
     () => [
       {
         key: ESubToolItem.PenAdd,
         name: localeText('DDSAnnotator.subtoolbar.mask.penAdd'),
         icon: <Icon component={PenAddIcon} />,
-        available: isManualAvailable,
+        available: true,
       },
       {
         key: ESubToolItem.PenErase,
         name: localeText('DDSAnnotator.subtoolbar.mask.penErase'),
         icon: <Icon component={PenEraseIcon} />,
-        available: isManualAvailable && !!drawData.creatingObject,
+        available: !!drawData.creatingObject,
       },
       {
         key: ESubToolItem.BrushAdd,
         name: localeText('DDSAnnotator.subtoolbar.mask.brushAdd'),
         icon: <Icon component={BrushAddIcon} />,
-        available: isManualAvailable,
+        available: true,
         withSize: true,
       },
       {
         key: ESubToolItem.BrushErase,
         name: localeText('DDSAnnotator.subtoolbar.mask.brushErase'),
         icon: <Icon component={BrushEraseIcon} />,
-        available: isManualAvailable && !!drawData.creatingObject,
+        available: !!drawData.creatingObject,
         withSize: true,
       },
     ],
-    [isManualAvailable, drawData.creatingObject],
+    [drawData.creatingObject],
   );
 
   const isgTools: TToolItem<ESubToolItem>[] = useMemo(() => {
@@ -160,10 +150,12 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
         key: ESubToolItem.NegativeVisualPrompt,
         name: localeText('DDSAnnotator.subtoolbar.visualprompt.negative'),
         icon: <Icon component={RemovePromptIcon} />,
-        available: true,
+        available: !!drawData.prompt.promptsQueue?.some(
+          (item) => item.isPositive,
+        ),
       },
     ];
-  }, []);
+  }, [drawData.prompt]);
 
   const samTools: TToolItem<ESubToolItem>[] = useMemo(() => {
     return [
@@ -187,26 +179,26 @@ const useSubTools = ({ drawData, onChangePointResolution }: IProps) => {
   }, [isSegEverythingAvailable]);
 
   const showSubTools = useMemo(() => {
-    if (drawData.selectedTool === EBasicToolItem.Mask) return true;
+    const { selectedTool, creatingObject, AIAnnotation, selectedModel } =
+      drawData;
 
     if (
-      drawData.selectedTool === EBasicToolItem.Polygon &&
-      drawData.AIAnnotation
+      selectedTool === EBasicToolItem.Mask ||
+      creatingObject?.type === EObjectType.Mask
     )
       return true;
 
     if (
-      drawData.selectedTool === EBasicToolItem.Rectangle &&
-      drawData.AIAnnotation &&
-      drawData.selectedModel[drawData.selectedTool] === EnumModelType.IVP
+      selectedTool === EBasicToolItem.Rectangle &&
+      AIAnnotation &&
+      selectedModel[selectedTool] === EnumModelType.IVP
     )
       return true;
 
-    if (drawData.creatingObject?.type === EObjectType.Mask) return true;
-
     if (
-      drawData.creatingObject?.type === EObjectType.Polygon &&
-      drawData.AIAnnotation
+      (selectedTool === EBasicToolItem.Polygon ||
+        creatingObject?.type === EObjectType.Polygon) &&
+      AIAnnotation
     )
       return true;
 

@@ -9,6 +9,7 @@ import {
   EnumModelType,
   EObjectType,
   ESubToolItem,
+  TOOL_MODELS_MAP,
 } from '../constants';
 import { objectToRle, rleToCanvas } from '../tools/useMask';
 import {
@@ -21,7 +22,7 @@ import {
   IAnnotsDisplayOptions,
 } from '../type';
 
-import { OnAiAnnotationFunc } from './useActions';
+import { OnAiAnnotationFunc } from './useAiModels';
 
 interface IProps {
   mode: EditorMode;
@@ -187,27 +188,23 @@ const useToolActions = ({
         s.creatingObject = undefined;
         s.prompt = {};
         s.activeObjectIndex = -1;
-        if (
-          [ESubToolItem.PenErase, ESubToolItem.BrushErase].includes(
-            s.selectedSubTool,
-          )
-        ) {
+        if (s.selectedSubTool === ESubToolItem.PenErase) {
           s.selectedSubTool = ESubToolItem.PenAdd;
+        } else if (s.selectedSubTool === ESubToolItem.BrushErase) {
+          s.selectedSubTool = ESubToolItem.BrushAdd;
         }
       });
       setEditState((s) => {
         s.latestLabelId = labelId;
       });
     },
-    [drawData.creatingObject, drawData.activeObjectIndex, drawData.objectList],
+    [
+      drawData.creatingObject,
+      drawData.activeObjectIndex,
+      drawData.objectList,
+      drawData.selectedSubTool,
+    ],
   );
-
-  const onCloseAnnotationEditor = useCallback(() => {
-    setDrawData((s) => {
-      s.creatingObject = undefined;
-      s.activeObjectIndex = -1;
-    });
-  }, []);
 
   const onAcceptValidObjects = useCallback(() => {
     setDrawDataWithHistory((s) => {
@@ -244,15 +241,69 @@ const useToolActions = ({
     });
   }, [drawData.objectList]);
 
+  const isInAiSession = useCallback(() => {
+    const {
+      selectedTool,
+      AIAnnotation,
+      selectedModel,
+      selectedSubTool,
+      isBatchEditing,
+      creatingObject,
+    } = drawData;
+
+    if (!AIAnnotation) return false;
+
+    if (selectedTool === EBasicToolItem.Rectangle) {
+      return isBatchEditing;
+    }
+
+    if (selectedTool === EBasicToolItem.Polygon) {
+      return creatingObject;
+    }
+
+    if (selectedTool === EBasicToolItem.Skeleton) {
+      return isBatchEditing;
+    }
+
+    if (selectedTool === EBasicToolItem.Mask) {
+      const currModel = selectedModel[selectedTool];
+      if (currModel === EnumModelType.IVP) {
+        return isBatchEditing;
+      }
+
+      if (
+        currModel === EnumModelType.SegmentEverything &&
+        selectedSubTool === ESubToolItem.AutoSegmentEverything
+      ) {
+        return isBatchEditing;
+      }
+
+      if (currModel === EnumModelType.SegmentByMask) {
+        return creatingObject;
+      }
+
+      return false;
+    }
+    return false;
+  }, [
+    drawData.selectedTool,
+    drawData.selectedModel,
+    drawData.AIAnnotation,
+    drawData.selectedSubTool,
+    drawData.isBatchEditing,
+    drawData.creatingObject,
+  ]);
+
   const selectTool = useCallback(
     (tool: EBasicToolItem) => {
-      console.log(drawData.selectedTool, drawData.AIAnnotation, tool);
       if (
         mode !== EditorMode.Edit ||
         (tool === drawData.selectedTool && !drawData.AIAnnotation) ||
         drawData.isBatchEditing
       )
         return;
+
+      if (isInAiSession()) return;
 
       setDrawData((s) => {
         s.selectedTool = tool;
@@ -268,34 +319,46 @@ const useToolActions = ({
       drawData.selectedTool,
       drawData.isBatchEditing,
       drawData.AIAnnotation,
+      isInAiSession,
     ],
   );
 
   const selectSubTool = useCallback(
-    (tool: ESubToolItem) => {
-      if (mode !== EditorMode.Edit || tool === drawData.selectedSubTool) return;
+    (subtool: ESubToolItem) => {
+      const {
+        selectedTool,
+        selectedModel,
+        selectedSubTool,
+        AIAnnotation,
+        isBatchEditing,
+      } = drawData;
+
+      if (mode !== EditorMode.Edit || subtool === selectedSubTool) return;
+
+      // TODO: check subtool belong to current tool & model
 
       if (
-        drawData.selectedTool === EBasicToolItem.Mask &&
-        drawData.selectedModel[drawData.selectedTool] ===
-          EnumModelType.SegmentEverything &&
-        drawData.isBatchEditing
+        selectedTool === EBasicToolItem.Mask &&
+        AIAnnotation &&
+        selectedModel[selectedTool] === EnumModelType.SegmentEverything &&
+        isBatchEditing
       ) {
         return;
       }
 
       setDrawData((s) => {
-        s.selectedSubTool = tool;
+        s.selectedSubTool = subtool;
       });
-
-      // save unfinished mask object
-      if (tool === ESubToolItem.AutoEdgeStitching && drawData.creatingObject) {
-        onFinishCurrCreate(
-          drawData.creatingObject.labelId || editState.latestLabelId || '',
-        );
-      }
     },
-    [mode, drawData.selectedSubTool, drawData.isBatchEditing],
+    [
+      mode,
+      drawData.selectedTool,
+      drawData.AIAnnotation,
+      drawData.selectedModel,
+      drawData.isBatchEditing,
+      drawData.selectedSubTool,
+      isInAiSession,
+    ],
   );
 
   const forceChangeTool = useCallback(
@@ -379,17 +442,15 @@ const useToolActions = ({
 
   const activeAIAnnotation = useCallback(
     (active: boolean) => {
-      if (!process.env.MODEL_API_PATH && active) {
-        displayAIModeUnavailableModal();
-        return;
-      }
-      if (mode !== EditorMode.Edit || drawData.isBatchEditing || manualMode)
-        return;
+      if (mode !== EditorMode.Edit || manualMode) return;
+
+      if (isInAiSession()) return;
+
       setDrawData((s) => {
         s.AIAnnotation = active;
       });
     },
-    [mode, drawData.isBatchEditing],
+    [mode, manualMode, isInAiSession],
   );
 
   const onChangeSkeletonConf = useCallback(
@@ -480,11 +541,32 @@ const useToolActions = ({
     updateAllObject(newObjectList);
   }, [drawData.objectList, getAnnotColor]);
 
-  const onSelectModel = useCallback((modelKey: EnumModelType) => {
-    setDrawData((s) => {
-      s.selectedModel[s.selectedTool] = modelKey;
-    });
-  }, []);
+  const checkChangeModel = useCallback(
+    (modelKey: EnumModelType) => {
+      const { selectedTool } = drawData;
+
+      const currModels = TOOL_MODELS_MAP[selectedTool];
+      if (!currModels.includes(modelKey)) return false;
+
+      if (isInAiSession()) return false;
+
+      return true;
+    },
+    [TOOL_MODELS_MAP, drawData.selectedTool, isInAiSession],
+  );
+
+  const onSelectModel = useCallback(
+    (modelKey: EnumModelType) => {
+      if (!checkChangeModel(modelKey)) {
+        return;
+      }
+
+      setDrawData((s) => {
+        s.selectedModel[s.selectedTool] = modelKey;
+      });
+    },
+    [checkChangeModel],
+  );
 
   useEffect(() => {
     setDrawData((s) => {
@@ -529,7 +611,6 @@ const useToolActions = ({
   return {
     onChangeObjectLabel,
     onFinishCurrCreate,
-    onCloseAnnotationEditor,
     onAcceptValidObjects,
     onAbortBatchObjects,
     selectTool,

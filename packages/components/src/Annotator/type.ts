@@ -150,6 +150,7 @@ export enum EPromptType {
   Stroke = 'stroke',
   EdgeStitch = 'edgeStitch',
   Modify = 'modify',
+  Text = 'text',
 }
 
 export interface PromptItem {
@@ -165,6 +166,8 @@ export interface PromptItem {
   radius?: number;
   /** Modify */
   polygons?: number[][];
+  /** Text */
+  text?: string;
 }
 
 export interface ReqPromptItem {
@@ -175,12 +178,13 @@ export interface ReqPromptItem {
   stroke?: number[];
   radius?: number;
   polygons?: number[][];
+  text?: string;
 }
 
 export interface IPrompt {
+  sessionId?: string;
   creatingPrompt?: PromptItem;
   promptsQueue?: PromptItem[];
-  sessionId?: string;
   activeRectWhileLoading?: IRect;
 }
 
@@ -256,9 +260,6 @@ export interface EditState {
     pointIndex: number;
     lineIndex: number;
   };
-  imageCacheId?: string;
-  // TODO
-  imageCacheIdForPolygon?: string;
   isCtrlPressed: boolean;
   hideCreatingObject: boolean;
   imageDisplayOptions: IImageDisplayOptions;

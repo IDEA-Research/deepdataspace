@@ -292,6 +292,7 @@ const useRectangle: ToolInstanceHook = ({
       setDrawData((s) => {
         const model = s.selectedModel[s.selectedTool];
         if (s.AIAnnotation && model === EnumModelType.IVP) {
+          s.activeObjectIndex = -1;
           s.prompt.creatingPrompt = {
             type: EPromptType.Rect,
             startPoint: point,
