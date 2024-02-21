@@ -104,6 +104,9 @@ class DataSet(BaseModel):
 
     _batch_queue: Dict[int, ImageModel] = {}
     _batch_size: int = 100
+    # If True, images from batch_add_image will be saved by UpdateOne with upsert=True.
+    # If False, images from batch_add_image will be saved by InsertOne, which is faster.
+    _batch_upsert: bool = True
 
     @classmethod
     def create_dataset(cls,
@@ -114,6 +117,7 @@ class DataSet(BaseModel):
                        files: dict = None,
                        description: str = None,
                        description_func: str = None,
+                       batch_upsert: bool = True,
                        ) -> "DataSet":
         """
         Create a dataset.
@@ -129,6 +133,8 @@ class DataSet(BaseModel):
         :param description_func: an import path of a function to generate description.
             The function takes the dataset instance as the only argument and returns a string.
             If this is provided, it proceeds the description str.
+        :param batch_upsert: If True, images from batch_add_image will be saved by UpdateOne with upsert=True.
+                             otherwise they will be saved by faster InsertOne operation.
         :return: the dataset object.
         """
 
@@ -148,6 +154,7 @@ class DataSet(BaseModel):
         dataset = cls(name=name, id=id_, type=type, path=path,
                       files=files, status=DatasetStatus.Ready,
                       description=description, description_func=description_func)
+        dataset._batch_upsert = batch_upsert
         dataset.post_init()
         dataset.save()
         return dataset
@@ -159,6 +166,7 @@ class DataSet(BaseModel):
                               type: str = None,
                               path: str = None,
                               files: dict = None,
+                              batch_upsert: bool = True,
                               ) -> "DataSet":
         """
         This is the same as create_dataset.
@@ -179,6 +187,7 @@ class DataSet(BaseModel):
 
         files = files or {}
         dataset = cls(name=name, id=id_, type=type, path=path, files=files, status=DatasetStatus.Waiting)
+        dataset._batch_upsert = batch_upsert
         dataset.post_init()
         dataset.save()
         return dataset
@@ -384,14 +393,20 @@ class DataSet(BaseModel):
             # setup image
             image.idx = idx
             image.id = idx if image.id < 0 else image.id
-            image.batch_save(batch_size=self._batch_size, set_on_insert={"idx": image.idx})
+            if self._batch_upsert is True:
+                image.batch_save(batch_size=self._batch_size, set_on_insert={"idx": image.idx})
+            else:
+                IModel.batch_create(image, batch_size=self._batch_size)
             idx += 1
 
             self._add_local_file_url_to_whitelist(image.url, whitelist_dirs)
             self._add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
 
         # finish batch saves
-        IModel.finish_batch_save()
+        if self._batch_upsert is True:
+            IModel.finish_batch_save()
+        else:
+            IModel.finish_batch_create()
         Label.finish_batch_save()
         Category.finish_batch_save()
 
@@ -406,9 +421,9 @@ class DataSet(BaseModel):
 
         self._batch_queue.clear()
 
-    def batch_save_image(self, enforce: bool = False):
+    def batch_save_image(self):
         batch_is_full = len(self._batch_queue) >= self._batch_size
-        if batch_is_full or enforce:
+        if batch_is_full:
             self._batch_save_image_batch()
             return True
         return False
@@ -449,16 +464,16 @@ class DataSet(BaseModel):
             return
 
         dataset_id = dataset.id
-        print(f"dataset [{dataset_id}] is found, deleting...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting...")
 
-        print(f"dataset [{dataset_id}] is found, deleting categories...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting categories...")
         Category.delete_many({"dataset_id": dataset_id})
 
-        print(f"dataset [{dataset_id}] is found, deleting labels...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting labels...")
         Label.delete_many({"dataset_id": dataset_id})
 
-        print(f"dataset [{dataset_id}] is found, deleting images...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting images...")
         Image(dataset_id).get_collection().drop()
 
         DataSet.delete_many({"id": dataset_id})
-        print(f"dataset [{dataset_id}] is deleted.")
+        logger.info(f"dataset [{dataset_id}] is deleted.")

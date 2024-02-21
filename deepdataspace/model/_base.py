@@ -15,6 +15,7 @@ from typing import Tuple
 from pydantic import BaseModel as _Base
 from pymongo import WriteConcern
 from pymongo.collection import Collection
+from pymongo.operations import InsertOne
 from pymongo.operations import UpdateOne
 from pymongo.typings import _DocumentType
 
@@ -24,6 +25,7 @@ _lock_lock = Lock()  # the lock for creating a batch operation lock for a collec
 _batch_lock = {}  # a dict of batch operation lock for every collection, {'collection_name': batch_op_lock, }
 _batch_save_queue = {}  # a dict of batch save queue for every collection, {'collection_name': batch_save_queue, }
 _batch_update_queue = {}  # a dict of batch update queue for every collection, {'collection_name': batch_update_queue, }
+_batch_insert_queue = {}  # a dict of batch insert queue for every collection, {'collection_name': batch_insert_queue, }
 
 
 def current_ts():
@@ -361,6 +363,63 @@ class BaseModel(_Base):
             if queue:
                 co.bulk_write(queue)
                 _batch_save_queue[cls_id] = []
+
+    @classmethod
+    def batch_create(cls, model_obj: "BaseModel", batch_size: int = 20):
+        """
+        The same as self.batch_save function,
+        but the performance is better because we save by InsertOne instead of UpdateOne with upsert.
+
+        :param model_obj: the saving model object.
+        :param batch_size: the batch size. We will only write to mongodb when the batch is full.
+        """
+
+        model_obj.post_init()
+
+        co = cls.get_collection()
+        if co is None:
+            return None
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
+
+        _id = model_obj.__dict__.get("id", None)
+        if _id is None:
+            return None
+
+        data = model_obj.to_dict()
+        data["_id"] = data.pop("id", None)
+
+        op = InsertOne(data)
+
+        cls_id = cls.get_cls_id()
+        op_lock = cls._get_batch_op_lock()
+        with op_lock:
+            queue = _batch_insert_queue.setdefault(cls_id, [])
+            queue.append(op)
+            if len(queue) >= batch_size:
+                co.bulk_write(queue)
+                _batch_insert_queue[cls_id] = []
+
+    @classmethod
+    def finish_batch_create(cls):
+        """
+        This must be called after all the batch_create calls.
+        """
+
+        cls_id = cls.get_cls_id()
+        if _batch_lock.get(cls_id, None) is None:
+            with _lock_lock:
+                _batch_lock[cls_id] = Lock()
+
+        op_lock = _batch_lock[cls_id]
+        with op_lock:
+            co = cls.get_collection()
+            wc = WriteConcern(w=0)
+            co = co.with_options(write_concern=wc)
+            queue = _batch_insert_queue.setdefault(cls_id, [])
+            if queue:
+                co.bulk_write(queue)
+                _batch_insert_queue[cls_id] = []
 
     def delete(self):
         """

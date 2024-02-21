@@ -108,7 +108,7 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         self.dataset_name = name
-        self.dataset = DataSet.get_importing_dataset(name, id_=id_)
+        self.dataset = DataSet.get_importing_dataset(name, id_=id_, batch_upsert=False)
 
         self._image_queue = {}
         self._label_queue = {}
@@ -123,6 +123,7 @@ class Importer(ImportHelper, abc.ABC):
         self.load_existing_user_data()
         self.dataset.status = constants.DatasetStatus.Importing
         self.dataset.save()
+        Image(self.dataset.id).get_collection().drop()
 
     def post_run(self):
         """
@@ -152,14 +153,14 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         pipeline = [
-            {"$project": {"flag"         : 1,
-                          "flag_ts"      : 1,
+            {"$project": {"flag": 1,
+                          "flag_ts": 1,
                           "label_confirm": 1,
-                          "objects"      : {
+                          "objects": {
                               "$filter": {
                                   "input": "$objects",
-                                  "as"   : "object",
-                                  "cond" : {
+                                  "as": "object",
+                                  "cond": {
                                       "$eq": ["$$object.label_type", LabelType.User]
                                   }
                               }
@@ -181,9 +182,9 @@ class Importer(ImportHelper, abc.ABC):
             label_confirm = image.get("label_confirm", {})
 
             self._user_data[image_id] = {
-                "objects"      : user_objects,
-                "flag"         : flag,
-                "flag_ts"      : flag_ts,
+                "objects": user_objects,
+                "flag": flag,
+                "flag_ts": flag_ts,
                 "label_confirm": label_confirm,
             }
 
