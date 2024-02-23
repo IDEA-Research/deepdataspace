@@ -82,7 +82,7 @@ class MongoDB(Service):
         self.port = find_free_port(*port_range)
         while True:
             run_cmd = cmd[:]
-            run_cmd.extend(["--port", str(self.port)])
+            run_cmd.extend(["--nojournal", "--port", str(self.port)])
             try:
                 self.start_process(run_cmd)
             except Exception as err:

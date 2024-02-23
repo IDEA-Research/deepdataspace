@@ -89,22 +89,3 @@ class Object(BaseModel):
     confirm_type: Optional[int] = 0  # the image confirm type, 0 no confirm required, 1 gt may be fn, 2 pred may be fp
     compare_result: Optional[Dict[str, str]] = {}  # {"90": "FP", ..., "10": "OK"}
     matched_det_idx: Optional[int] = None  # The matched ground truth index, for prediction objects only.
-
-    @staticmethod
-    def _convert_file_path_to_url(file_uri: str):
-        """
-        Convert a local file path to a visible file url.
-        """
-
-        file_path = file_uri[7:]
-        file_url = create_file_url(file_path=file_path,
-                                   read_mode=constants.FileReadMode.Binary)
-        return file_url
-
-    def post_init(self):
-        """
-        Override the post_init method to convert the alpha file path to url.
-        """
-
-        if self.alpha and self.alpha.startswith("file://"):
-            self.alpha = self._convert_file_path_to_url(self.alpha)

@@ -16,7 +16,7 @@ def add_covers():
 
     datasets = DataSet.find_many({})
     for idx, dataset in enumerate(datasets):
-        dataset._add_cover(force_update=True)
+        dataset.add_cover(force_update=True)
         logger.info(f"[{idx + 1}/{num}]Added cover to dataset[{dataset.id}], cover_url={dataset.cover_url}")
 
     logger.info("Finished adding covers")

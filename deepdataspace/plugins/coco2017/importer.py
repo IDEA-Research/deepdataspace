@@ -1,14 +1,13 @@
 """
 Import the coco2017 dataset and save metadata into mongodb.
 """
-
 import json
 import logging
 import os
+import traceback
 from typing import Dict
 from typing import List
 from typing import Tuple
-import traceback
 
 from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetType
@@ -83,11 +82,11 @@ class COCO2017Importer(FileImporter):
             assert os.path.isdir(image_root) and os.path.exists(image_root)
 
         info = {
-            "dataset_name"     : dataset_name,
-            "ground_truth"     : ground_truth,
-            "predictions"      : predictions,
-            "image_root"       : image_root,
-            "dynamic_caption"  : getattr(module, "dynamic_caption", False),
+            "dataset_name": dataset_name,
+            "ground_truth": ground_truth,
+            "predictions": predictions,
+            "image_root": image_root,
+            "dynamic_caption": getattr(module, "dynamic_caption", False),
             "caption_generator": getattr(module, "caption_generator", None),
         }
 

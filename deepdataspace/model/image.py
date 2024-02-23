@@ -163,7 +163,6 @@ class ImageModel(BaseModel):
 
         data.setdefault("idx", data["id"])
         obj = cls.parse_obj(data)
-        obj.post_init()
         return obj
 
     @staticmethod
@@ -172,17 +171,6 @@ class ImageModel(BaseModel):
         file_url = create_file_url(file_path=file_path,
                                    read_mode=constants.FileReadMode.Binary)
         return file_url
-
-    def post_init(self):
-        """
-        Ensure the url are visible for local file uri.
-        """
-
-        if self.url.startswith("file://"):
-            self.url = self._convert_local_to_url(self.url)
-
-        if self.url_full_res.startswith("file://"):
-            self.url_full_res = self._convert_local_to_url(self.url_full_res)
 
     def _add_label(self, label: str, label_type: str):
         """
@@ -200,7 +188,6 @@ class ImageModel(BaseModel):
 
         if label_obj is None:
             label_obj = Label(name=label, id=label_id, type=label_type, dataset_id=self.dataset_id)
-            label_obj.post_init()
             label_obj.save()
             self._labels[label_id] = label_obj
         return label_obj
@@ -217,13 +204,12 @@ class ImageModel(BaseModel):
 
         if category_obj is None:
             category_obj = Category(name=category, id=category_id, dataset_id=self.dataset_id)
-            category_obj.post_init()
             category_obj.save()
             self._categories[category_id] = category_obj
         return category_obj
 
     @staticmethod
-    def _format_bbox(width, height, bbox: Tuple[int, int, int, int]):
+    def format_bbox(width, height, bbox: Tuple[int, int, int, int]):
         """
         Convert the bbox data to the internal format.
         """
@@ -239,7 +225,7 @@ class ImageModel(BaseModel):
         return bounding_box
 
     @staticmethod
-    def _format_segmentation(segmentation: List[List[int]]):
+    def format_segmentation(segmentation: List[List[int]]):
         """
         Convert the segmentation data to the internal format.
         """
@@ -249,10 +235,10 @@ class ImageModel(BaseModel):
         return "/".join([",".join([str(x) for x in seg]) for seg in segmentation])
 
     @staticmethod
-    def _format_keypoints(keypoints: List[Union[float, int]],
-                          colors: List[int] = None,
-                          skeleton: List[int] = None,
-                          names: List[str] = None):
+    def format_keypoints(keypoints: List[Union[float, int]],
+                         colors: List[int] = None,
+                         skeleton: List[int] = None,
+                         names: List[str] = None):
         """
         Convert the coco_keypoints data to the internal format.
         """
@@ -333,20 +319,24 @@ class ImageModel(BaseModel):
             if not self.width or not self.height:
                 raise ValueError("image width and height must be set before setting bbox")
 
+        if alpha_uri and alpha_uri.startswith("file://"):
+            alpha_path = alpha_uri[7:]
+            alpha_uri = create_file_url(file_path=alpha_path,
+                                        read_mode=FileReadMode.Binary)
+
         label_obj = self._add_label(label, label_type)
         category_obj = self._add_category(category)
-        bounding_box = self._format_bbox(self.width, self.height, bbox)
-        segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_keypoints(keypoints,
-                                                              keypoint_colors,
-                                                              keypoint_skeleton,
-                                                              keypoint_names)
+        bounding_box = self.format_bbox(self.width, self.height, bbox)
+        segmentation = self.format_segmentation(segmentation)
+        points, colors, lines, names = self.format_keypoints(keypoints,
+                                                             keypoint_colors,
+                                                             keypoint_skeleton,
+                                                             keypoint_names)
         anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
                           category_name=category, category_id=category_obj.id, caption=caption,
                           bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
                           conf=conf, is_group=is_group, confirm_type=confirm_type)
-        anno_obj.post_init()
         self.objects.append(anno_obj)
 
     def add_annotation(self,
@@ -421,7 +411,7 @@ class ImageModel(BaseModel):
                 for annotation_data in annotations:
                     image.batch_add_annotation(**annotation_data)
 
-            dataset.finish_batch_add+image()
+            dataset.finish_batch_add_image()
 
         :param category: the category name.
         :param label: the label name.
@@ -442,12 +432,12 @@ class ImageModel(BaseModel):
         :return: None
         """
 
-        bbox = self._format_bbox(self.width, self.height, bbox)
-        segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_keypoints(keypoints,
-                                                              keypoint_colors,
-                                                              keypoint_skeleton,
-                                                              keypoint_names)
+        bbox = self.format_bbox(self.width, self.height, bbox)
+        segmentation = self.format_segmentation(segmentation)
+        points, colors, lines, names = self.format_keypoints(keypoints,
+                                                             keypoint_colors,
+                                                             keypoint_skeleton,
+                                                             keypoint_names)
         if alpha_uri and alpha_uri.startswith("file://"):
             alpha_path = alpha_uri[7:]
             alpha_uri = create_file_url(file_path=alpha_path,
