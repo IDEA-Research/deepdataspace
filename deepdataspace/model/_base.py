@@ -25,7 +25,6 @@ _lock_lock = Lock()  # the lock for creating a batch operation lock for a collec
 _batch_lock = {}  # a dict of batch operation lock for every collection, {'collection_name': batch_op_lock, }
 _batch_save_queue = {}  # a dict of batch save queue for every collection, {'collection_name': batch_save_queue, }
 _batch_update_queue = {}  # a dict of batch update queue for every collection, {'collection_name': batch_update_queue, }
-_batch_insert_queue = {}  # a dict of batch insert queue for every collection, {'collection_name': batch_insert_queue, }
 
 logger = logging.getLogger("model.base")
 

@@ -130,8 +130,6 @@ class DataSet(BaseModel):
         :param description_func: an import path of a function to generate description.
             The function takes the dataset instance as the only argument and returns a string.
             If this is provided, it proceeds the description str.
-        :param batch_upsert: If True, images from batch_add_image will be saved by UpdateOne with upsert=True.
-                             otherwise they will be saved by faster InsertOne operation.
         :return: the dataset object.
         """
 

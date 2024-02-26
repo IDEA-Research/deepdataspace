@@ -169,8 +169,6 @@ class Importer(ImportHelper, abc.ABC):
         metadata = metadata or {}
         metadata = json.dumps(metadata)
 
-        # if id is not set,
-        # we use a negative value to indicate we are adding a new image instead of updating an existing one
         idx = dataset.num_images
         id_ = id_ if id_ is not None else dataset.num_images
         image = dict(id=id_, idx=idx,
