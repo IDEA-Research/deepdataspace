@@ -77,8 +77,7 @@ class ImportHelper:
                           keypoint_colors: List[int] = None,
                           keypoint_skeleton: List[int] = None,
                           keypoint_names: List[str] = None,
-                          caption: str = None,
-                          confirm_type: int = 0, ):
+                          caption: str = None):
         """
         A helper function to format annotation data.
         """
@@ -95,8 +94,7 @@ class ImportHelper:
                     keypoint_colors=keypoint_colors,
                     keypoint_skeleton=keypoint_skeleton,
                     keypoint_names=keypoint_names,
-                    caption=caption,
-                    confirm_type=confirm_type, )
+                    caption=caption)
 
 
 class Importer(ImportHelper, abc.ABC):
@@ -200,8 +198,7 @@ class Importer(ImportHelper, abc.ABC):
                                 keypoint_colors: List[int] = None,
                                 keypoint_skeleton: List[int] = None,
                                 keypoint_names: List[str] = None,
-                                caption: str = None,
-                                confirm_type: int = 0, ):
+                                caption: str = None):
 
         bbox = ImageModel.format_bbox(image["width"], image["height"], bbox)
         segmentation = ImageModel.format_segmentation(segmentation)
@@ -218,7 +215,7 @@ class Importer(ImportHelper, abc.ABC):
                         category_name=category, caption=caption,
                         bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
                         points=points, lines=lines, point_colors=colors, point_names=names,
-                        conf=conf, is_group=is_group, confirm_type=confirm_type)
+                        conf=conf, is_group=is_group)
         image["objects"].append(anno_obj)
 
     def bulk_write_images(self, image_queue: list):
@@ -355,7 +352,6 @@ class Importer(ImportHelper, abc.ABC):
         pipeline = [
             {"$project": {"flag": 1,
                           "flag_ts": 1,
-                          "label_confirm": 1,
                           "objects": {
                               "$filter": {
                                   "input": "$objects",
@@ -378,14 +374,10 @@ class Importer(ImportHelper, abc.ABC):
             flag = image.get("flag", 0)
             flag_ts = image.get("flag_ts", 0)
 
-            # manually added confirm flag
-            label_confirm = image.get("label_confirm", {})
-
             self._user_data[image_id] = {
                 "objects": user_objects,
                 "flag": flag,
                 "flag_ts": flag_ts,
-                "label_confirm": label_confirm,
             }
 
     def image_add_user_data(self, image: dict):
@@ -401,7 +393,6 @@ class Importer(ImportHelper, abc.ABC):
         image.setdefault("objects").extend(user_data["objects"])
         image["flag"] = user_data["flag"]
         image["flag_ts"] = user_data["flag_ts"]
-        image["label_confirm"] = user_data["label_confirm"]
 
     def run_import(self):
         """

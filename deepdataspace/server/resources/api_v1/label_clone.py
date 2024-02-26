@@ -64,12 +64,9 @@ class LabelCloneView(BaseAPIView):
     def clone_images_collection(dataset_id, target_dataset_id, src_label_id, dst_label_id, dst_label_name):
         for image in Image(dataset_id).find_many({}):
             cloned = []
-            label_confirm = image.label_confirm
-            label_confirm.setdefault(dst_label_id, {"confirm": 0, "confirm_ts": 0})
 
             for obj in image.objects:
                 label_id = obj.label_id
-                label_confirm.setdefault(label_id, {"confirm": 0, "confirm_ts": 0})
 
                 if obj.label_id != src_label_id:
                     continue
@@ -79,7 +76,7 @@ class LabelCloneView(BaseAPIView):
                         category_id=obj.category_id, category_name=obj.category_name, conf=obj.conf,
                         is_group=obj.is_group, bounding_box=obj.bounding_box, segmentation=obj.segmentation,
                         alpha=obj.alpha, points=obj.points, lines=obj.lines, point_colors=obj.point_colors,
-                        point_names=obj.point_names, confirm_type=obj.confirm_type,
+                        point_names=obj.point_names
                 )
                 cloned.append(obj)
             image.objects.extend(cloned)

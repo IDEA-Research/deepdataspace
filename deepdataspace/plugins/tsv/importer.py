@@ -156,9 +156,6 @@ class TSVImporter(FileImporter):
             # prepare is_group
             is_group = bool(obj.get("iscrowd", False))
 
-            # prepare confirm_type
-            confirm_type = obj.get("confirm_type", None)
-
             # prepare confidence
             confidence = obj.get("conf", 1.0)
 
@@ -167,7 +164,6 @@ class TSVImporter(FileImporter):
                                          label=label_name, label_type=label_type,
                                          conf=confidence, is_group=is_group,
                                          bbox=bbox, segmentation=segmentation, alpha_uri=alpha,
-                                         confirm_type=confirm_type,
                                          )
             obj_list.append(obj)
 

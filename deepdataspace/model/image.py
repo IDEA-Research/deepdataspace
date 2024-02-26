@@ -90,12 +90,6 @@ class ImageModel(BaseModel):
         fp counter of image in the format {"label_id": {90:x, 80: y, ..., 10: z}}. Default is an empty dict.
     num_fp_cat: dict
         fp counter of image categorized, in the format {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}. Default is an empty dict.
-    label_confirm: dict
-        Confirm status of every label sets, where confirm can be:
-        0 = not confirmed,
-        1 = confirmed,
-        2 = refine required.
-        Format is {"label_id": {"confirm": int, "confirm_ts": int}}. Default is an empty dict.
     """
 
     @classmethod
@@ -127,10 +121,6 @@ class ImageModel(BaseModel):
     num_fn_cat: dict = {}  # {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}
     num_fp: dict = {}  # {"label_id": {90:x, 80: y, ..., 10: z}}
     num_fp_cat: dict = {}  # {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}
-
-    # confirm status of every label sets, confirm: 0 = not confirmed, 1 = confirmed, 2 = refine required
-    # {"label_id": {"confirm": int, "confirm_ts": int}}
-    label_confirm: dict = {}
 
     _dataset = None
 
@@ -313,7 +303,6 @@ class ImageModel(BaseModel):
                         keypoint_skeleton: List[int] = None,
                         keypoint_names: List[str] = None,
                         caption: str = None,
-                        confirm_type: int = 0,
                         ):
         if bbox:
             if not self.width or not self.height:
@@ -336,7 +325,7 @@ class ImageModel(BaseModel):
                           category_name=category, category_id=category_obj.id, caption=caption,
                           bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
-                          conf=conf, is_group=is_group, confirm_type=confirm_type)
+                          conf=conf, is_group=is_group)
         self.objects.append(anno_obj)
 
     def add_annotation(self,
@@ -353,7 +342,6 @@ class ImageModel(BaseModel):
                        keypoint_skeleton: List[int] = None,
                        keypoint_names: List[str] = None,
                        caption: str = None,
-                       confirm_type: int = 0,
                        ):
         """
         Add an annotation to the image.
@@ -373,13 +361,12 @@ class ImageModel(BaseModel):
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param caption: the caption of the annotation.
-        :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         """
 
         self._add_annotation(category, label, label_type, conf,
                              is_group, bbox, segmentation, alpha_uri,
                              keypoints, keypoint_colors, keypoint_skeleton, keypoint_names,
-                             caption, confirm_type)
+                             caption)
 
         self.save()
         self._update_dataset(bbox, segmentation, alpha_uri, keypoints)
@@ -398,7 +385,7 @@ class ImageModel(BaseModel):
                              keypoint_skeleton: List[int] = None,
                              keypoint_names: List[str] = None,
                              caption: str = None,
-                             confirm_type: int = 0, ):
+                             ):
         """
         The batch version of add_annotation.
         The performance is better if we are saving a lot of annotations.
@@ -428,7 +415,6 @@ class ImageModel(BaseModel):
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param caption: the caption of the annotation.
-        :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         :return: None
         """
 
@@ -447,7 +433,7 @@ class ImageModel(BaseModel):
                           category_name=category, caption=caption,
                           bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
-                          conf=conf, is_group=is_group, confirm_type=confirm_type)
+                          conf=conf, is_group=is_group)
         self.objects.append(anno_obj)
 
     def finish_batch_add_annotation(self):
