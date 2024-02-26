@@ -118,7 +118,6 @@ class AnnotationsView(BaseAPIView):
                 cur_objs.append(obj)
 
         image.objects = cur_objs
-        image.label_confirm[label_id] = {"confirm": 1, "confirm_ts": int(time.time())}
         image.save()
 
         return saving_categories, saving_labels

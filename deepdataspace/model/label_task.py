@@ -462,7 +462,6 @@ class LabelProject(BaseModel):
         """
         label_id = get_str_md5(f"{dataset_id}_{label_set_name}")
         label_obj = Label(name=label_set_name, id=label_id, type=LabelType.GroundTruth, dataset_id=dataset_id)
-        label_obj.post_init()
         label_obj.save()
         return label_obj
 
@@ -475,7 +474,6 @@ class LabelProject(BaseModel):
         if cat_obj is None:
             cat_id = get_str_md5(f"{dataset_id}_{category_name}")
             cat_obj = Category(id=cat_id, name=category_name, dataset_id=dataset_id)
-            cat_obj.post_init()
             cat_obj.save()
             categories[category_name] = cat_obj
         return cat_obj
@@ -529,7 +527,6 @@ class LabelProject(BaseModel):
                     anno_obj = Object(label_name=label_obj.name, label_type=label_obj.type, label_id=label_obj.id,
                                       category_name=cat_obj.name, category_id=cat_obj.id,
                                       bounding_box=anno["bounding_box"])
-                    anno_obj.post_init()
                     image.objects.append(anno_obj)
                     image.batch_save()
 

@@ -17,7 +17,6 @@ from deepdataspace.server.resources.api_v1.datasets import DatasetsView
 from deepdataspace.server.resources.api_v1.image_flags import ImageFlagsView
 from deepdataspace.server.resources.api_v1.images import ImagesView
 from deepdataspace.server.resources.api_v1.label_clone import LabelCloneView
-from deepdataspace.server.resources.api_v1.object_confirm import ObjectConfirmView
 
 urls = [
     path("ping", ping.PingView.as_view()),
@@ -29,7 +28,6 @@ urls = [
     path("datasets/<dataset_id>", DatasetView.as_view()),
     path("image_flags", ImageFlagsView.as_view()),
     path("label_clone", LabelCloneView.as_view()),
-    path("object_confirm", ObjectConfirmView.as_view()),
     path("annotations", AnnotationsView.as_view()),
     path("comparisons", ComparisonsView.as_view()),
     path("label_projects", label_tasks.ProjectsView.as_view()),

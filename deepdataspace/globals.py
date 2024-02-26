@@ -41,17 +41,8 @@ from deepdataspace.utils.os import get_os_username
 _mongo_user = urllib.parse.quote_plus(MONGODB_USER)
 _mongo_pass = urllib.parse.quote_plus(MONGODB_PASS)
 _mongo_url = f"mongodb://{_mongo_user}:{_mongo_pass}@{MONGODB_HOST}:{MONGODB_PORT}/{MONGODB_DBNAME}"
-_mongo_client = MongoClient(_mongo_url, authMechanism="SCRAM-SHA-256")
+_mongo_client = MongoClient(_mongo_url, authMechanism="SCRAM-SHA-256", maxPoolSize=None)
 MongoDB = _mongo_client[MONGODB_DBNAME]
 
 # init redis client
 Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DBNAME, password=REDIS_PASS)
-
-# init sentry client
-# TODO: sentry is not necessary for dds tool, remove it as soon as possible
-if SENTRY_DSN is not None:
-    sample_rate = 0.1 if ENV == RunningEnv.Prod else 1.0
-    sentry_sdk.init(dsn=SENTRY_DSN,
-                    traces_sample_rate=sample_rate,
-                    environment=ENV, )
-    sentry_sdk.set_tag("os.user", get_os_username())

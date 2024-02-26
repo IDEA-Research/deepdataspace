@@ -5,6 +5,7 @@ This module defines the common model apis.
 """
 
 import abc
+import logging
 import time
 from threading import Lock
 from typing import ClassVar
@@ -13,6 +14,7 @@ from typing import List
 from typing import Tuple
 
 from pydantic import BaseModel as _Base
+from pymongo import WriteConcern
 from pymongo.collection import Collection
 from pymongo.operations import UpdateOne
 from pymongo.typings import _DocumentType
@@ -23,6 +25,8 @@ _lock_lock = Lock()  # the lock for creating a batch operation lock for a collec
 _batch_lock = {}  # a dict of batch operation lock for every collection, {'collection_name': batch_op_lock, }
 _batch_save_queue = {}  # a dict of batch save queue for every collection, {'collection_name': batch_save_queue, }
 _batch_update_queue = {}  # a dict of batch update queue for every collection, {'collection_name': batch_update_queue, }
+
+logger = logging.getLogger("model.base")
 
 
 def current_ts():
@@ -53,12 +57,6 @@ class BaseModel(_Base):
 
         raise NotImplementedError
 
-    def post_init(self):
-        """
-        Post init hook for initializing a model object.
-        """
-        pass
-
     @classmethod
     def from_dict(cls, data: dict):
         """
@@ -66,7 +64,6 @@ class BaseModel(_Base):
         """
 
         obj = cls.parse_obj(data)
-        obj.post_init()
         return obj
 
     def to_dict(self, include: list = None, exclude: list = None):
@@ -232,6 +229,8 @@ class BaseModel(_Base):
         co = cls.get_collection()
         if co is None:
             return None
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
 
         op = UpdateOne(filters, {"$set": set_data, "$unset": unset_data})
 
@@ -257,6 +256,8 @@ class BaseModel(_Base):
         op_lock = cls._get_batch_op_lock()
         with op_lock:
             co = cls.get_collection()
+            wc = WriteConcern(w=0)
+            co = co.with_options(write_concern=wc)
             queue = _batch_update_queue.setdefault(cls_id, [])
             if queue:
                 co.bulk_write(queue)
@@ -275,7 +276,6 @@ class BaseModel(_Base):
         If refresh is True, the object will be re-fetched from mongodb after saving.
         """
 
-        self.post_init()
         co = self.get_collection()
         if co is None:
             return None
@@ -293,7 +293,6 @@ class BaseModel(_Base):
             new_self = co.find_one({"_id": _id})
             new_self.pop("_id", None)
             self.__dict__.update(new_self)
-            self.post_init()
         return self
 
     def batch_save(self, batch_size: int = 20, set_on_insert: Dict = None):
@@ -303,13 +302,12 @@ class BaseModel(_Base):
         :param batch_size: the batch size. We will only write to mongodb when the batch is full.
         :param set_on_insert: the fields only need to be set when we are inserting a new object.
         """
-
-        self.post_init()
-
         cls = self.__class__
         co = cls.get_collection()
         if co is None:
             return None
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
 
         _id = self.__dict__.get("id", None)
         if _id is None:
@@ -348,6 +346,8 @@ class BaseModel(_Base):
         op_lock = _batch_lock[cls_id]
         with op_lock:
             co = cls.get_collection()
+            wc = WriteConcern(w=0)
+            co = co.with_options(write_concern=wc)
             queue = _batch_save_queue.setdefault(cls_id, [])
             if queue:
                 co.bulk_write(queue)

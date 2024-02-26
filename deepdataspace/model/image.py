@@ -90,12 +90,6 @@ class ImageModel(BaseModel):
         fp counter of image in the format {"label_id": {90:x, 80: y, ..., 10: z}}. Default is an empty dict.
     num_fp_cat: dict
         fp counter of image categorized, in the format {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}. Default is an empty dict.
-    label_confirm: dict
-        Confirm status of every label sets, where confirm can be:
-        0 = not confirmed,
-        1 = confirmed,
-        2 = refine required.
-        Format is {"label_id": {"confirm": int, "confirm_ts": int}}. Default is an empty dict.
     """
 
     @classmethod
@@ -128,10 +122,6 @@ class ImageModel(BaseModel):
     num_fp: dict = {}  # {"label_id": {90:x, 80: y, ..., 10: z}}
     num_fp_cat: dict = {}  # {"label_id": {"category_id: {90:x, 80: y, ..., 10: z}}}
 
-    # confirm status of every label sets, confirm: 0 = not confirmed, 1 = confirmed, 2 = refine required
-    # {"label_id": {"confirm": int, "confirm_ts": int}}
-    label_confirm: dict = {}
-
     _dataset = None
 
     _labels: dict = {}
@@ -163,7 +153,6 @@ class ImageModel(BaseModel):
 
         data.setdefault("idx", data["id"])
         obj = cls.parse_obj(data)
-        obj.post_init()
         return obj
 
     @staticmethod
@@ -172,17 +161,6 @@ class ImageModel(BaseModel):
         file_url = create_file_url(file_path=file_path,
                                    read_mode=constants.FileReadMode.Binary)
         return file_url
-
-    def post_init(self):
-        """
-        Ensure the url are visible for local file uri.
-        """
-
-        if self.url.startswith("file://"):
-            self.url = self._convert_local_to_url(self.url)
-
-        if self.url_full_res.startswith("file://"):
-            self.url_full_res = self._convert_local_to_url(self.url_full_res)
 
     def _add_label(self, label: str, label_type: str):
         """
@@ -200,7 +178,6 @@ class ImageModel(BaseModel):
 
         if label_obj is None:
             label_obj = Label(name=label, id=label_id, type=label_type, dataset_id=self.dataset_id)
-            label_obj.post_init()
             label_obj.save()
             self._labels[label_id] = label_obj
         return label_obj
@@ -217,13 +194,12 @@ class ImageModel(BaseModel):
 
         if category_obj is None:
             category_obj = Category(name=category, id=category_id, dataset_id=self.dataset_id)
-            category_obj.post_init()
             category_obj.save()
             self._categories[category_id] = category_obj
         return category_obj
 
     @staticmethod
-    def _format_bbox(width, height, bbox: Tuple[int, int, int, int]):
+    def format_bbox(width, height, bbox: Tuple[int, int, int, int]):
         """
         Convert the bbox data to the internal format.
         """
@@ -239,7 +215,7 @@ class ImageModel(BaseModel):
         return bounding_box
 
     @staticmethod
-    def _format_segmentation(segmentation: List[List[int]]):
+    def format_segmentation(segmentation: List[List[int]]):
         """
         Convert the segmentation data to the internal format.
         """
@@ -249,10 +225,10 @@ class ImageModel(BaseModel):
         return "/".join([",".join([str(x) for x in seg]) for seg in segmentation])
 
     @staticmethod
-    def _format_keypoints(keypoints: List[Union[float, int]],
-                          colors: List[int] = None,
-                          skeleton: List[int] = None,
-                          names: List[str] = None):
+    def format_keypoints(keypoints: List[Union[float, int]],
+                         colors: List[int] = None,
+                         skeleton: List[int] = None,
+                         names: List[str] = None):
         """
         Convert the coco_keypoints data to the internal format.
         """
@@ -327,26 +303,29 @@ class ImageModel(BaseModel):
                         keypoint_skeleton: List[int] = None,
                         keypoint_names: List[str] = None,
                         caption: str = None,
-                        confirm_type: int = 0,
                         ):
         if bbox:
             if not self.width or not self.height:
                 raise ValueError("image width and height must be set before setting bbox")
 
+        if alpha_uri and alpha_uri.startswith("file://"):
+            alpha_path = alpha_uri[7:]
+            alpha_uri = create_file_url(file_path=alpha_path,
+                                        read_mode=FileReadMode.Binary)
+
         label_obj = self._add_label(label, label_type)
         category_obj = self._add_category(category)
-        bounding_box = self._format_bbox(self.width, self.height, bbox)
-        segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_keypoints(keypoints,
-                                                              keypoint_colors,
-                                                              keypoint_skeleton,
-                                                              keypoint_names)
+        bounding_box = self.format_bbox(self.width, self.height, bbox)
+        segmentation = self.format_segmentation(segmentation)
+        points, colors, lines, names = self.format_keypoints(keypoints,
+                                                             keypoint_colors,
+                                                             keypoint_skeleton,
+                                                             keypoint_names)
         anno_obj = Object(label_name=label, label_type=label_type, label_id=label_obj.id,
                           category_name=category, category_id=category_obj.id, caption=caption,
                           bounding_box=bounding_box, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
-                          conf=conf, is_group=is_group, confirm_type=confirm_type)
-        anno_obj.post_init()
+                          conf=conf, is_group=is_group)
         self.objects.append(anno_obj)
 
     def add_annotation(self,
@@ -363,7 +342,6 @@ class ImageModel(BaseModel):
                        keypoint_skeleton: List[int] = None,
                        keypoint_names: List[str] = None,
                        caption: str = None,
-                       confirm_type: int = 0,
                        ):
         """
         Add an annotation to the image.
@@ -383,13 +361,12 @@ class ImageModel(BaseModel):
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param caption: the caption of the annotation.
-        :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         """
 
         self._add_annotation(category, label, label_type, conf,
                              is_group, bbox, segmentation, alpha_uri,
                              keypoints, keypoint_colors, keypoint_skeleton, keypoint_names,
-                             caption, confirm_type)
+                             caption)
 
         self.save()
         self._update_dataset(bbox, segmentation, alpha_uri, keypoints)
@@ -408,7 +385,7 @@ class ImageModel(BaseModel):
                              keypoint_skeleton: List[int] = None,
                              keypoint_names: List[str] = None,
                              caption: str = None,
-                             confirm_type: int = 0, ):
+                             ):
         """
         The batch version of add_annotation.
         The performance is better if we are saving a lot of annotations.
@@ -421,7 +398,7 @@ class ImageModel(BaseModel):
                 for annotation_data in annotations:
                     image.batch_add_annotation(**annotation_data)
 
-            dataset.finish_batch_add+image()
+            dataset.finish_batch_add_image()
 
         :param category: the category name.
         :param label: the label name.
@@ -438,16 +415,15 @@ class ImageModel(BaseModel):
         :param keypoint_colors: the key point colors, [255, 0, 0, ...].
         :param keypoint_skeleton: the key point skeleton, [0, 1, 2, ...].
         :param caption: the caption of the annotation.
-        :param confirm_type: the confirm_type of the annotation, 0 = not confirmed, 1 = gt may be fn, 2 = pred may be fp
         :return: None
         """
 
-        bbox = self._format_bbox(self.width, self.height, bbox)
-        segmentation = self._format_segmentation(segmentation)
-        points, colors, lines, names = self._format_keypoints(keypoints,
-                                                              keypoint_colors,
-                                                              keypoint_skeleton,
-                                                              keypoint_names)
+        bbox = self.format_bbox(self.width, self.height, bbox)
+        segmentation = self.format_segmentation(segmentation)
+        points, colors, lines, names = self.format_keypoints(keypoints,
+                                                             keypoint_colors,
+                                                             keypoint_skeleton,
+                                                             keypoint_names)
         if alpha_uri and alpha_uri.startswith("file://"):
             alpha_path = alpha_uri[7:]
             alpha_uri = create_file_url(file_path=alpha_path,
@@ -457,7 +433,7 @@ class ImageModel(BaseModel):
                           category_name=category, caption=caption,
                           bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
                           points=points, lines=lines, point_colors=colors, point_names=names,
-                          conf=conf, is_group=is_group, confirm_type=confirm_type)
+                          conf=conf, is_group=is_group)
         self.objects.append(anno_obj)
 
     def finish_batch_add_annotation(self):

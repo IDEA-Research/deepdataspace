@@ -68,7 +68,6 @@ class ImagesView(BaseAPIView):
         Argument("dataset_id", str, Argument.QUERY, required=True),
         Argument("category_id", str, Argument.QUERY, required=False),
         Argument("flag", int, Argument.QUERY, required=False),
-        Argument("confirm", int, Argument.QUERY, required=False),
         Argument("label_id", str, Argument.QUERY, required=False),
         Argument("page_num", Argument.PositiveInt, Argument.QUERY, default=1),
         Argument("page_size", Argument.PositiveInt, Argument.QUERY, default=100)
@@ -80,7 +79,7 @@ class ImagesView(BaseAPIView):
         - GET /api/v1/images
         """
 
-        dataset_id, category_id, flag, confirm, label_id, page_num, page_size = parse_arguments(request, self.get_args)
+        dataset_id, category_id, flag, label_id, page_num, page_size = parse_arguments(request, self.get_args)
 
         dataset = DataSet.find_one({"_id": dataset_id})
         if dataset is None:
@@ -101,15 +100,13 @@ class ImagesView(BaseAPIView):
 
         if flag is not None:
             filters["flag"] = flag
-        if confirm is not None and label_id is not None:
-            filters[f"label_confirm.{label_id}.confirm"] = confirm
 
         total = Image(dataset_id).count_num(filters)
 
         image_list = []
         offset = max(0, page_size * (page_num - 1))
 
-        includes = {"id", "idx", "flag", "label_confirm", "objects", "metadata", "type", "width", "height", "url",
+        includes = {"id", "idx", "flag", "objects", "metadata", "type", "width", "height", "url",
                     "url_full_res"}
         includes = {i: 1 for i in includes}
 
@@ -123,10 +120,6 @@ class ImagesView(BaseAPIView):
                                                      skip=offset,
                                                      size=page_size,
                                                      to_dict=True):
-
-                # TODO keep for compatibility, delete this after run op/migrates/add_confirm_fields.py
-                image.setdefault("label_confirm", {})
-
                 for obj in image["objects"]:
                     obj["source"] = obj["label_type"]  # TODO keep for compatibility, delete this in the future
 
