@@ -93,6 +93,7 @@ class AnnotationType:
     Segmentation = "Segmentation"  #: The annotation segments the object.
     Matting = "Matting"  #: The annotation matting the object.
     KeyPoints = "KeyPoints"  #: The annotation marks the keypoints of the object.
+    Mask = "Mask"  #: The annotation contains RLE format of mask
 
 
 class TaskStatus:

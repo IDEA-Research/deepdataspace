@@ -83,3 +83,4 @@ class Object(BaseModel):
     caption: Optional[str] = ""
     compare_result: Optional[Dict[str, str]] = {}  # {"90": "FP", ..., "10": "OK"}
     matched_det_idx: Optional[int] = None  # The matched ground truth index, for prediction objects only.
+    mask: dict = {}
