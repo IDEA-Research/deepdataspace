@@ -5,6 +5,9 @@ RESTful APIs of label tasks.
 """
 
 import copy
+from typing import List
+
+from pydantic import BaseModel
 
 from deepdataspace.constants import ErrCode
 from deepdataspace.constants import LabelImageQAActions
@@ -918,6 +921,43 @@ class TaskImagesView(AuthenticatedAPIView):
         return format_response(data)
 
 
+class BoundingBox(BaseModel):
+    xmin: float
+    ymin: float
+    xmax: float
+    ymax: float
+
+
+class Mask(BaseModel):
+    counts: str
+    size: List[int]
+
+
+AnnoDataMissingFields = type("AnnoDataMissingFields", (ValueError,), {})
+
+
+class AnnoData(BaseModel):
+    category_name: str
+    bounding_box: BoundingBox = {}
+    segmentation: str = ""
+    mask: Mask = ""
+    points: List[float] = []
+    lines: List[int] = []
+    point_colors: List[int] = []
+    point_names: List[str] = []
+
+    def model_post_init(self, __context) -> None:
+        empty_bbox = not self.bounding_box
+        empty_polygon = not self.segmentation
+        empty_mask = not self.mask
+        empty_keypoints = (not self.lines or
+                           not self.points or
+                           not self.point_colors or
+                           not self.point_names)
+        if empty_bbox or empty_polygon or empty_mask or empty_keypoints:
+            raise AnnoDataMissingFields(f"annotations missing field(s)")
+
+
 class TaskImageLabelView(AuthenticatedAPIView):
     """
     - POST /api/v1/label_task_image_labels/<task_image_id>
@@ -933,36 +973,17 @@ class TaskImageLabelView(AuthenticatedAPIView):
         valid_anno_list = []
         for idx, anno in enumerate(annotations):
             try:
-                assert "category_name" in anno
-                assert "bounding_box" in anno
-                assert "xmin" in anno["bounding_box"]
-                assert "ymin" in anno["bounding_box"]
-                assert "xmax" in anno["bounding_box"]
-                assert "ymax" in anno["bounding_box"]
-            except AssertionError:
-                raise_exception(ErrCode.LabelAnnotationMissingFields, f"annotations[{idx}] missing field(s)")
-
-            try:
-                bbox = anno["bounding_box"]
-                cat_name = str(anno["category_name"])
-                xmin, ymin = float(bbox["xmin"]), float(bbox["ymin"])
-                xmax, ymax = float(bbox["xmax"]), float(bbox["ymax"])
+                valid_anno = AnnoData(**anno)
+            except AnnoDataMissingFields as err:
+                raise_exception(ErrCode.LabelAnnotationMissingFields,
+                                f"annotations.[{idx}] {ErrCode.LabelAnnotationMissingFieldsMsg}")
             except Exception:
                 raise_exception(ErrCode.LabelAnnotationFieldValueInvalid,
-                                f"annotations[{idx}] field data type is wrong")
+                                f"annotations.[{idx}] {ErrCode.LabelAnnotationFieldValueInvalid}")
             else:
-                valid_anno = {
-                    "category_name": cat_name,
-                    "category_id"  : cat_name,
-                    "bounding_box" : {
-                        "xmin": xmin,
-                        "ymin": ymin,
-                        "xmax": xmax,
-                        "ymax": ymax,
-                    }
-                }
+                valid_anno = valid_anno.dict()
+                valid_anno["category_id"] = valid_anno["category_name"]
                 valid_anno_list.append(valid_anno)
-
         return valid_anno_list
 
     def post(self, request, task_image_id):

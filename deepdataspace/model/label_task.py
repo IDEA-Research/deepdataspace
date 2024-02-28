@@ -489,7 +489,7 @@ class LabelProject(BaseModel):
         LTImage = LabelTaskImage(dataset.id)
         images, offset = self._get_image_batch(dataset.id, 0)
 
-        has_bbox = False  # whether the annotations have bbox
+        obj_types = set()
 
         # iter every label image, save every annotation to target image
         for ltimage in LTImage.find_many({}, sort=[("image_id", 1)]):
@@ -517,26 +517,42 @@ class LabelProject(BaseModel):
                     if not category:
                         continue
 
+                    obj_types.add(AnnotationType.Classification)
+
                     bounding_box = anno["bounding_box"]
-                    if not bounding_box:
-                        continue
+                    segmentation = anno["segmentation"]
+                    mask = anno["mask"]
+                    points = anno["points"]
+                    lines = anno["lines"]
+                    point_names = anno["point_names"]
+                    point_colors = anno["point_colors"]
 
-                    has_bbox = True
+                    if bool(bounding_box):
+                        obj_types.add(AnnotationType.Detection)
+
+                    if bool(segmentation):
+                        obj_types.add(AnnotationType.Segmentation)
+
+                    if bool(mask):
+                        obj_types.add(AnnotationType.Mask)
+
+                    if bool(points) and bool(lines) and bool(point_names) and bool(point_colors):
+                        obj_types.add(AnnotationType.KeyPoints)
+
                     cat_obj = self._get_category(dataset.id, category, categories)
-
                     anno_obj = Object(label_name=label_obj.name, label_type=label_obj.type, label_id=label_obj.id,
                                       category_name=cat_obj.name, category_id=cat_obj.id,
-                                      bounding_box=anno["bounding_box"])
+                                      bounding_box=bounding_box, segmentation=segmentation, mask=mask,
+                                      points=points, lines=lines, point_names=point_names, point_colors=point_colors)
                     image.objects.append(anno_obj)
                     image.batch_save()
 
         Image(dataset.id).finish_batch_save()
 
-        if has_bbox:
-            if AnnotationType.Classification not in dataset.object_types:
-                dataset.object_types.append(AnnotationType.Classification)
-            if AnnotationType.Detection not in dataset.object_types:
-                dataset.object_types.append(AnnotationType.Detection)
+        cur_obj_types = set(dataset.object_types)
+        if cur_obj_types != obj_types:
+            obj_types.union(cur_obj_types)
+            dataset.object_types = list(sorted(obj_types))
             dataset.save()
 
     def export_project(self, label_set_name: str):
