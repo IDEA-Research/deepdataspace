@@ -52,7 +52,7 @@ interface IProps {
 export type OnAiAnnotationFunc = ({
   type,
   drawData,
-  aiLabels,
+  text,
   bbox,
   promptsQueue,
   segmentationClicks,
@@ -60,7 +60,7 @@ export type OnAiAnnotationFunc = ({
 }: {
   type?: EObjectType;
   drawData?: DrawData;
-  aiLabels?: string;
+  text?: string;
   bbox?: IBoundingBox;
   promptsQueue?: PromptItem[];
   segmentationClicks?: {
@@ -173,8 +173,8 @@ const useAiModels = ({
     return newPromptArr;
   };
 
-  const requestAiDetection = async (drawData: DrawData, aiLabels: string) => {
-    if (!aiLabels) {
+  const requestAiDetection = async (drawData: DrawData, text: string) => {
+    if (!text) {
       message.warning(localeText('DDSAnnotator.smart.msg.labelRequired'));
       return;
     }
@@ -183,7 +183,7 @@ const useAiModels = ({
       prompts: [
         {
           type: EPromptType.Text,
-          text: aiLabels,
+          text,
         },
       ],
     });
@@ -698,7 +698,7 @@ const useAiModels = ({
     async ({
       type,
       drawData: propsDrawData,
-      aiLabels,
+      text,
       promptsQueue,
       segmentEverythingParams,
     }) => {
@@ -723,7 +723,7 @@ const useAiModels = ({
               drawData.selectedModel[drawData.selectedTool] ===
               EnumModelType.Detection
             ) {
-              isSuccess = await requestAiDetection(drawData, aiLabels || '');
+              isSuccess = await requestAiDetection(drawData, text || '');
             } else {
               isSuccess = await requestIvpDetection(drawData, promptsQueue);
             }
@@ -781,7 +781,15 @@ const useAiModels = ({
         hide();
       }
     },
-    [editorDrawData],
+    [
+      editorDrawData,
+      currImageItem,
+      editState,
+      naturalSize,
+      clientSize,
+      getAnnotColor,
+      setDrawDataWithHistory,
+    ],
   );
 
   return {

@@ -51,6 +51,7 @@ export namespace ToolHooksFunc {
     color: string;
     styles: RenderStyles;
     isFocus: boolean;
+    isJustCreated?: boolean;
   }) => void;
 
   export type RenderCreatingObject = (params: {
@@ -137,7 +138,6 @@ export interface ToolInstanceHookProps {
   activeCanvasRef: React.RefObject<HTMLCanvasElement>;
   updateMouseCursor: (value: string, position?: Direction) => void;
   getAnnotColor: (category: string) => string;
-  aiLabels?: string;
   onAiAnnotation?: OnAiAnnotationFunc;
   displayOptionsResult?: { [key in DisplayOption]?: boolean };
   categories: Category[];

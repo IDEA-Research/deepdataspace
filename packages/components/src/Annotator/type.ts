@@ -220,6 +220,7 @@ export interface DrawData {
   /** drawing */
   activeClassName: string;
   activeObjectIndex: number;
+  isJustCreated: boolean;
   creatingObject?: ICreatingObject; // - editing / creating
   isBatchEditing: boolean; // active while handle batch predictions by model
   editingAttribute?: IEditingAttribute;
@@ -292,6 +293,7 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   classifications: [],
   activeObjectIndex: -1,
   activeClassName: '',
+  isJustCreated: false,
   creatingObject: undefined,
   editingAttribute: undefined,
   brushSize: 20,

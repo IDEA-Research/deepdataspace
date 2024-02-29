@@ -33,31 +33,34 @@ export default function useAttributes({
     [categories],
   );
 
-  const onConfirmAttibuteEdit = useCallback((values: IAttributeValue[]) => {
-    setDrawDataWithHistory((s) => {
-      if (s.editingAttribute) {
-        if (s.objectList[s.editingAttribute.index]) {
-          // object attributes
-          s.objectList[s.editingAttribute.index].attributes = values;
-        } else {
-          // classification attributes
-          const i = s.classifications.findIndex(
-            (item) => item.labelId === s.editingAttribute?.labelId,
-          );
-          if (i > -1) {
-            s.classifications[i].attributes = values;
+  const onConfirmAttibuteEdit = useCallback(
+    (values: IAttributeValue[]) => {
+      setDrawDataWithHistory((s) => {
+        if (s.editingAttribute) {
+          if (s.objectList[s.editingAttribute.index]) {
+            // object attributes
+            s.objectList[s.editingAttribute.index].attributes = values;
           } else {
-            s.classifications.push({
-              labelId: s.editingAttribute?.labelId,
-              labelValue: null,
-              attributes: values,
-            });
+            // classification attributes
+            const i = s.classifications.findIndex(
+              (item) => item.labelId === s.editingAttribute?.labelId,
+            );
+            if (i > -1) {
+              s.classifications[i].attributes = values;
+            } else {
+              s.classifications.push({
+                labelId: s.editingAttribute?.labelId,
+                labelValue: null,
+                attributes: values,
+              });
+            }
           }
+          s.editingAttribute = undefined;
         }
-        s.editingAttribute = undefined;
-      }
-    });
-  }, []);
+      });
+    },
+    [setDrawDataWithHistory],
+  );
 
   const onCancelAttibuteEdit = () => {
     setDrawDataWithHistory((s) => {

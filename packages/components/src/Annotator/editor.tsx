@@ -83,7 +83,6 @@ export interface EditProps {
   manualMode?: boolean;
   forceColorByObject?: boolean;
   limitActiveObject?: boolean;
-  limitActiveObjectAfterCreate?: boolean;
   customDefaultDrawData?: Partial<DrawData>;
   customDefaultEditState?: EditState;
   customDrawData?: DrawData;
@@ -123,7 +122,6 @@ const Edit: React.FC<EditProps> = (props) => {
     manualMode,
     forceColorByObject,
     limitActiveObject,
-    limitActiveObjectAfterCreate,
     customDefaultDrawData,
     onPrev,
     onNext,
@@ -234,24 +232,21 @@ const Edit: React.FC<EditProps> = (props) => {
     commitedObjects,
     currObject,
   } = useObjects({
-    annotations,
-    setAnnotations,
+    mode,
+    categories,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
     setEditState,
-    mode,
     translateToObject,
     judgeEditingAttribute,
-    limitActiveObjectAfterCreate,
     updateHistory,
   });
 
   const {
     labelOptions,
+    latestLabel,
     classificationOptions,
-    aiLabels,
-    setAiLabels,
     onChangeObjectHidden,
     onChangeCategoryHidden,
     onChangeActiveClass,
@@ -281,33 +276,6 @@ const Edit: React.FC<EditProps> = (props) => {
     getAnnotColor,
   });
 
-  const {
-    onSaveAnnotations,
-    onCommitAnnotations,
-    onCancelAnnotations,
-    onRejectAnnotations,
-    onAcceptAnnotations,
-    onModifyAnnotations,
-  } = useActions({
-    mode,
-    currImageItem,
-    modal,
-    drawData,
-    editState,
-    setEditState,
-    hadChangeRecord,
-    categories,
-    translateObject,
-    flagSaved,
-    onCancel,
-    onSave,
-    onCommit,
-    onReviewModify,
-    onReviewAccept,
-    onReviewReject,
-    classificationOptions,
-  });
-
   const { updateMouseCursor } = useMouseCursor({
     topCanvas: activeCanvasRef.current,
     editState,
@@ -332,13 +300,13 @@ const Edit: React.FC<EditProps> = (props) => {
     onChangeColorMode,
     onChangePointResolution,
     onSelectModel,
+    isInAiSession,
   } = useToolActions({
     mode,
     manualMode: !!manualMode,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
-    setAiLabels,
     editState,
     setEditState,
     getAnnotColor,
@@ -373,7 +341,6 @@ const Edit: React.FC<EditProps> = (props) => {
     updateObject,
     addObject,
     updateMouseCursor,
-    aiLabels,
     onAiAnnotation,
     getAnnotColor,
     categories,
@@ -414,6 +381,34 @@ const Edit: React.FC<EditProps> = (props) => {
     containerMouse,
     getAnnotColor,
     limitActiveObject,
+  });
+
+  const {
+    onSaveAnnotations,
+    onCommitAnnotations,
+    onCancelAnnotations,
+    onRejectAnnotations,
+    onAcceptAnnotations,
+    onModifyAnnotations,
+  } = useActions({
+    mode,
+    currImageItem,
+    modal,
+    drawData,
+    editState,
+    setEditState,
+    hadChangeRecord,
+    categories,
+    translateObject,
+    flagSaved,
+    onCancel,
+    onSave,
+    onCommit,
+    onReviewModify,
+    onReviewAccept,
+    onReviewReject,
+    classificationOptions,
+    isInAiSession,
   });
 
   useShortcuts({
@@ -626,9 +621,8 @@ const Edit: React.FC<EditProps> = (props) => {
             hasPolygonPreds={!!drawData.creatingObject?.polygon}
             isCtrlPressed={editState.isCtrlPressed}
             limitConf={drawData.limitConf}
-            aiLabels={aiLabels}
             naturalSize={naturalSize}
-            setAiLabels={setAiLabels}
+            latestLabel={latestLabel}
             forceChangeTool={forceChangeTool}
             onAiAnnotation={onAiAnnotation}
             onExitAIAnnotation={onExitAIAnnotation}

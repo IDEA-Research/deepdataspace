@@ -282,9 +282,11 @@ export default () => {
           return (
             (obj.mask && displayType === AnnotationType.Mask) ||
             (obj.alpha && displayType === AnnotationType.Matting) ||
-            (obj.points && displayType === AnnotationType.KeyPoints) ||
+            (obj.points?.length && displayType === AnnotationType.KeyPoints) ||
             (obj.segmentation && displayType === AnnotationType.Segmentation) ||
-            (obj.boundingBox && displayType === AnnotationType.Detection)
+            (!obj.points?.length &&
+              obj.boundingBox &&
+              displayType === AnnotationType.Detection)
           );
         })
         .map((obj) => {

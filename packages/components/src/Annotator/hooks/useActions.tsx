@@ -11,7 +11,9 @@ import {
   EditorMode,
   Category,
   VideoFramesData,
+  ICreatingObject,
 } from '../type';
+import { isRequiredAttributeValueEmpty } from '../utils/verify';
 
 interface IProps {
   mode: EditorMode;
@@ -44,6 +46,7 @@ interface IProps {
     frameIssues?: Record<number, object>,
   ) => Promise<void>;
   classificationOptions?: Category[];
+  isInAiSession: () => boolean | ICreatingObject | undefined;
 }
 
 const useActions = ({
@@ -65,6 +68,7 @@ const useActions = ({
   onReviewAccept,
   onReviewReject,
   classificationOptions,
+  isInAiSession,
 }: IProps) => {
   const { localeText } = useLocale();
   const { isRequiring } = editState;
@@ -119,7 +123,7 @@ const useActions = ({
     // check classification
     classificationOptions?.forEach((item, idx) => {
       const value = labels.find((label) => label.labelId === item.id);
-      if (!value || [undefined, null, ''].includes(value.labelValue)) {
+      if (!value || isRequiredAttributeValueEmpty(value.labelValue)) {
         errorList.push(
           localeText('DDSAnnotator.save.check.classification', {
             idx: idx + 1,
@@ -134,7 +138,7 @@ const useActions = ({
         label?.attributes?.find(
           (attribute, index) =>
             attribute.required &&
-            [undefined, null, ''].includes(item.attributes?.[index]),
+            isRequiredAttributeValueEmpty(item.attributes?.[index]),
         )
       ) {
         errorList.push(
@@ -169,7 +173,7 @@ const useActions = ({
   };
 
   const onSaveAnnotations = async () => {
-    if (isRequiring || !onSave) return;
+    if (isRequiring || !onSave || isInAiSession()) return;
 
     const [id, labels] = translateDrawData(editorDrawData);
     console.log('>>> save', id, labels);
@@ -186,7 +190,7 @@ const useActions = ({
   };
 
   const onCommitAnnotations = async () => {
-    if (isRequiring || !onCommit) return;
+    if (isRequiring || !onCommit || isInAiSession()) return;
 
     const [id, labels] = translateDrawData(editorDrawData);
     if (judgeLimitCommit(labels)) return;
