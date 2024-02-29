@@ -75,6 +75,7 @@ const ClassificationPanel: React.FC<IProps> = memo((props) => {
   };
 
   const showEditingArribute = (index: number) => {
+    // TODO: Check work
     // setTimeout to solve immer merge error problem
     setTimeout(() => {
       setDrawDataWithHistory((s) => {

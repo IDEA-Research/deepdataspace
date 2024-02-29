@@ -19,6 +19,7 @@ import { ToolInstanceHookReturn } from '../tools/base';
 import {
   DrawData,
   EditState,
+  EObjectStatus,
   IAnnotationObject,
   ICreatingObject,
 } from '../type';
@@ -67,7 +68,7 @@ const useCanvasRender = ({
   const getObjectStyles = (
     object: IAnnotationObject,
     color: string,
-    status?: 'focus' | 'creating' | 'editing',
+    status?: 'focus' | 'justCreated' | 'creating' | 'editing',
   ) => {
     let [strokeColor, fillColor, maskAlpha] = [
       hexToRgba(color, ANNO_STROKE_ALPHA.DEFAULT),
@@ -78,6 +79,9 @@ const useCanvasRender = ({
       maskAlpha = ANNO_MASK_ALPHA.FOCUS;
       strokeColor = hexToRgba(color, ANNO_STROKE_ALPHA.FOCUS);
       fillColor = hexToRgba(color, ANNO_FILL_ALPHA.FOCUS);
+    } else if (status === 'justCreated') {
+      maskAlpha = ANNO_MASK_ALPHA.JUST_CREATED;
+      fillColor = hexToRgba(color, ANNO_FILL_ALPHA.JUST_CREATED);
     } else if (status === 'editing') {
       maskAlpha = ANNO_MASK_ALPHA.CREATING;
       strokeColor = hexToRgba(color, ANNO_STROKE_ALPHA.CREATING);
@@ -195,18 +199,23 @@ const useCanvasRender = ({
     updateCreatingPromptRender(theDrawData);
   };
 
-  const renderObject = (object: IAnnotationObject, isFocus: boolean) => {
+  const renderObject = (
+    object: IAnnotationObject,
+    isFocus: boolean,
+    isJustCreated: boolean,
+  ) => {
     const canvasCoordObject = translateAnnotCoord(object, {
       x: -imagePos.current.x,
       y: -imagePos.current.y,
     });
     const { type } = canvasCoordObject;
     // Color styles
-    const styles = getObjectStyles(
-      object,
-      object.color,
-      isFocus ? 'focus' : undefined,
-    );
+    const status = isFocus
+      ? 'focus'
+      : isJustCreated
+      ? 'justCreated'
+      : undefined;
+    const styles = getObjectStyles(object, object.color, status);
 
     // Change globalAlpha when creating / editing object
     setCanvasGlobalAlpha(canvasRef.current!, drawData.creatingObject ? 0.6 : 1);
@@ -216,6 +225,7 @@ const useCanvasRender = ({
       color: object.color,
       styles,
       isFocus,
+      isJustCreated,
     });
   };
 
@@ -233,7 +243,13 @@ const useCanvasRender = ({
       ) {
         return;
       }
-      renderObject(obj, drawData.editingAttribute?.index === index);
+
+      const isFocus = drawData.editingAttribute?.index === index;
+      const isJustCreated =
+        (!editState.isCtrlPressed && obj.status === EObjectStatus.Checked) ||
+        (drawData.isJustCreated && index === list.length - 1);
+
+      renderObject(obj, isFocus, isJustCreated);
     });
   };
 
@@ -293,7 +309,11 @@ const useCanvasRender = ({
       !theDrawData.objectList[editState.focusObjectIndex].hidden &&
       !theDrawData.objectList[editState.focusObjectIndex].frameEmpty
     ) {
-      renderObject(theDrawData.objectList[editState.focusObjectIndex], true);
+      renderObject(
+        theDrawData.objectList[editState.focusObjectIndex],
+        true,
+        false,
+      );
     }
   };
 

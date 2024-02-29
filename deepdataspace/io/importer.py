@@ -6,25 +6,35 @@ The common interface of importing a dataset.
 
 import abc
 import copy
+import json
 import logging
 import os
-import time
+import uuid
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Tuple
 from typing import Type
 from typing import Union
 
 from tqdm import tqdm
+from pymongo import WriteConcern
 
 from deepdataspace import constants
+from deepdataspace.constants import AnnotationType
 from deepdataspace.constants import DatasetFileType
+from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import FileReadMode
 from deepdataspace.constants import LabelName
 from deepdataspace.constants import LabelType
-from deepdataspace.model import Category
+from deepdataspace.constants import RedisKey
+from deepdataspace.globals import Redis
 from deepdataspace.model import DataSet
-from deepdataspace.model import Label
+from deepdataspace.model.category import Category
 from deepdataspace.model.image import Image
+from deepdataspace.model.image import ImageModel
+from deepdataspace.model.label import Label
+from deepdataspace.utils.file import create_file_url
 from deepdataspace.utils.function import count_block_time
 from deepdataspace.utils.string import get_str_md5
 
@@ -67,8 +77,7 @@ class ImportHelper:
                           keypoint_colors: List[int] = None,
                           keypoint_skeleton: List[int] = None,
                           keypoint_names: List[str] = None,
-                          caption: str = None,
-                          confirm_type: int = 0, ):
+                          caption: str = None):
         """
         A helper function to format annotation data.
         """
@@ -85,8 +94,7 @@ class ImportHelper:
                     keypoint_colors=keypoint_colors,
                     keypoint_skeleton=keypoint_skeleton,
                     keypoint_names=keypoint_names,
-                    caption=caption,
-                    confirm_type=confirm_type, )
+                    caption=caption)
 
 
 class Importer(ImportHelper, abc.ABC):
@@ -106,14 +114,203 @@ class Importer(ImportHelper, abc.ABC):
         :param id_: the dataset id.
             If provided, the importer will try to update an existing dataset instead of creating a new one.
         """
-
         self.dataset_name = name
-        self.dataset = DataSet.get_importing_dataset(name, id_=id_)
+        self.dataset = self.get_importing_dataset(name, id=id_)
 
         self._image_queue = {}
         self._label_queue = {}
         self._category_queue = {}
         self._user_data = {}  # {image_id: {}}
+        self._import_queue = {}
+        self._batch_size = 200
+        self.IModel = Image(self.dataset.id)
+
+    @staticmethod
+    def get_importing_dataset(name: str,
+                              id: str = None,
+                              type: str = None,
+                              path: str = None,
+                              files: dict = None,
+                              ) -> "DataSet":
+        if id:
+            dataset = DataSet.find_one({"id": id})
+            if dataset is not None:
+                dataset.type = type or dataset.type
+                dataset.path = path or dataset.path
+                dataset.files = files or dataset.files
+                dataset.name = name
+                dataset.save()
+                return dataset
+        else:
+            id = uuid.uuid4().hex
+
+        files = files or {}
+        dataset = DataSet(name=name, id=id, type=type, path=path, files=files, status=DatasetStatus.Waiting)
+        dataset.save()
+        return dataset
+
+    def dataset_import_image(self,
+                             dataset: DataSet,
+                             uri: str,
+                             thumb_uri: str = None,
+                             width: int = None,
+                             height: int = None,
+                             id_: int = None,
+                             metadata: dict = None,
+                             flag: int = 0,
+                             flag_ts: int = 0, ) -> dict:
+        full_uri = uri
+        thumb_uri = full_uri if thumb_uri is None else thumb_uri
+        if full_uri.startswith("file://"):
+            full_uri = create_file_url(full_uri[7:], read_mode=FileReadMode.Binary)
+        if thumb_uri.startswith("file://"):
+            thumb_uri = create_file_url(thumb_uri[7:], read_mode=FileReadMode.Binary)
+
+        metadata = metadata or {}
+        metadata = json.dumps(metadata)
+
+        idx = dataset.num_images
+        id_ = id_ if id_ is not None else dataset.num_images
+        image = dict(id=id_, idx=idx,
+                     type=dataset.type, dataset_id=dataset.id,
+                     url=thumb_uri, url_full_res=full_uri,
+                     width=width, height=height,
+                     flag=flag, flag_ts=flag_ts,
+                     objects=[], metadata=metadata, )
+
+        self._import_queue[id_] = image
+        dataset.num_images += 1
+        return image
+
+    @staticmethod
+    def image_import_annotation(image: dict,
+                                category: str,
+                                label: str = LabelName.GroundTruth,
+                                label_type: Literal["GT", "Pred", "User"] = "GT",
+                                conf: float = 1.0,
+                                is_group: bool = False,
+                                bbox: Tuple[int, int, int, int] = None,
+                                segmentation: List[List[int]] = None,
+                                alpha_uri: str = None,
+                                keypoints: List[Union[float, int]] = None,
+                                keypoint_colors: List[int] = None,
+                                keypoint_skeleton: List[int] = None,
+                                keypoint_names: List[str] = None,
+                                caption: str = None):
+
+        bbox = ImageModel.format_bbox(image["width"], image["height"], bbox)
+        segmentation = ImageModel.format_segmentation(segmentation)
+        points, colors, lines, names = ImageModel.format_keypoints(keypoints,
+                                                                   keypoint_colors,
+                                                                   keypoint_skeleton,
+                                                                   keypoint_names)
+        if alpha_uri and alpha_uri.startswith("file://"):
+            alpha_path = alpha_uri[7:]
+            alpha_uri = create_file_url(file_path=alpha_path,
+                                        read_mode=FileReadMode.Binary)
+
+        anno_obj = dict(label_name=label, label_type=label_type,
+                        category_name=category, caption=caption,
+                        bounding_box=bbox, segmentation=segmentation, alpha=alpha_uri,
+                        points=points, lines=lines, point_colors=colors, point_names=names,
+                        conf=conf, is_group=is_group)
+        image["objects"].append(anno_obj)
+
+    def bulk_write_images(self, image_queue: list):
+        co = self.IModel.get_collection()
+        wc = WriteConcern(w=0)
+        co = co.with_options(write_concern=wc)
+        co.insert_many(image_queue)
+
+    def _dataset_flush_importing(self):
+        if not self._import_queue:
+            return
+
+        with count_block_time("prepare batch setup", logger.debug):
+            dataset_id = self.dataset.id
+            waiting_labels = dict()
+            waiting_categories = dict()
+            object_types = set()
+            whitelist_dirs = set()
+
+        with count_block_time("prepare batch data", logger.debug):
+            image_insert_queue = []
+
+            for image_id, image in self._import_queue.items():
+                for obj in image["objects"]:
+                    # setup label
+                    label_name = obj["label_name"]
+                    label_id = waiting_labels.get(label_name, None)
+                    if label_id is None:
+                        label_id = get_str_md5(f"{dataset_id}_{label_name}")
+                        label = Label(name=label_name, id=label_id, type=obj["label_type"], dataset_id=dataset_id)
+                        label.batch_save(batch_size=self._batch_size)
+                        waiting_labels[label_name] = label_id
+                    obj["label_id"] = label_id
+
+                    # setup category
+                    cat_name = obj["category_name"]
+                    category_id = waiting_categories.get(cat_name, None)
+                    if category_id is None:
+                        category_id = get_str_md5(f"{dataset_id}_{cat_name}")
+                        category = Category(name=cat_name, id=category_id, dataset_id=dataset_id)
+                        category.batch_save(batch_size=self._batch_size)
+                        waiting_categories[cat_name] = category_id
+                    obj["category_id"] = category_id
+
+                    # setup object types
+                    if AnnotationType.Classification not in object_types:
+                        object_types.add(AnnotationType.Classification)
+                    if obj["bounding_box"] and AnnotationType.Detection not in object_types:
+                        object_types.add(AnnotationType.Detection)
+                    if obj["segmentation"] and AnnotationType.Segmentation not in object_types:
+                        object_types.add(AnnotationType.Segmentation)
+                    if obj["alpha"] and AnnotationType.Matting not in object_types:
+                        object_types.add(AnnotationType.Matting)
+                        DataSet.add_local_file_url_to_whitelist(obj["alpha"], whitelist_dirs)
+                    if obj["points"] and AnnotationType.KeyPoints not in object_types:
+                        object_types.add(AnnotationType.KeyPoints)
+
+                # setup image
+                image["_id"] = image.pop("id")
+                image_insert_queue.append(image)
+
+                DataSet.add_local_file_url_to_whitelist(image["url"], whitelist_dirs)
+                DataSet.add_local_file_url_to_whitelist(image["url_full_res"], whitelist_dirs)
+
+        # finish batch saves
+        with count_block_time("finish batch save", logger.debug):
+            Label.finish_batch_save()
+            Category.finish_batch_save()
+            self.bulk_write_images(image_insert_queue)
+
+        # setup dataset
+        with count_block_time("setup dataset", logger.debug):
+            self.dataset.object_types = list(sorted(list(object_types)))
+            self.dataset.save()
+
+        # save whitelist to redis
+        with count_block_time("save whitelist", logger.debug):
+            if whitelist_dirs:
+                Redis.sadd(RedisKey.DatasetImageDirs, *whitelist_dirs)
+
+            self._import_queue.clear()
+
+    def dataset_flush_importing(self):
+        batch_is_full = len(self._import_queue) >= self._batch_size
+        if batch_is_full:
+            with count_block_time("_dataset_flush_importing", logger.debug):
+                self._dataset_flush_importing()
+            return True
+        return False
+
+    def dataset_finish_importing(self):
+        """
+        This method should be called after all batch_add_image calls are finished.
+        This saves all images in the buffer queue to database.
+        """
+        self._dataset_flush_importing()
+        self.dataset.add_cover()
 
     def pre_run(self):
         """
@@ -121,16 +318,18 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         self.load_existing_user_data()
+        self.dataset.num_images = 0
         self.dataset.status = constants.DatasetStatus.Importing
         self.dataset.save()
+        Image(self.dataset.id).get_collection().drop()
 
     def post_run(self):
         """
         A post-run hook for subclass importers to clean up data.
         """
-
-        self.dataset.status = constants.DatasetStatus.Ready
-        self.dataset.save()
+        self.dataset.add_cover()
+        DataSet.update_one({"id": self.dataset.id}, {"status": DatasetStatus.Ready})
+        self.dataset = DataSet.find_one({"id": self.dataset.id})
 
     def on_error(self, err: Exception):
         """
@@ -138,11 +337,8 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         try:
-            dataset_id = self.dataset.id
-            Label.delete_many({"dataset_id": dataset_id})
-            Category.delete_many({"dataset_id": dataset_id})
-            Image(dataset_id).get_collection().drop()
-            self.dataset.delete()
+            DataSet.cascade_delete(self.dataset)
+            self.dataset = None
         finally:
             raise err
 
@@ -152,14 +348,13 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         pipeline = [
-            {"$project": {"flag"         : 1,
-                          "flag_ts"      : 1,
-                          "label_confirm": 1,
-                          "objects"      : {
+            {"$project": {"flag": 1,
+                          "flag_ts": 1,
+                          "objects": {
                               "$filter": {
                                   "input": "$objects",
-                                  "as"   : "object",
-                                  "cond" : {
+                                  "as": "object",
+                                  "cond": {
                                       "$eq": ["$$object.label_type", LabelType.User]
                                   }
                               }
@@ -177,30 +372,25 @@ class Importer(ImportHelper, abc.ABC):
             flag = image.get("flag", 0)
             flag_ts = image.get("flag_ts", 0)
 
-            # manually added confirm flag
-            label_confirm = image.get("label_confirm", {})
-
             self._user_data[image_id] = {
-                "objects"      : user_objects,
-                "flag"         : flag,
-                "flag_ts"      : flag_ts,
-                "label_confirm": label_confirm,
+                "objects": user_objects,
+                "flag": flag,
+                "flag_ts": flag_ts,
             }
 
-    def add_user_data(self, image):
+    def image_add_user_data(self, image: dict):
         """
         Save manually added user data back.
         """
 
-        image_id = image.id
+        image_id = image["id"]
         user_data = self._user_data.pop(image_id, {})
         if not user_data:
             return
 
-        image.objects.extend(user_data["objects"])
-        image.flag = user_data["flag"]
-        image.flag_ts = user_data["flag_ts"]
-        image.label_confirm = user_data["label_confirm"]
+        image.setdefault("objects").extend(user_data["objects"])
+        image["flag"] = user_data["flag"]
+        image["flag_ts"] = user_data["flag_ts"]
 
     def run_import(self):
         """
@@ -210,15 +400,14 @@ class Importer(ImportHelper, abc.ABC):
 
         desc = f"dataset[{self.dataset.name}@{self.dataset.id}] import progress"
         for (image, anno_list) in tqdm(self, desc=desc, unit=" images"):
-            beg = int(time.time() * 1000)
-            image = self.dataset.batch_add_image(**image)
-            self.add_user_data(image)
+        # for (image, anno_list) in self:
+            image = self.dataset_import_image(self.dataset, **image)
+            self.image_add_user_data(image)
             for anno in anno_list:
-                image.batch_add_annotation(**anno)
-            image.finish_batch_add_annotation()
-            logger.debug(f"time cost of import one image: {int(time.time() * 1000) - beg}ms")
-            logger.debug(f"imported image, id={image.id}, url={image.url}")
-        self.dataset.finish_batch_add_image()
+                self.image_import_annotation(image, **anno)
+            self.dataset_flush_importing()
+
+        self.dataset_finish_importing()
 
     def run(self):
         """

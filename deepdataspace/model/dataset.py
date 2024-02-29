@@ -27,6 +27,7 @@ from deepdataspace.model.image import Image
 from deepdataspace.model.image import ImageModel
 from deepdataspace.model.label import Label
 from deepdataspace.utils.file import create_file_url
+from deepdataspace.utils.function import count_block_time
 from deepdataspace.utils.string import get_str_md5
 
 logger = logging.getLogger("io.model.dataset")
@@ -103,7 +104,7 @@ class DataSet(BaseModel):
     group_name: str = None
 
     _batch_queue: Dict[int, ImageModel] = {}
-    _batch_size: int = 100
+    _batch_size: int = 200
 
     @classmethod
     def create_dataset(cls,
@@ -139,6 +140,7 @@ class DataSet(BaseModel):
                 dataset.path = path or dataset.path
                 dataset.files = files or dataset.files
                 dataset.name = name
+                dataset.num_images = Image(dataset.id).count_num({})
                 dataset.save()
                 return dataset
         else:
@@ -148,42 +150,11 @@ class DataSet(BaseModel):
         dataset = cls(name=name, id=id_, type=type, path=path,
                       files=files, status=DatasetStatus.Ready,
                       description=description, description_func=description_func)
-        dataset.post_init()
+        dataset.num_images = Image(dataset.id).count_num({})
         dataset.save()
         return dataset
 
-    @classmethod
-    def get_importing_dataset(cls,
-                              name: str,
-                              id_: str = None,
-                              type: str = None,
-                              path: str = None,
-                              files: dict = None,
-                              ) -> "DataSet":
-        """
-        This is the same as create_dataset.
-        But if the dataset is new, it's status will be set to "waiting" instead of "ready".
-        """
-
-        if id_:
-            dataset = DataSet.find_one({"id": id_})
-            if dataset is not None:
-                dataset.type = type or dataset.type
-                dataset.path = path or dataset.path
-                dataset.files = files or dataset.files
-                dataset.name = name
-                dataset.save()
-                return dataset
-        else:
-            id_ = uuid.uuid4().hex
-
-        files = files or {}
-        dataset = cls(name=name, id=id_, type=type, path=path, files=files, status=DatasetStatus.Waiting)
-        dataset.post_init()
-        dataset.save()
-        return dataset
-
-    def _add_cover(self, force_update: bool = False):
+    def add_cover(self, force_update: bool = False):
         has_cover = bool(self.cover_url)
         if has_cover and not force_update:
             return
@@ -257,17 +228,16 @@ class DataSet(BaseModel):
             image.flag = flag or image.flag
             image.flag_ts = flag_ts or image.flag_ts
             image.metadata = metadata or image.metadata
-        image.post_init()
         image._dataset = self  # this saves a db query
 
         image.save()
         self.num_images = Model.count_num({})
-        self._add_cover()
+        self.add_cover()
 
         # save whitelist to redis
         whitelist_dirs = set()
-        self._add_local_file_url_to_whitelist(image.url, whitelist_dirs)
-        self._add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
+        self.add_local_file_url_to_whitelist(image.url, whitelist_dirs)
+        self.add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
         if whitelist_dirs:
             Redis.sadd(RedisKey.DatasetImageDirs, *whitelist_dirs)
 
@@ -326,7 +296,7 @@ class DataSet(BaseModel):
         return image
 
     @staticmethod
-    def _add_local_file_url_to_whitelist(url: str, whitelist: set):
+    def add_local_file_url_to_whitelist(url: str, whitelist: set):
         if not url or not url.startswith("/files/local_files"):
             return
 
@@ -377,7 +347,7 @@ class DataSet(BaseModel):
                     object_types.add(AnnotationType.Segmentation)
                 if obj.alpha and AnnotationType.Matting not in object_types:
                     object_types.add(AnnotationType.Matting)
-                    self._add_local_file_url_to_whitelist(obj.alpha, whitelist_dirs)
+                    self.add_local_file_url_to_whitelist(obj.alpha, whitelist_dirs)
                 if obj.points and AnnotationType.KeyPoints not in object_types:
                     object_types.add(AnnotationType.KeyPoints)
 
@@ -387,8 +357,8 @@ class DataSet(BaseModel):
             image.batch_save(batch_size=self._batch_size, set_on_insert={"idx": image.idx})
             idx += 1
 
-            self._add_local_file_url_to_whitelist(image.url, whitelist_dirs)
-            self._add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
+            self.add_local_file_url_to_whitelist(image.url, whitelist_dirs)
+            self.add_local_file_url_to_whitelist(image.url_full_res, whitelist_dirs)
 
         # finish batch saves
         IModel.finish_batch_save()
@@ -406,9 +376,9 @@ class DataSet(BaseModel):
 
         self._batch_queue.clear()
 
-    def batch_save_image(self, enforce: bool = False):
+    def batch_save_image(self):
         batch_is_full = len(self._batch_queue) >= self._batch_size
-        if batch_is_full or enforce:
+        if batch_is_full:
             self._batch_save_image_batch()
             return True
         return False
@@ -419,7 +389,7 @@ class DataSet(BaseModel):
         This saves all images in the buffer queue to database.
         """
         self._batch_save_image_batch()
-        self._add_cover()
+        self.add_cover()
 
     def eval_description(self):
         """
@@ -449,16 +419,16 @@ class DataSet(BaseModel):
             return
 
         dataset_id = dataset.id
-        print(f"dataset [{dataset_id}] is found, deleting...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting...")
 
-        print(f"dataset [{dataset_id}] is found, deleting categories...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting categories...")
         Category.delete_many({"dataset_id": dataset_id})
 
-        print(f"dataset [{dataset_id}] is found, deleting labels...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting labels...")
         Label.delete_many({"dataset_id": dataset_id})
 
-        print(f"dataset [{dataset_id}] is found, deleting images...")
+        logger.info(f"dataset [{dataset_id}] is found, deleting images...")
         Image(dataset_id).get_collection().drop()
 
         DataSet.delete_many({"id": dataset_id})
-        print(f"dataset [{dataset_id}] is deleted.")
+        logger.info(f"dataset [{dataset_id}] is deleted.")

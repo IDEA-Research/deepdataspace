@@ -150,7 +150,7 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
         };
       });
     },
-    [onActiveObject],
+    [onActiveObject, setDrawDataWithHistory],
   );
 
   /** Hide All Objects */
@@ -251,32 +251,30 @@ export const ObjectList: React.FC<IProps> = memo((props) => {
                     <div className="label-name">{labelName}</div>
                     <div className="label-actions">
                       <span className="label-count">{subObjects.length}</span>
-                      {supportEdit && (
-                        <Tooltip
-                          title={
-                            isHidden
-                              ? localeText('DDSAnnotator.annotsList.showCate')
-                              : localeText('DDSAnnotator.annotsList.hideCate')
+                      <Tooltip
+                        title={
+                          isHidden
+                            ? localeText('DDSAnnotator.annotsList.showCate')
+                            : localeText('DDSAnnotator.annotsList.hideCate')
+                        }
+                      >
+                        <Button
+                          ghost
+                          className="label-btn"
+                          icon={
+                            isHidden ? (
+                              <EyeInvisibleOutlined />
+                            ) : (
+                              <EyeOutlined />
+                            )
                           }
-                        >
-                          <Button
-                            ghost
-                            className="label-btn"
-                            icon={
-                              isHidden ? (
-                                <EyeInvisibleOutlined />
-                              ) : (
-                                <EyeOutlined />
-                              )
-                            }
-                            shape={'circle'}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onChangeCategoryHidden(labelName, !isHidden);
-                            }}
-                          />
-                        </Tooltip>
-                      )}
+                          shape={'circle'}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onChangeCategoryHidden(labelName, !isHidden);
+                          }}
+                        />
+                      </Tooltip>
                       <Button
                         ghost
                         className="label-btn"

@@ -8,7 +8,12 @@ import {
 } from '../constants';
 import { LINE_COLOR } from '../constants/render';
 import { rleToCanvas } from '../tools/useMask';
-import { DrawData, IAnnotationObject, PromptItem } from '../type';
+import {
+  DrawData,
+  EObjectStatus,
+  IAnnotationObject,
+  PromptItem,
+} from '../type';
 
 import { rgbArrayToRgba, rgbaToRgbArray } from './color';
 
@@ -1684,51 +1689,52 @@ export const convertFrameObjectsIntoFramesObjects = (
   naturalSize: ISize,
 ) => {
   const tempObjects = [...framesObjects];
-  currFrameObjects.forEach((item, objectIdx) => {
-    const objectframes =
-      tempObjects[objectIdx] || new Array(frameCount).fill(undefined);
-    tempObjects[objectIdx] = objectframes.map((obj, frameIdx) => {
-      if (frameIdx === activeIndex) {
-        return item;
-      }
-      const frameEmpty = obj?.frameEmpty || Boolean(!obj);
-      let resultObject = obj;
-      if (
-        frameIdx > activeIndex &&
-        isEqual(
-          omitBy(obj, isUndefined),
-          omitBy(objectframes[activeIndex], isUndefined),
-        )
-      ) {
-        // [active frame, later changed frame] -> same change
-        resultObject = item;
-      } else if (
-        !frameEmpty &&
-        item.type === EObjectType.Mask &&
-        resultObject.maskRle &&
-        item.labelId !== obj.labelId
-      ) {
-        // mask label changed => re compute maskCanvas
-        resultObject.maskCanvasElement = rleToCanvas(
-          resultObject.maskRle,
-          naturalSize,
-          item.color,
-        );
-      }
-
-      return {
-        ...resultObject,
-        type: item.type,
-        labelId: item.labelId,
-        hidden: item.hidden,
-        color: item.color,
-        customStyles: item.customStyles,
-        attributes: item.attributes,
-        status: item.status,
-        frameEmpty,
-      };
+  currFrameObjects
+    .filter((obj) => obj?.status === EObjectStatus.Commited)
+    .forEach((item, objectIdx) => {
+      const objectframes =
+        tempObjects[objectIdx] || new Array(frameCount).fill(undefined);
+      tempObjects[objectIdx] = objectframes.map((obj, frameIdx) => {
+        if (frameIdx === activeIndex) {
+          return item;
+        }
+        const frameEmpty = obj?.frameEmpty || Boolean(!obj);
+        let resultObject = obj;
+        if (
+          frameIdx > activeIndex &&
+          isEqual(
+            omitBy(obj, isUndefined),
+            omitBy(objectframes[activeIndex], isUndefined),
+          )
+        ) {
+          // [active frame, later changed frame] -> same change
+          resultObject = item;
+        } else if (
+          !frameEmpty &&
+          item.type === EObjectType.Mask &&
+          resultObject.maskRle &&
+          item.labelId !== obj.labelId
+        ) {
+          // mask label changed => re compute maskCanvas
+          resultObject.maskCanvasElement = rleToCanvas(
+            resultObject.maskRle,
+            naturalSize,
+            item.color,
+          );
+        }
+        return {
+          ...resultObject,
+          type: item.type,
+          labelId: item.labelId,
+          hidden: item.hidden,
+          color: item.color,
+          customStyles: item.customStyles,
+          attributes: item.attributes,
+          status: item.status,
+          frameEmpty,
+        };
+      });
     });
-  });
   return tempObjects;
 };
 

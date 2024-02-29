@@ -5,6 +5,7 @@ import { memo, useEffect } from 'react';
 import { useImmer } from 'use-immer';
 
 import { IAttributeValue, IEditingAttribute } from '../../type';
+import { isRequiredAttributeValueEmpty } from '../../utils/verify';
 import AttributesForm from '../AttributesForm';
 import { FloatWrapper } from '../FloatWrapper';
 
@@ -36,8 +37,7 @@ const AttributeEditor: React.FC<IProps> = memo(
       if (
         data.attributes.find(
           (item, index) =>
-            item.required &&
-            (values[index] === undefined || values[index] === null),
+            item.required && isRequiredAttributeValueEmpty(values[index]),
         )
       ) {
         message.error(localeText('DDSAnnotator.attribute.required'));
@@ -57,7 +57,9 @@ const AttributeEditor: React.FC<IProps> = memo(
           className="dds-annotator-attribute-editor"
           title={
             <div className="dds-annotator-attribute-editor-title">
-              <div>{localeText('DDSAnnotator.attribute.add')}</div>
+              <div>
+                {localeText('DDSAnnotator.attribute.modal')} #{data.index + 1}
+              </div>
               <Button
                 ghost
                 className="dds-annotator-attribute-editor-title-btn"

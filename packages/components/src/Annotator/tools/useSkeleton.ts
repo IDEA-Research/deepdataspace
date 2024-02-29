@@ -79,7 +79,6 @@ const useSkeleton: ToolInstanceHook = ({
   updateMouseCursor,
   addObject,
   updateObject,
-  aiLabels,
   onAiAnnotation,
   displayOptionsResult,
 }) => {
@@ -326,7 +325,7 @@ const useSkeleton: ToolInstanceHook = ({
           editState.startElementMovePoint.mousePoint?.y !==
             contentMouse.elementY)
       ) {
-        onAiAnnotation?.({ type: EObjectType.Skeleton, drawData, aiLabels });
+        onAiAnnotation?.({ type: EObjectType.Skeleton, drawData });
       }
     }
 

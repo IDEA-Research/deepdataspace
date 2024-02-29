@@ -30,7 +30,6 @@ interface IProps {
   manualMode?: boolean;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
-  setAiLabels: (labels?: string) => void;
   editState: EditState;
   setEditState: Updater<EditState>;
   getAnnotColor: (category: string) => string;
@@ -51,7 +50,6 @@ const useToolActions = ({
   drawData,
   setDrawData,
   setDrawDataWithHistory,
-  setAiLabels,
   editState,
   setEditState,
   clientSize,
@@ -140,7 +138,7 @@ const useToolActions = ({
             updateObject(newObject, drawData.activeObjectIndex);
           } else {
             // add mask object
-            addObject(newObject, true);
+            addObject(newObject);
           }
         } else if (maskRle) {
           // Empty mask
@@ -168,7 +166,7 @@ const useToolActions = ({
           updateObject(newObject, drawData.activeObjectIndex);
         } else {
           // add new polygon
-          addObject(newObject, true);
+          addObject(newObject);
         }
       } else {
         const newObject = {
@@ -225,8 +223,7 @@ const useToolActions = ({
       s.creatingObject = undefined;
       s.prompt = {};
     });
-    setAiLabels(undefined);
-  }, [drawData.objectList]);
+  }, [drawData.objectList, setDrawDataWithHistory]);
 
   const onAbortBatchObjects = useCallback(() => {
     setDrawDataWithHistory((s) => {
@@ -239,7 +236,7 @@ const useToolActions = ({
       s.creatingObject = undefined;
       s.prompt = {};
     });
-  }, [drawData.objectList]);
+  }, [drawData.objectList, setDrawDataWithHistory]);
 
   const isInAiSession = useCallback(() => {
     const {
@@ -251,40 +248,48 @@ const useToolActions = ({
       creatingObject,
     } = drawData;
 
-    if (!AIAnnotation) return false;
+    const judegInAiSession = () => {
+      if (!AIAnnotation) return false;
 
-    if (selectedTool === EBasicToolItem.Rectangle) {
-      return isBatchEditing;
-    }
-
-    if (selectedTool === EBasicToolItem.Polygon) {
-      return creatingObject;
-    }
-
-    if (selectedTool === EBasicToolItem.Skeleton) {
-      return isBatchEditing;
-    }
-
-    if (selectedTool === EBasicToolItem.Mask) {
-      const currModel = selectedModel[selectedTool];
-      if (currModel === EnumModelType.IVP) {
+      if (selectedTool === EBasicToolItem.Rectangle) {
         return isBatchEditing;
       }
 
-      if (
-        currModel === EnumModelType.SegmentEverything &&
-        selectedSubTool === ESubToolItem.AutoSegmentEverything
-      ) {
-        return isBatchEditing;
-      }
-
-      if (currModel === EnumModelType.SegmentByMask) {
+      if (selectedTool === EBasicToolItem.Polygon) {
         return creatingObject;
       }
 
+      if (selectedTool === EBasicToolItem.Skeleton) {
+        return isBatchEditing;
+      }
+
+      if (selectedTool === EBasicToolItem.Mask) {
+        const currModel = selectedModel[selectedTool];
+        if (currModel === EnumModelType.IVP) {
+          return isBatchEditing;
+        }
+
+        if (
+          currModel === EnumModelType.SegmentEverything &&
+          selectedSubTool === ESubToolItem.AutoSegmentEverything
+        ) {
+          return isBatchEditing;
+        }
+
+        if (currModel === EnumModelType.SegmentByMask) {
+          return creatingObject;
+        }
+
+        return false;
+      }
       return false;
+    };
+
+    const result = judegInAiSession();
+    if (result) {
+      message.warning(localeText('DDSAnnotator.smart.tip.limitJump'));
     }
-    return false;
+    return result;
   }, [
     drawData.selectedTool,
     drawData.selectedModel,
@@ -298,8 +303,7 @@ const useToolActions = ({
     (tool: EBasicToolItem) => {
       if (
         mode !== EditorMode.Edit ||
-        (tool === drawData.selectedTool && !drawData.AIAnnotation) ||
-        drawData.isBatchEditing
+        (tool === drawData.selectedTool && !drawData.AIAnnotation)
       )
         return;
 
@@ -307,6 +311,7 @@ const useToolActions = ({
 
       setDrawData((s) => {
         s.selectedTool = tool;
+        s.isJustCreated = false;
         s.AIAnnotation = false;
         s.activeObjectIndex = -1;
         s.creatingObject = undefined;
@@ -381,7 +386,7 @@ const useToolActions = ({
       s.creatingObject = undefined;
       s.prompt = {};
     });
-  }, []);
+  }, [setDrawDataWithHistory]);
 
   const setBrushSize = useCallback(
     (size: number) => {
@@ -473,7 +478,7 @@ const useToolActions = ({
         s.objectList = updateObjects;
       });
     },
-    [drawData.objectList],
+    [drawData.objectList, setDrawDataWithHistory],
   );
 
   const onChangeLimitConf = useCallback(
@@ -500,7 +505,7 @@ const useToolActions = ({
         );
       });
     },
-    [drawData.objectList],
+    [drawData.objectList, setDrawDataWithHistory],
   );
 
   const onChangeImageDisplayOpts = useCallback(
@@ -627,6 +632,7 @@ const useToolActions = ({
     onChangeColorMode,
     onChangePointResolution,
     onSelectModel,
+    isInAiSession,
   };
 };
 

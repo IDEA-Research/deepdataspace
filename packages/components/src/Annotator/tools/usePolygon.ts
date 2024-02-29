@@ -64,12 +64,14 @@ const usePolygon: ToolInstanceHook = ({
     color,
     styles,
     isFocus,
+    isJustCreated,
   }) => {
     const { polygon } = object;
     if (polygon && polygon.visible) {
-      let fiilColor = !isFocus
-        ? hexToRgba(color, ANNO_FILL_ALPHA.SHAPE)
-        : styles.fillColor;
+      let fiilColor = styles.fillColor;
+      if (!isFocus && !isJustCreated) {
+        fiilColor = hexToRgba(color, ANNO_FILL_ALPHA.DEFAULT_SHAPE);
+      }
       let thickness = styles.thickness;
       if (displayOptionsResult) {
         if (!displayOptionsResult.showSegFilling && !isFocus) {

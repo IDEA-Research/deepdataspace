@@ -132,13 +132,12 @@ const View: React.FC<ViewProps> = (props) => {
   });
 
   const { addObject, initObjectList, updateObject } = useObjects({
-    annotations,
-    setAnnotations,
+    mode: EditorMode.View,
+    categories,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
     setEditState,
-    mode: EditorMode.View,
     translateToObject,
     updateHistory,
   });

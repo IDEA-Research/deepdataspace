@@ -2,10 +2,10 @@ import { LineType } from '../type';
 
 export const ANNO_FILL_ALPHA = {
   DEFAULT: 0,
+  DEFAULT_SHAPE: 0.35,
   CREATING: 0,
-  SHAPE: 0.4,
+  JUST_CREATED: 0.5,
   FOCUS: 0.6,
-  ACTIVE: 0.2,
   CTRL_TO_SELECT: 0.1,
   OTHER: 0,
 };
@@ -22,7 +22,8 @@ export const ANNO_STROKE_ALPHA = {
 export const ANNO_MASK_ALPHA = {
   CREATING: 0.7,
   FOCUS: 0.7,
-  DEFAULT: 0.5,
+  JUST_CREATED: 0.5,
+  DEFAULT: 0.35,
 };
 
 export const ANNO_STROKE_COLOR = {
