@@ -271,6 +271,7 @@ const useMouseEvents = ({
             s.focusObjectIndex = -1;
           });
         } else {
+          s.AIAnnotation = false;
           s.activeObjectIndex = index;
           if (!s.objectList[index]?.frameEmpty) {
             s.creatingObject = {
@@ -413,9 +414,14 @@ const useMouseEvents = ({
         // 3. Active object
         selectFocusObject(editState.focusObjectIndex, event);
       } else {
-        // 4. Drag object
+        // 4. Drag image
         setEditState((s) => {
           s.allowMove = true;
+        });
+        setDrawData((s) => {
+          s.activeObjectIndex = -1;
+          s.editingAttribute = undefined;
+          s.creatingObject = undefined;
         });
       }
     }

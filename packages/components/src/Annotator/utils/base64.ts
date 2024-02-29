@@ -47,8 +47,13 @@ export const isHttpsUrl = (str: string) => {
   return httpsRegex.test(str);
 };
 
+export const isHttpUrl = (str: string) => {
+  const httpsRegex = /^http?:\/\//i;
+  return httpsRegex.test(str);
+};
+
 export const getServerAddressableUrl = async (url: string) => {
-  if (isBlobUrl(url)) {
+  if (isBlobUrl(url) || isHttpUrl(url)) {
     return await getImageBase64(url);
   }
   return url;

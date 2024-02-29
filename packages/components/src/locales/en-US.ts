@@ -156,7 +156,9 @@ export default {
     'Sorry, this feature is not available in the local version of DeepDataSpace currently. Please visit the official website for more information. You can contact us (deepdataspace_dm@idea.edu.cn) for a priority experience of intelligent annotate.',
   'DDSAnnotator.smart.infoModal.action': 'Visit Our Website',
   'DDSAnnotator.smart.detection.name': 'Intelligent Object Detection',
-  'DDSAnnotator.smart.detection.input': 'Select or enter categories',
+  'DDSAnnotator.smart.detection.label': 'Target Detection Label',
+  'DDSAnnotator.smart.detection.prompt': 'Prompt',
+  'DDSAnnotator.smart.detection.input': 'Enter prompt text',
   'DDSAnnotator.smart.segmentation.name': 'Intelligent Segmentation (Polygon)',
   'DDSAnnotator.smart.pose.name': 'Intelligent Pose Estimation',
   'DDSAnnotator.smart.mask.name': 'Intelligent Panoramic Segmentation',
@@ -183,7 +185,8 @@ export default {
   'DDSAnnotator.smart.msg.loading': 'Loading Intelligent Annotation...',
   'DDSAnnotator.smart.msg.success': 'Request Annotations Successfully',
   'DDSAnnotator.smart.msg.error': 'Request Annotations Failed',
-  'DDSAnnotator.smart.msg.labelRequired': 'Please select one category at least',
+  'DDSAnnotator.smart.msg.labelRequired':
+    'Please enter one detection target at least',
   'DDSAnnotator.smart.msg.confResults': '{count} matching annotations shown',
   'DDSAnnotator.smart.msg.applyConf':
     '{count} annotations have been retained, with the others removed.',
@@ -203,11 +206,16 @@ export default {
   'DDSAnnotator.smart.tip.annotationApplied': '{count} annotations applied.',
   'DDSAnnotator.smart.tip.visualPrompt':
     'Add more visual prompts or accept current objects',
+  'DDSAnnotator.smart.tip.edgeStitchError':
+    'To ensure valid results when using intelligent edge stitching, make sure to use at least 2 mask objects.',
+  'DDSAnnotator.smart.tip.limitJump':
+    'You should finish or exit current intelligent session first',
+
   'DDSAnnotator.seg.tool': 'Segmentation tool',
   'DDSAnnotator.seg.tool.content': 'Accept the segmentation result.',
   'DDSAnnotator.confirm': 'Confirm',
   'DDSAnnotator.points.editor': 'Points Attributes',
-  'DDSAnnotator.attribute.add': 'Add label attributes',
+  'DDSAnnotator.attribute.modal': 'Label attributes',
   'DDSAnnotator.attribute.edit': 'Edit label attributes',
   'DDSAnnotator.attribute.input': 'Please input',
   'DDSAnnotator.attribute.required': 'Please fill in all required fields.',

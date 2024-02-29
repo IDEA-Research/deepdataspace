@@ -3,7 +3,7 @@ import Icon from '@ant-design/icons/lib/components/Icon';
 import { Button, Card, Input, Slider, Space } from 'antd';
 import classNames from 'classnames';
 import { useLocale } from 'dds-utils/locale';
-import { useMemo, memo } from 'react';
+import { useMemo, useState, memo, useEffect } from 'react';
 import { useImmer } from 'use-immer';
 
 import { ReactComponent as DragToolIcon } from '../../assets/drag.svg';
@@ -33,9 +33,8 @@ interface IProps {
   isBatchEditing: boolean;
   isCtrlPressed: boolean;
   naturalSize: ISize;
-  aiLabels?: string;
   limitConf: number;
-  setAiLabels: (labels?: string) => void;
+  latestLabel: string;
   forceChangeTool: (tool: EBasicToolItem, subtool: ESubToolItem) => void;
   onExitAIAnnotation: () => void;
   onAiAnnotation: OnAiAnnotationFunc;
@@ -53,10 +52,9 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     AIAnnotation,
     isBatchEditing,
     isCtrlPressed,
-    aiLabels,
     naturalSize,
     limitConf,
-    setAiLabels,
+    latestLabel,
     onExitAIAnnotation,
     onAiAnnotation,
     onChangeConfidenceRange,
@@ -66,6 +64,13 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
     forceChangeTool,
   }) => {
     const { localeText } = useLocale();
+    const [promptText, setPromptText] = useState<string | undefined>(
+      () => latestLabel,
+    );
+
+    useEffect(() => {
+      setPromptText(latestLabel);
+    }, [latestLabel]);
 
     /** Parameters for requesting segmemt everything API */
     const [samParams, setSamParams] = useImmer({
@@ -263,23 +268,35 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                   </div>
                 </div>
               ) : (
-                <div className="dds-annotator-smart-container-content-item">
-                  <Input
-                    style={{ width: 250 }}
-                    placeholder={localeText(
-                      'DDSAnnotator.smart.detection.input',
-                    )}
-                    value={aiLabels}
-                    onChange={(e) => setAiLabels(e.target.value)}
-                    onKeyUp={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  />
-                  <Button
-                    type="primary"
-                    onClick={() => onAiAnnotation({ aiLabels })}
-                  >
-                    {localeText('DDSAnnotator.smart.annotate')}
-                  </Button>
+                <div className="dds-annotator-smart-container-content-column-item">
+                  <div>
+                    <span>
+                      {localeText('DDSAnnotator.smart.detection.label')}:
+                    </span>
+                    {latestLabel}
+                  </div>
+                  <div className="dds-annotator-smart-container-content-column-item-row">
+                    <span>
+                      {localeText('DDSAnnotator.smart.detection.prompt')}:
+                    </span>
+                    <Input
+                      placeholder={localeText(
+                        'DDSAnnotator.smart.detection.input',
+                      )}
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      onKeyUp={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    />
+                  </div>
+                  <div className="dds-annotator-smart-container-content-column-item-right">
+                    <Button
+                      type="primary"
+                      onClick={() => onAiAnnotation({ text: promptText })}
+                    >
+                      {localeText('DDSAnnotator.smart.annotate')}
+                    </Button>
+                  </div>
                 </div>
               ))}
             {((selectedTool === EBasicToolItem.Rectangle &&
@@ -343,38 +360,10 @@ const SmartAnnotationControl: React.FC<IProps> = memo(
                 </>
               ) : (
                 <>
-                  {/* <div className="dds-annotator-smart-container-content-param-controls">
-                    <div className="dds-annotator-smart-container-content-param-item">
-                      <div className="dds-annotator-smart-container-content-param-item-title">
-                        {localeText('DDSAnnotator.smart.modelTyle')}
-                      </div>
-                      <Select
-                        className="dds-annotator-smart-container-content-param-item-select"
-                        placeholder={localeText(
-                          'DDSAnnotator.smart.pose.input',
-                        )}
-                        showSearch
-                        value={aiLabels}
-                        onChange={(value) => setAiLabels(value)}
-                        onSearch={(value) => setInputText(value)}
-                        onInputKeyDown={(e) => {
-                          if (e.code !== 'Enter') {
-                            e.stopPropagation();
-                          }
-                        }}
-                        // @ts-ignore
-                        getPopupContainer={() =>
-                          document.getElementById('smart-annotation-editor')
-                        }
-                      >
-                        {labelOptions}
-                      </Select>
-                    </div>
-                  </div> */}
                   <Button
                     style={{ alignSelf: 'flex-end' }}
                     type="primary"
-                    onClick={() => onAiAnnotation({ aiLabels })}
+                    onClick={() => onAiAnnotation({})}
                   >
                     {localeText('DDSAnnotator.smart.annotate')}
                   </Button>

@@ -134,13 +134,12 @@ const Preview: React.FC<PreviewProps> = (props) => {
   });
 
   const { addObject, initObjectList, updateObject } = useObjects({
-    annotations,
-    setAnnotations,
+    mode: EditorMode.View,
+    categories,
     drawData,
     setDrawData,
     setDrawDataWithHistory,
     setEditState,
-    mode: EditorMode.View,
     translateToObject,
     updateHistory,
   });

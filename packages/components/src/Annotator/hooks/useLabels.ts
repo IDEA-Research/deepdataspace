@@ -1,5 +1,5 @@
 import { cloneDeep } from 'lodash';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Updater } from 'use-immer';
 
 import {
@@ -43,7 +43,6 @@ export default function useLabels({
   updateObjectWithoutHistory,
   updateAllObjectWithoutHistory,
 }: IProps) {
-  const [aiLabels, setAiLabels] = useState<string | undefined>(undefined);
   const curObjects = drawData.objectList;
 
   const labelOptions: Category[] = useMemo(() => {
@@ -182,11 +181,17 @@ export default function useLabels({
     }
   }, [drawData.activeObjectIndex]);
 
+  const latestLabel = useMemo(() => {
+    const label = labelOptions.find(
+      (item) => item.id === editState.latestLabelId,
+    );
+    return label?.labelName || label?.name || '';
+  }, [labelOptions, editState.latestLabelId]);
+
   return {
     labelOptions,
+    latestLabel,
     classificationOptions,
-    aiLabels,
-    setAiLabels,
     curObjects,
     onChangeObjectHidden,
     onChangeCategoryHidden,

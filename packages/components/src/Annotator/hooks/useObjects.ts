@@ -4,7 +4,6 @@ import { Updater } from 'use-immer';
 
 import { EElementType, EObjectType } from '../constants';
 import {
-  BaseObject,
   DrawData,
   EditState,
   EditorMode,
@@ -13,12 +12,12 @@ import {
   IEditingAttribute,
   EObjectStatus,
   VideoFramesData,
+  Category,
 } from '../type';
 
 interface IProps {
   mode: EditorMode;
-  annotations: BaseObject[];
-  setAnnotations: Updater<BaseObject[]>;
+  categories: Category[];
   drawData: DrawData;
   setDrawData: Updater<DrawData>;
   setDrawDataWithHistory: Updater<DrawData>;
@@ -30,12 +29,12 @@ interface IProps {
     object: IAnnotationObject,
     index: number,
   ) => IEditingAttribute | undefined;
-  limitActiveObjectAfterCreate?: boolean;
   updateHistory: (drawData: DrawData, theframesData?: VideoFramesData) => void;
 }
 
 const useObjects = ({
   mode,
+  categories,
   drawData,
   setDrawData,
   setDrawDataWithHistory,
@@ -44,7 +43,6 @@ const useObjects = ({
   setEditState,
   translateToObject,
   judgeEditingAttribute,
-  limitActiveObjectAfterCreate,
   updateHistory,
 }: IProps) => {
   const initObjectList = (annotations: DrawObject[]) => {
@@ -87,25 +85,22 @@ const useObjects = ({
     });
   };
 
-  const addObject = (object: IAnnotationObject, notActive?: boolean) => {
+  const addObject = (object: IAnnotationObject) => {
     if (mode !== EditorMode.Edit) return;
     setDrawDataWithHistory((s) => {
       s.objectList.push(object);
+      s.isJustCreated = true;
+      s.creatingObject = undefined;
+      s.activeObjectIndex = -1;
+      s.activeClassName =
+        categories.find((item) => item.id === object.labelId)?.name || '';
 
-      if (limitActiveObjectAfterCreate) {
-        s.creatingObject = undefined;
-        s.activeObjectIndex = -1;
-      } else {
-        s.creatingObject = { ...object };
-        s.activeObjectIndex = notActive ? -1 : s.objectList.length - 1;
-
-        // Show attribut editor
-        if (judgeEditingAttribute) {
-          s.editingAttribute = judgeEditingAttribute(
-            object,
-            s.objectList.length - 1,
-          );
-        }
+      // Show attribut editor
+      if (judgeEditingAttribute) {
+        s.editingAttribute = judgeEditingAttribute(
+          object,
+          s.objectList.length - 1,
+        );
       }
     });
   };
@@ -180,6 +175,7 @@ const useObjects = ({
       if (s.creatingObject && s.objectList[s.activeObjectIndex]) {
         s.creatingObject = { ...s.objectList[s.activeObjectIndex] };
       }
+      s.isJustCreated = false;
     });
   };
 
@@ -207,7 +203,7 @@ const useObjects = ({
 
   const commitedObjects = useMemo(() => {
     return drawData.objectList.filter((obj) => {
-      return obj.status === EObjectStatus.Commited;
+      return obj?.status === EObjectStatus.Commited;
     });
   }, [drawData.isBatchEditing, drawData.objectList]);
 
