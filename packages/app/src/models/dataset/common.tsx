@@ -411,6 +411,7 @@ export default () => {
         });
     },
     [
+      pageState.filterValues.categoryId,
       pageState.filterValues.displayAnnotationType,
       pageState.comparisons,
       pageData.filters.labels,
