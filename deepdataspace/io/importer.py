@@ -327,10 +327,10 @@ class Importer(ImportHelper, abc.ABC):
         """
         A post-run hook for subclass importers.
         """
+        logger.info(f"Add cover to dataset [{self.dataset.name}]@[{self.dataset.id}]")
         self.dataset.add_cover()
-        DataSet.update_one({"id": self.dataset.id}, {"status": DatasetStatus.Ready})
-        self.dataset = DataSet.find_one({"id": self.dataset.id})
 
+        logger.info(f"Add indices to dataset [{self.dataset.name}]@[{self.dataset.id}]")
         dataset_id = self.dataset.id
         Image(dataset_id).get_collection().create_index([
             ("objects.category_id", 1),
@@ -339,6 +339,10 @@ class Importer(ImportHelper, abc.ABC):
         Image(dataset_id).get_collection().create_index([
             ("idx", 1)
         ])
+
+        logger.info(f"Set status ready for dataset [{self.dataset.name}]@[{self.dataset.id}]")
+        DataSet.update_one({"id": self.dataset.id}, {"status": DatasetStatus.Ready})
+        self.dataset = DataSet.find_one({"id": self.dataset.id})
 
     def on_error(self, err: Exception):
         """
