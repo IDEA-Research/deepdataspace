@@ -17,8 +17,8 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 
-from tqdm import tqdm
 from pymongo import WriteConcern
+from tqdm import tqdm
 
 from deepdataspace import constants
 from deepdataspace.constants import AnnotationType
@@ -325,11 +325,20 @@ class Importer(ImportHelper, abc.ABC):
 
     def post_run(self):
         """
-        A post-run hook for subclass importers to clean up data.
+        A post-run hook for subclass importers.
         """
         self.dataset.add_cover()
         DataSet.update_one({"id": self.dataset.id}, {"status": DatasetStatus.Ready})
         self.dataset = DataSet.find_one({"id": self.dataset.id})
+
+        dataset_id = self.dataset.id
+        Image(dataset_id).get_collection().create_index([
+            ("objects.category_id", 1),
+        ])
+
+        Image(dataset_id).get_collection().create_index([
+            ("idx", 1)
+        ])
 
     def on_error(self, err: Exception):
         """
@@ -348,13 +357,13 @@ class Importer(ImportHelper, abc.ABC):
         """
 
         pipeline = [
-            {"$project": {"flag": 1,
+            {"$project": {"flag"   : 1,
                           "flag_ts": 1,
                           "objects": {
                               "$filter": {
                                   "input": "$objects",
-                                  "as": "object",
-                                  "cond": {
+                                  "as"   : "object",
+                                  "cond" : {
                                       "$eq": ["$$object.label_type", LabelType.User]
                                   }
                               }
@@ -374,7 +383,7 @@ class Importer(ImportHelper, abc.ABC):
 
             self._user_data[image_id] = {
                 "objects": user_objects,
-                "flag": flag,
+                "flag"   : flag,
                 "flag_ts": flag_ts,
             }
 
@@ -400,7 +409,7 @@ class Importer(ImportHelper, abc.ABC):
 
         desc = f"dataset[{self.dataset.name}@{self.dataset.id}] import progress"
         for (image, anno_list) in tqdm(self, desc=desc, unit=" images"):
-        # for (image, anno_list) in self:
+            # for (image, anno_list) in self:
             image = self.dataset_import_image(self.dataset, **image)
             self.image_add_user_data(image)
             for anno in anno_list:
