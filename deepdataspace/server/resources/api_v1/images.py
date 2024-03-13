@@ -6,11 +6,12 @@ RESTful API for images.
 
 import json
 import logging
+from random import randint
 
 from deepdataspace.constants import DatasetFileType
 from deepdataspace.constants import DatasetStatus
+from deepdataspace.constants import DatasetType
 from deepdataspace.constants import ErrCode
-from deepdataspace.constants import LabelType
 from deepdataspace.model import DataSet
 from deepdataspace.model.image import Image
 from deepdataspace.plugins.coco2017 import COCO2017Importer
@@ -19,7 +20,6 @@ from deepdataspace.utils.http import BaseAPIView
 from deepdataspace.utils.http import format_response
 from deepdataspace.utils.http import parse_arguments
 from deepdataspace.utils.http import raise_exception
-from deepdataspace.constants import DatasetType
 
 logger = logging.getLogger("django")
 
@@ -68,9 +68,9 @@ class ImagesView(BaseAPIView):
         Argument("dataset_id", str, Argument.QUERY, required=True),
         Argument("category_id", str, Argument.QUERY, required=False),
         Argument("flag", int, Argument.QUERY, required=False),
-        Argument("label_id", str, Argument.QUERY, required=False),
         Argument("page_num", Argument.PositiveInt, Argument.QUERY, default=1),
-        Argument("page_size", Argument.PositiveInt, Argument.QUERY, default=100)
+        Argument("page_size", Argument.PositiveInt, Argument.QUERY, default=100),
+        Argument("offset", int, Argument.QUERY, required=False, default=None),
     ]
 
     def get(self, request):
@@ -79,7 +79,7 @@ class ImagesView(BaseAPIView):
         - GET /api/v1/images
         """
 
-        dataset_id, category_id, flag, label_id, page_num, page_size = parse_arguments(request, self.get_args)
+        dataset_id, category_id, flag, page_num, page_size, offset = parse_arguments(request, self.get_args)
 
         dataset = DataSet.find_one({"_id": dataset_id})
         if dataset is None:
@@ -92,73 +92,108 @@ class ImagesView(BaseAPIView):
 
         filters = {}
         if category_id is not None:
-            filters = {"objects": {
-                "$elemMatch": {
-                    "category_id": category_id,
-                    "label_type" : {"$in": [LabelType.User, LabelType.GroundTruth]}}}
-            }
+            filters["objects.category_id"] = category_id
 
         if flag is not None:
             filters["flag"] = flag
 
         total = Image(dataset_id).count_num(filters)
 
-        image_list = []
-        offset = max(0, page_size * (page_num - 1))
+        if offset is None:
+            skip = max(0, page_size * (page_num - 1))
+        else:
+            skip = 0
+            page_num = None
+            if offset == -1:  # generate a random offset
+                includes = {"_id": 1, "idx": 1}
+                max_idx = Image(dataset_id).find_many(filters, includes,
+                                                      sort=[("idx", -1)],
+                                                      skip=0, size=1,
+                                                      to_dict=True)
+                max_idx = list(max_idx)[0]["idx"]
 
-        includes = {"id", "idx", "flag", "objects", "metadata", "type", "width", "height", "url",
-                    "url_full_res"}
+                min_idx = Image(dataset_id).find_many(filters, includes,
+                                                      sort=[("idx", 1)],
+                                                      skip=0, size=1,
+                                                      to_dict=True)
+                min_idx = list(min_idx)[0]["idx"]
+
+                offset = randint(min_idx, max_idx)
+
+                # try the best to return at least page_size objects
+                if max_idx - offset + 1 < page_size:
+                    offset = max(min_idx, max_idx - page_size + 1)
+                filters["idx"] = {"$gte": offset}
+            elif offset >= 0:  # query by specified offset
+                filters["idx"] = {"$gte": offset}
+            else:
+                raise_exception(ErrCode.BadRequest, f"invalid offset value[{offset}]")
+
+        if skip > total:
+            data = {
+                "image_list": [],
+                "offset"    : offset,
+                "page_size" : page_size,
+                "page_num"  : page_num,
+                "total"     : total
+            }
+            return format_response(data, enable_cache=True)
+
+        includes = {"id", "idx", "flag", "objects", "metadata",
+                    "type", "width", "height", "url", "url_full_res"}
         includes = {i: 1 for i in includes}
 
         req_scheme = request.scheme
         req_host = request.META["HTTP_HOST"]
         req_prefix = f"{req_scheme}://{req_host}"
 
-        if offset <= total:
-            for image in Image(dataset_id).find_many(filters, includes,
-                                                     sort=[("idx", 1)],
-                                                     skip=offset,
-                                                     size=page_size,
-                                                     to_dict=True):
-                for obj in image["objects"]:
-                    obj["source"] = obj["label_type"]  # TODO keep for compatibility, delete this in the future
+        image_list = []
+        for image in Image(dataset_id).find_many(filters,
+                                                 includes,
+                                                 sort=[("idx", 1)],
+                                                 skip=skip,
+                                                 size=page_size,
+                                                 to_dict=True):
+            for obj in image["objects"]:
+                obj["source"] = obj["label_type"]  # TODO keep for compatibility, delete this in the future
 
-                    alpha = obj.get("alpha", "")
-                    if alpha is None:
-                        obj["alpha"] = ""
-                    elif not alpha.startswith("http"):
-                        obj["alpha"] = f"{req_prefix}{alpha}"
+                alpha = obj.get("alpha", "")
+                if alpha is None:
+                    obj["alpha"] = ""
+                elif not alpha.startswith("http"):
+                    obj["alpha"] = f"{req_prefix}{alpha}"
 
-                    if obj["segmentation"] is None:
-                        obj["segmentation"] = ""
+                if obj["segmentation"] is None:
+                    obj["segmentation"] = ""
 
-                    obj["caption"] = obj["caption"] or ""
+                obj["caption"] = obj["caption"] or ""
 
-                    obj.pop("compare_result", None)
+                obj.pop("compare_result", None)
 
-                image_url = image["url"]
-                image_url = concat_url(req_prefix, image_url)
+            image_url = image["url"]
+            image_url = concat_url(req_prefix, image_url)
 
-                image_url_full_res = image["url_full_res"] or image_url
-                image_url_full_res = concat_url(req_prefix, image_url_full_res)
+            image_url_full_res = image["url_full_res"] or image_url
+            image_url_full_res = concat_url(req_prefix, image_url_full_res)
 
-                desc = image.pop("metadata") or "{}"
+            desc = image.pop("metadata") or "{}"
 
-                image.update({
-                    "desc"        : desc,
-                    "metadata"    : json.loads(desc),
-                    "url"         : image_url,
-                    "url_full_res": image_url_full_res
-                })
+            image.update({
+                "desc"        : desc,
+                "metadata"    : json.loads(desc),
+                "url"         : image_url,
+                "url_full_res": image_url_full_res
+            })
 
-                image["caption"] = ""
-                if caption_generator:
-                    image["caption"] = caption_generator(image)
+            image["caption"] = ""
+            if caption_generator:
+                image["caption"] = caption_generator(image)
 
-                image_list.append(image)
+            image_list.append(image)
 
         data = {
             "image_list": image_list,
+            "offset"    : offset,
             "page_size" : page_size,
             "page_num"  : page_num,
             "total"     : total

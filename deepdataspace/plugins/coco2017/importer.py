@@ -34,6 +34,8 @@ class COCO2017Importer(FileImporter):
         info = self.parse_meta(meta_path)
         if info is None:
             raise RuntimeError(f"Cannot import coco dataset: {meta_path}")
+        else:
+            logger.info(f"Successfully parsed meta file {meta_path}: {info}")
 
         dataset_name = info["dataset_name"]
         self.ground_truth = info["ground_truth"]
@@ -100,9 +102,8 @@ class COCO2017Importer(FileImporter):
             logger.error(traceback.format_exc())
             logger.error(f"Failed to parse meta file {meta_path}: {err}")
             return None
-
-        logger.info(f"Successfully parsed meta file {meta_path}: {info}")
-        return info
+        else:
+            return info
 
     def load_ground_truth(self):
         with open(self.ground_truth, "r", encoding="utf8") as fp:
