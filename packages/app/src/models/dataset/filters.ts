@@ -9,6 +9,7 @@ import {
   IMG_CLOUMN_COUNT_MAX,
 } from '@/constants';
 import { getDefaultDisplayOptions } from '@/utils/datasets';
+import { QueryMode } from './type';
 
 export default () => {
   const { pageState, setPageState, pageData, setPageData } =
@@ -87,6 +88,13 @@ export default () => {
     });
   };
 
+  const onQueryModeChanged = (mode: QueryMode) => {
+    setPageState((s) => {
+      s.queryMode = mode;
+      s.page = 1;
+    });
+  };
+
   return {
     onCategoryChange,
     onColumnCountChange,
@@ -95,5 +103,6 @@ export default () => {
     onLabelsChange,
     onLabelsDiffModeChange,
     onLabelConfidenceChange,
+    onQueryModeChanged,
   };
 };

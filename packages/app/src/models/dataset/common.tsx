@@ -17,6 +17,7 @@ import {
   LabelDiffMode,
   LABEL_SOURCE,
   COMPARE_RESULT_FILL_COLORS,
+  DEFAULT_PAGE_SIZE,
 } from '@/constants';
 import {
   getDefaultDisplayOptions,
@@ -28,6 +29,7 @@ import {
   DEFAULT_PAGE_STATE,
   PageData,
   PageState,
+  QueryMode,
 } from './type';
 import { isNumber } from 'lodash';
 import { NsDataSet } from '@/types/dataset';
@@ -156,6 +158,12 @@ export default () => {
         pageNum: pageState.page,
         pageSize: pageState.pageSize,
       };
+      if (pageState.queryMode === QueryMode.random) {
+        Object.assign(params, {
+          offset: -1,
+          pageSize: DEFAULT_PAGE_SIZE,
+        });
+      }
       if (pageState.comparisons) {
         return fetchComparisonsImgList({
           ...params,
@@ -177,6 +185,7 @@ export default () => {
       refreshDeps: [
         pageState.datasetId,
         pageState.filterValues.categoryId,
+        pageState.queryMode,
         pageState.page,
         pageState.pageSize,
         pageState.comparisons?.precision,

@@ -92,6 +92,9 @@ const localeTexts = {
   'dataset.detail.analModal.diff': '对比',
   'dataset.detail.analModal.score': '分数',
   'dataset.detail.analModal.exit': '退出分析',
+  'dataset.detail.pagination': '按页查询',
+  'dataset.detail.random': '随机查询',
+  'dataset.detail.randomQuery': '更新随机',
 
   'dataset.toAnalysis.unSupportWarn': '您应该先加载包含目标检测结果的预标注集',
   'dataset.toAnalysis.unSelectWarn': '请选择一个预标注集',

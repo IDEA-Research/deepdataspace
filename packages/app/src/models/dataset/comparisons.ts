@@ -9,7 +9,7 @@ import {
   COMPARISONS_DISPLAY_OPTOIONS,
   AnnotationType,
 } from '@/constants';
-import { Comparisons } from './type';
+import { Comparisons, QueryMode } from './type';
 import { floorFloatNum } from 'dds-utils/digit';
 import { NsDataSet } from '@/types/dataset';
 
@@ -29,6 +29,7 @@ export default () => {
   /** Enter the comparison analysis. */
   const compareLabelSet = (label: NsDataSet.Label) => {
     setPageState((s) => {
+      s.queryMode = QueryMode.pagination;
       s.page = 1;
       s.filterValues.displayAnnotationType = AnnotationType.Detection; // just support detection now
       s.flagTools = undefined;

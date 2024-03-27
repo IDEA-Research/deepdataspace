@@ -99,6 +99,9 @@ const localeTexts = {
   'dataset.detail.analModal.diff': ' Diff',
   'dataset.detail.analModal.score': 'score',
   'dataset.detail.analModal.exit': 'Exit Analysis',
+  'dataset.detail.pagination': 'Pagination',
+  'dataset.detail.random': 'Random',
+  'dataset.detail.randomQuery': 'Random',
 
   'dataset.toAnalysis.unSupportWarn':
     'You should have a prediction label set with detection annotaion first',
