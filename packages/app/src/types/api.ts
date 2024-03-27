@@ -23,6 +23,7 @@ export namespace NsApiDataset {
 
   export interface FetchImgListRsp {
     imageList: Array<NsDataSet.DataSetImg>;
+    offset: number;
     total: number;
   }
 

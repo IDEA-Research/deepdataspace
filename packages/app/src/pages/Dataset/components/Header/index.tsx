@@ -87,7 +87,7 @@ const Header: React.FC = () => {
                 type="text"
                 icon={<RandomIcon />}
                 className={styles.randomBtn}
-                onClick={() => loadImgList()}
+                onClick={() => loadImgList(false, true)}
               >
                 {localeText('dataset.detail.randomQuery')}
               </Button>

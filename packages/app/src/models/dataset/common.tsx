@@ -135,7 +135,7 @@ export default () => {
   );
 
   const { loading: loadingImgList, run: loadImgList } = useRequest(
-    (isSlient = false) => {
+    (isSlient = false, withouOffset = false) => {
       // when to load slient
       if (!pageState.datasetId || !pageState.filterValues.categoryId) {
         throw null;
@@ -160,7 +160,7 @@ export default () => {
       };
       if (pageState.queryMode === QueryMode.random) {
         Object.assign(params, {
-          offset: -1,
+          offset: withouOffset ? -1 : pageState.offset,
           pageSize: DEFAULT_PAGE_SIZE,
         });
       }
@@ -196,6 +196,9 @@ export default () => {
         setPageData((s) => {
           s.imgList = result.imageList;
           s.total = result.total;
+        });
+        setPageState((s) => {
+          s.offset = isNumber(result.offset) ? result.offset : -1;
         });
       },
       onError: () => {},
