@@ -19,12 +19,18 @@ export interface Comparisons {
   score: number;
 }
 
+export enum QueryMode {
+  pagination = 0,
+  random,
+}
+
 /**
  * Saved in the URL.
  */
 export interface PageState {
   datasetId: string;
   datasetName: string;
+  queryMode: QueryMode;
   page: number;
   pageSize: number;
   // config
@@ -62,6 +68,7 @@ export const DEFAULT_FILTER_VALUES = {
 export const DEFAULT_PAGE_STATE = {
   datasetId: '',
   datasetName: '',
+  queryMode: QueryMode.pagination,
   page: 1,
   pageSize: DEFAULT_PAGE_SIZE,
   cloumnCount: 5,

@@ -8,6 +8,7 @@
   justify-items: center;
   background-color: white;
   border-bottom: 1px solid #f0f0f0;
+  overflow-x: scroll;
 
   .filter {
     position: relative;
@@ -27,5 +28,25 @@
 
   .dropBtn {
     margin-left: 16px;
+    white-space: nowrap;
+  }
+
+  .randomBtn {
+    margin: 0 8px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: @colorPrimary;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: @colorPrimary;
+    }
+
+    &:hover {
+      color: @colorPrimary !important;
+    }
   }
 }

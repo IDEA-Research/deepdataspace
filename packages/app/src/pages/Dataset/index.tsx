@@ -13,6 +13,7 @@ import { ReactComponent as FlagIcon } from '@/assets/svg/flag.svg';
 import { IMG_FLAG, IMG_FLAG_COLOR } from '@/constants';
 import { doubleImgList } from '@/utils/datasets';
 import styles from './index.less';
+import { QueryMode } from '@/models/dataset/type';
 
 const Page: React.FC = () => {
   const {
@@ -142,7 +143,7 @@ const Page: React.FC = () => {
         </List>
       </div>
       {/* Pagination */}
-      {!loading && (
+      {!loading && pageState.queryMode === QueryMode.pagination && (
         <DynamicPagination
           current={pageState.page}
           size={pageState.pageSize}
