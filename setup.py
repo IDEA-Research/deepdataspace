@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-version = "0.11.0"
+version = "0.11.1"
 
 description = "A tool for CV dataset labeling, visualizing and analysing"
 with open("README.md", "r", encoding="utf8") as fp:
