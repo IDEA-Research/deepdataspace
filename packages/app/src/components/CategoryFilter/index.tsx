@@ -32,7 +32,10 @@ const CategoryFilter: React.FC<IProps> = (props) => {
         optionFilterProp="label"
         value={categoryId}
         onChange={onCategoryChange}
-        getPopupContainer={() => document.getElementById('filterWrap')!}
+        // @ts-ignore
+        getPopupContainer={() =>
+          document.getElementById('filterWrap')?.parentElement || null
+        }
       />
     </div>
   );

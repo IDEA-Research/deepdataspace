@@ -17,6 +17,7 @@ import {
   LabelDiffMode,
   LABEL_SOURCE,
   COMPARE_RESULT_FILL_COLORS,
+  DEFAULT_PAGE_SIZE,
 } from '@/constants';
 import {
   getDefaultDisplayOptions,
@@ -28,6 +29,7 @@ import {
   DEFAULT_PAGE_STATE,
   PageData,
   PageState,
+  QueryMode,
 } from './type';
 import { isNumber } from 'lodash';
 import { NsDataSet } from '@/types/dataset';
@@ -133,7 +135,7 @@ export default () => {
   );
 
   const { loading: loadingImgList, run: loadImgList } = useRequest(
-    (isSlient = false) => {
+    (isSlient = false, withouOffset = false) => {
       // when to load slient
       if (!pageState.datasetId || !pageState.filterValues.categoryId) {
         throw null;
@@ -156,6 +158,12 @@ export default () => {
         pageNum: pageState.page,
         pageSize: pageState.pageSize,
       };
+      if (pageState.queryMode === QueryMode.random) {
+        Object.assign(params, {
+          offset: withouOffset ? -1 : pageState.offset,
+          pageSize: DEFAULT_PAGE_SIZE,
+        });
+      }
       if (pageState.comparisons) {
         return fetchComparisonsImgList({
           ...params,
@@ -177,6 +185,7 @@ export default () => {
       refreshDeps: [
         pageState.datasetId,
         pageState.filterValues.categoryId,
+        pageState.queryMode,
         pageState.page,
         pageState.pageSize,
         pageState.comparisons?.precision,
@@ -187,6 +196,9 @@ export default () => {
         setPageData((s) => {
           s.imgList = result.imageList;
           s.total = result.total;
+        });
+        setPageState((s) => {
+          s.offset = isNumber(result.offset) ? result.offset : -1;
         });
       },
       onError: () => {},
@@ -411,6 +423,7 @@ export default () => {
         });
     },
     [
+      pageState.filterValues.categoryId,
       pageState.filterValues.displayAnnotationType,
       pageState.comparisons,
       pageData.filters.labels,

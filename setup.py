@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-version = "0.10.0"
+version = "0.11.0"
 
 description = "A tool for CV dataset labeling, visualizing and analysing"
 with open("README.md", "r", encoding="utf8") as fp:
@@ -14,8 +14,8 @@ author = "cvr@idea"
 install_requires = [
     "celery==5.2.7",
     "click==8.1.3",
-    "cryptography==41.0.2",
-    "Django==4.1.10",
+    "cryptography==42.0.5",
+    "Django==4.2.10",
     "djangorestframework==3.14.0",
     "django-cors-headers==3.13.0",
     "numpy==1.22.0",

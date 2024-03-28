@@ -57,7 +57,6 @@ export default defineConfig({
   publicPath: process.env.PUBLIC_PATH || '/static/',
   npmClient: 'pnpm',
   routes,
-  devtool: process.env.SENTRY_DSN ? 'source-map' : 'cheap-module-source-map',
   chainWebpack(config) {
     if (process.env.SENTRY_DSN) {
       // upload sourcemaps to sentry
