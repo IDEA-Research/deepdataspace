@@ -1,5 +1,7 @@
 import {
   CloseOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
   LeftOutlined,
   RightOutlined,
   ZoomInOutlined,
@@ -42,6 +44,9 @@ import {
 } from './type';
 
 import './index.less';
+import HighlightText from './components/HighlightText';
+import { useLocale } from 'dds-utils/locale';
+
 
 export interface PreviewProps {
   isOldMode?: boolean; // is old dataset design mode
@@ -69,6 +74,8 @@ const Preview: React.FC<PreviewProps> = (props) => {
     objectsFilter,
     displayOptionsResult,
   } = props;
+
+  const { localeText } = useLocale();
 
   const [annotations, setAnnotations] = useImmer<DrawObject[]>([]);
 
@@ -101,7 +108,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     allowMove: editState.allowMove,
     isRequiring: editState.isRequiring,
     minPadding: {
-      top: 120,
+      top: 150,
       left: 300,
     },
     cursorSize: drawData.brushSize,
@@ -240,11 +247,24 @@ const Preview: React.FC<PreviewProps> = (props) => {
   // =================================================================================================================
 
   const [showInfo, setShowInfo] = useState(true);
+  const [showGrounding, setShowGrounding] = useState(false);
+
+  const metadata = !isEmpty(list[current]?.metadata)
+    ? list[current].metadata
+    : undefined;
+
   const changeShowInfo = useCallback(() => {
     setShowInfo((s) => {
       return !s;
     });
   }, []);
+
+  const changeShowGrounding = useCallback(() => {
+    if (!metadata || !metadata.caption) return;
+    setShowGrounding((s) => {
+      return !s;
+    });
+  }, [metadata]);
 
   /** Snapshot image */
   const onDownload: React.MouseEventHandler<HTMLDivElement> = async (event) => {
@@ -318,7 +338,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
     ) {
       const target =
         drawData.objectList[editState.focusObjectIndex]?.keypoints?.points?.[
-          editState.focusEleIndex
+        editState.focusEleIndex
         ];
       if (target) {
         return (
@@ -337,9 +357,30 @@ const Preview: React.FC<PreviewProps> = (props) => {
     return <></>;
   }
 
-  const metadata = !isEmpty(list[current]?.metadata)
-    ? list[current].metadata
-    : undefined;
+  const getHighlightWords = () => {
+    const objects = list[current].objects;
+    return categories
+      .filter((category) => objects.find((obj: any) => obj.categoryId === category.id))
+      .map((category) => {
+        return {
+          text: category.name,
+          color: getAnnotColor(category.id),
+        }
+      })
+  };
+
+  const highlightCategory = (name: string) => {
+    setDrawData((s) => {
+      const category = categories.find(item => item.name === name);
+      s.highlightCategory = category;
+    });
+  };
+
+  const clearHighlightCategory = () => {
+    setDrawData((s) => {
+      s.highlightCategory = undefined;
+    });
+  };
 
   return (
     <div className="dds-annotator dds-annotator-preview">
@@ -359,6 +400,12 @@ const Preview: React.FC<PreviewProps> = (props) => {
           {
             icon: <DownloadIcon />,
             onClick: onDownload,
+          },
+          {
+            icon: showGrounding ? <EyeOutlined /> : <EyeInvisibleOutlined />,
+            onClick: changeShowGrounding,
+            disabled: !metadata || !metadata.caption,
+            title: showGrounding ? localeText('dataset.detail.hideGrounding') : localeText('dataset.detail.showGrounding'),
           },
         ]}
         rightTools={[
@@ -431,6 +478,17 @@ const Preview: React.FC<PreviewProps> = (props) => {
           <DoubleRightIcon />
         </div>
       )}
+      {
+        showGrounding && !!metadata?.caption &&
+        <div className="dds-annotator-grounding-preview">
+          <HighlightText
+            text={metadata.caption}
+            highlights={getHighlightWords()}
+            onHoverHighlightWord={(text) => highlightCategory(text)}
+            onLeaveHighlightWord={clearHighlightCategory}
+          />
+        </div>
+      }
     </div>
   );
 };
