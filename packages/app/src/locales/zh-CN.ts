@@ -100,6 +100,8 @@ const localeTexts = {
   'dataset.toAnalysis.unSelectWarn': '请选择一个预标注集',
   'dataset.onClickCopyLink.success': '复制链接成功!',
   'dataset.detail.overlay': '覆盖',
+  'dataset.detail.showGrounding': '展示 Grounding',
+  'dataset.detail.hideGrounding': '隐藏 Grounding',
 
   'dataset.filter.newDataset': '新建数据集',
   'dataset.filter.public': '公共',

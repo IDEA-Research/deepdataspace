@@ -102,6 +102,8 @@ const localeTexts = {
   'dataset.detail.pagination': 'Pagination',
   'dataset.detail.random': 'Random',
   'dataset.detail.randomQuery': 'Random',
+  'dataset.detail.showGrounding': 'Show Grounding',
+  'dataset.detail.hideGrounding': 'Hide Grounding',
 
   'dataset.toAnalysis.unSupportWarn':
     'You should have a prediction label set with detection annotaion first',
