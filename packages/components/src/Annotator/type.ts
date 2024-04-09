@@ -225,6 +225,7 @@ export interface DrawData {
   isBatchEditing: boolean; // active while handle batch predictions by model
   editingAttribute?: IEditingAttribute;
   limitConf: number;
+  highlightCategory?: Category;
 
   /** prompt actions */
   prompt: IPrompt;
@@ -296,6 +297,7 @@ export const DEFAULT_DRAW_DATA: DrawData = {
   isJustCreated: false,
   creatingObject: undefined,
   editingAttribute: undefined,
+  highlightCategory: undefined,
   brushSize: 20,
   pointResolution: 0.5,
   prompt: {},

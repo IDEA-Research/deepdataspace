@@ -167,7 +167,7 @@ const useCanvasRender = ({
       } else if (
         theDrawData.selectedTool === EBasicToolItem.Rectangle &&
         theDrawData.selectedModel[theDrawData.selectedTool] ===
-          EnumModelType.IVP
+        EnumModelType.IVP
       ) {
         objectHooksMap[EObjectType.Rectangle].renderPrompt({
           prompt,
@@ -213,8 +213,8 @@ const useCanvasRender = ({
     const status = isFocus
       ? 'focus'
       : isJustCreated
-      ? 'justCreated'
-      : undefined;
+        ? 'justCreated'
+        : undefined;
     const styles = getObjectStyles(object, object.color, status);
 
     // Change globalAlpha when creating / editing object
@@ -315,6 +315,20 @@ const useCanvasRender = ({
         false,
       );
     }
+
+    // render highlight object when hover caption
+    if (!!drawData.highlightCategory) {
+      const highlights = theDrawData.objectList
+          .filter(obj => obj.labelId === drawData.highlightCategory!.id);
+
+      highlights.forEach((obj) => {
+        renderObject(
+          obj,
+          true,
+          false
+        );
+      });
+    }
   };
 
   const renderPopoverMenu = () => {
@@ -327,7 +341,7 @@ const useCanvasRender = ({
     ) {
       const target =
         drawData.objectList[editState.focusObjectIndex].keypoints?.points?.[
-          editState.focusEleIndex
+        editState.focusEleIndex
         ];
       if (target) {
         return (
