@@ -358,7 +358,7 @@ const Preview: React.FC<PreviewProps> = (props) => {
   }
 
   const getHighlightWords = () => {
-    const objects = list[current].objects;
+    const objects = objectsFilter ? objectsFilter(list[current]) : list[current].objects;
     return categories
       .filter((category) => objects.find((obj: any) => obj.categoryId === category.id))
       .map((category) => {
