@@ -140,8 +140,8 @@ export default {
   'DDSAnnotator.smart.modelSelectModal.title': '开启智能标注',
   'DDSAnnotator.smart.infoModal.title': '体验智能标注',
   'DDSAnnotator.smart.infoModal.content':
-    '抱歉, DeepDataSpace的本地版本暂时不支持智能标注功能, 您可以前往官网了解更多信息或联系我们（deepdataspace_dm@idea.edu.cn）获取智能标注的体验通道。',
-  'DDSAnnotator.smart.infoModal.action': '前往官网',
+    '抱歉, DeepDataSpace的本地版本暂时不支持智能标注功能, 您可以前往TRexLabel获得最新体验。',
+  'DDSAnnotator.smart.infoModal.action': '前往TRexLabel',
   'DDSAnnotator.smart.detection.name': '智能目标检测',
   'DDSAnnotator.smart.segmentation.name': '智能图像分割(多边形)',
   'DDSAnnotator.smart.pose.name': '智能姿态估计',
