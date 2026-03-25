@@ -38,6 +38,8 @@ jobs:
           flags: backend
   test_frontend:
     runs-on: ubuntu-22.04
+    env:
+      TZ: Asia/Shanghai
     steps:
       - uses: actions/checkout@v3
       - name: Setup Node.js
