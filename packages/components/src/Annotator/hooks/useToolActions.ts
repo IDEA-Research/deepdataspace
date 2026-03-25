@@ -440,7 +440,7 @@ const useToolActions = ({
       content: localeText('DDSAnnotator.smart.infoModal.content'),
       okText: localeText('DDSAnnotator.smart.infoModal.action'),
       onOk: () => {
-        window.open('https://deepdataspace.com', '_blank');
+        window.open('https://trexlabel.com', '_blank');
       },
     });
   };
@@ -451,11 +451,17 @@ const useToolActions = ({
 
       if (isInAiSession()) return;
 
+      // Intercept enabling AI annotation in any case.
+      if (active) {
+        displayAIModeUnavailableModal();
+        return;
+      }
+
       setDrawData((s) => {
         s.AIAnnotation = active;
       });
     },
-    [mode, manualMode, isInAiSession],
+    [mode, manualMode, isInAiSession, displayAIModeUnavailableModal],
   );
 
   const onChangeSkeletonConf = useCallback(

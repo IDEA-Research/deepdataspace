@@ -153,8 +153,8 @@ export default {
   'DDSAnnotator.smart.modelSelectModal.title': 'Enable AI Annotate',
   'DDSAnnotator.smart.infoModal.title': 'Experience Intelligent Annotate',
   'DDSAnnotator.smart.infoModal.content':
-    'Sorry, this feature is not available in the local version of DeepDataSpace currently. Please visit the official website for more information. You can contact us (deepdataspace_dm@idea.edu.cn) for a priority experience of intelligent annotate.',
-  'DDSAnnotator.smart.infoModal.action': 'Visit Our Website',
+    'Sorry, this feature is not available in the local version of DeepDataSpace currently. You can visit TRexLabel for the latest experience.',
+  'DDSAnnotator.smart.infoModal.action': 'Visit TRexLabel',
   'DDSAnnotator.smart.detection.name': 'Intelligent Object Detection',
   'DDSAnnotator.smart.detection.label': 'Target Detection Label',
   'DDSAnnotator.smart.detection.prompt': 'Prompt',

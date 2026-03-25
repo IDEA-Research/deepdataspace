@@ -1,7 +1,9 @@
 {
   "name": "deepdataspace",
   "private": true,
+  "packageManager": "pnpm@8.15.9",
   "scripts": {
+    "update:app": "chmod +x ./build_frontend.sh && ./build_frontend.sh",
     "build:app": "pnpm run --filter app build",
     "dev": "pnpm -r --parallel run start",
     "dev:app": "pnpm run --filter app dev",
