@@ -80,7 +80,8 @@ export default () => {
       setUser({ isLogin: false });
       message.success(globalLocaleText('logoutSuccess'));
       localStorage.removeItem(STORAGE_KEY.AUTH_TOKEN);
-      history.push('/');
+      // In unit tests (or non-umi runtime), `history` can be undefined.
+      history?.push?.('/');
     } catch (error) {
       console.error('error', error);
       message.error(globalLocaleText('logoutFailed'));

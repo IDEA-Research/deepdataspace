@@ -79,8 +79,8 @@ describe('useModel user', () => {
       await result.current.checkLoginStatus();
       expect(fetchUserInfo).toHaveBeenCalledTimes(1);
     });
-    act(async () => {
-      result.current.limitLoginAction();
+    await act(async () => {
+      await result.current.limitLoginAction();
     });
     expect(result.current.user.isLogin).toEqual(true);
   });
