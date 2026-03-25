@@ -8,6 +8,9 @@ venv
 .DS_Store
 /config.py
 .python-version
+.venv-dds
+.dds-home
+.pypirc
 
 # for runtime file
 /data
